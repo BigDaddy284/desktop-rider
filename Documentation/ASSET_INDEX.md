@@ -6,7 +6,8 @@ Every piece of artwork in the repository, and whether the owner has approved it.
 
 | File | What it is | Source | Status |
 |---|---|---|---|
-| `Assets/Concepts/bike-left-v1.svg` | First concept of the bike, left side, standing still. Hand-drawn vector illustration, 1000 × 700 units, transparent background. | Drawn from the owner's left-side bike photograph. Shows the number 28. Sponsor and brand logos are simplified to plain shapes pending the owner's decision. | **Concept, awaiting the owner's feedback** |
+| `Assets/Concepts/bike-left-v1.svg` | First concept of the bike, left side, standing still. Hand-drawn vector illustration, 1000 × 700 units, transparent background. | Drawn from the owner's left-side bike photograph. Shows the number 28. Sponsor and brand logos are simplified to plain shapes pending the owner's decision. | **Rejected by the owner** (12 Nov 2026): did not look like a motocross bike. Kept for the record. |
+| `Assets/Concepts/bike-left-v2.svg` | Second concept of the bike, left side. Vector illustration with a transparent background, levelled so both wheels sit on the ground. | Traced from measurements of the owner's left-side photograph (February 2012 state: gold ignition cover, black rims, gold hubs, as the owner chose). Logos are simplified shapes pending the owner's decision. | **Concept, awaiting the owner's feedback** |
 
 ## How artwork is produced
 
