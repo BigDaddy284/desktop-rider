@@ -17,14 +17,9 @@ public sealed record TrayMenuEntry(string Text, ICommand? Command, bool IsChecke
     public bool IsSeparator => Command is null && Children is null;
 }
 
-/// <summary>
-/// Another part of Desktop Rider that adds its own lines to the notification-area menu and can show short messages there.
-/// </summary>
+/// <summary>Another part of Desktop Rider that adds its own lines to the notification-area menu.</summary>
 public interface ITrayMenuContributor
 {
-    /// <summary>Raised when the user should be told something beside the icon.</summary>
-    event EventHandler<TrayHintEventArgs>? HintRequested;
-
     /// <summary>The lines to add, as they should look right now. Must return at once without doing any work.</summary>
     IReadOnlyList<TrayMenuEntry> BuildEntries();
 }
@@ -56,7 +51,6 @@ public sealed partial class TrayViewModel : IDisposable
     private readonly ILogger<TrayViewModel> _logger;
     private readonly IReadOnlyList<ITrayMenuContributor> _contributors;
     private bool _wasVisible;
-    private bool _lastHintWasFromAContributor;
 
     public TrayViewModel(
         OverlayViewModel overlay,
@@ -70,12 +64,6 @@ public sealed partial class TrayViewModel : IDisposable
         _wasVisible = overlay.CharacterVisible;
         _overlay.PropertyChanged += OnOverlayChanged;
         _contributors = [.. contributors ?? []];
-        foreach (var contributor in _contributors)
-        {
-            contributor.HintRequested += OnContributorHint;
-        }
-
-        HintClickedCommand = new RelayCommand(OnHintClicked);
     }
 
     /// <summary>Raised when the user should be reminded where the rider has gone.</summary>
@@ -87,8 +75,8 @@ public sealed partial class TrayViewModel : IDisposable
     /// <summary>What a click or double-click on the icon does: hides the rider, or brings it back.</summary>
     public ICommand DefaultCommand => _overlay.ToggleVisibilityCommand;
 
-    /// <summary>What clicking a message does: the "rider is hidden" reminder brings the rider back; other messages do nothing.</summary>
-    public ICommand HintClickedCommand { get; }
+    /// <summary>What clicking the reminder does: brings the rider back.</summary>
+    public ICommand HintClickedCommand => _overlay.ShowCommand;
 
     /// <summary>The menu as it should look right now.</summary>
     public IReadOnlyList<TrayMenuEntry> BuildMenu()
@@ -131,34 +119,9 @@ public sealed partial class TrayViewModel : IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        _overlay.PropertyChanged -= OnOverlayChanged;
-        foreach (var contributor in _contributors)
-        {
-            contributor.HintRequested -= OnContributorHint;
-        }
-    }
+    public void Dispose() => _overlay.PropertyChanged -= OnOverlayChanged;
 
-    private void ShowReminder()
-    {
-        _lastHintWasFromAContributor = false;
-        HintRequested?.Invoke(this, new TrayHintEventArgs(HintTitle, HintMessage));
-    }
-
-    private void OnContributorHint(object? sender, TrayHintEventArgs e)
-    {
-        _lastHintWasFromAContributor = true;
-        HintRequested?.Invoke(this, e);
-    }
-
-    private void OnHintClicked()
-    {
-        if (!_lastHintWasFromAContributor)
-        {
-            _overlay.ShowCommand.Execute(null);
-        }
-    }
+    private void ShowReminder() => HintRequested?.Invoke(this, new TrayHintEventArgs(HintTitle, HintMessage));
 
     private void OnOverlayChanged(object? sender, PropertyChangedEventArgs e)
     {

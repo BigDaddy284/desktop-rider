@@ -38,7 +38,7 @@ Phases 1 and 2 are complete. Phase 5 (Ollama integration) is built and tested au
 | Check | Result |
 |---|---|
 | Build (`dotnet build`, warnings as errors) | Succeeded, 0 warnings, 0 errors |
-| Tests (`dotnet test`) | 248 passed, 0 failed, 0 skipped (Core 130, Animation 51, AI 67) |
+| Tests (`dotnet test`) | 247 passed, 0 failed, 0 skipped (Core 127, Animation 51, AI 69) |
 | GitHub Actions build and test on Windows | Passed for Phase 1; runs again on each push |
 | Standalone Windows build (`dotnet publish`, win-x64) | Succeeded |
 | Manual checks on Windows 11 | The owner ran the 0.3.0 test build: it starts, shows the animated rider and works. M1 to M3 not yet reported step by step. |
@@ -58,6 +58,7 @@ Phases 1 and 2 are complete. Phase 5 (Ollama integration) is built and tested au
 
 ## Known issues
 
+- The owner tried the 0.5.0 build: choosing **Check the AI connection** appeared to do nothing. Results were shown as Windows notifications, which Windows can hide. 0.5.1 shows them in Desktop Rider's own small window instead, starting the moment the menu item is clicked. Whether that was the whole cause is not confirmed until the owner tries 0.5.1.
 - The AI code has only been run against a stand-in for Ollama, because the build machine has no Ollama. The real thing depends on manual check M5.
 - The address, personality, temperature and waiting time have no settings screen yet (Phase 8); they can only be changed in the settings file.
 - The window has never been run by the developer, because the build machine is Linux. Everything visual depends on manual checks M1 and M2.

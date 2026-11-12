@@ -15,9 +15,9 @@ Desktop Rider is a Windows 11 desktop companion: an animated cartoon motocross r
 Desktop Rider talks to [Ollama](https://ollama.com), a free program that runs AI models on your own computer. Nothing is sent to the internet.
 
 1. Install Ollama and add at least one model to it (Ollama's own instructions explain how).
-2. Right-click the Desktop Rider icon beside the clock and choose **Check the AI connection**. A message tells you whether Ollama was found and how many models it has.
+2. Right-click the Desktop Rider icon beside the clock and choose **Check the AI connection**. A small Desktop Rider window opens straight away and tells you whether Ollama was found and how many models it has.
 3. Open the menu again and pick a model under **Choose an AI model**. Desktop Rider never picks one for you.
-4. Choose **Ask the rider to say hello**. The rider's reply appears as a message beside the clock. The first reply can take a while because Ollama has to load the model. While it is working, the menu offers **Stop the rider's reply**.
+4. Choose **Ask the rider to say hello**. The same small window shows the rider's reply as it arrives. The first reply can take a while because Ollama has to load the model. While it is working, the menu offers **Stop the rider's reply**.
 
 If Ollama is not running, Desktop Rider says so and carries on as normal; the rider and its animations do not depend on it. Desktop Rider only contacts Ollama when you choose one of these menu items.
 

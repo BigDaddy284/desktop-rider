@@ -63,7 +63,7 @@ The AI project depends on Core only. Nothing in Animation or Desktop refers to i
 - `OllamaProvider` implements it over Ollama's HTTP interface (`GET /api/tags`, `POST /api/chat` with streaming). It reads the address and waiting time from settings for every request, so a change applies immediately.
 - `AiProviderRegistry` finds the provider named in settings. Adding LM Studio or another local provider later means writing one class and registering it.
 - `AiChatService` is what the rest of the application uses. It applies the user's settings (provider, model, personality, temperature) so callers only pass the conversation. Closing the application cancels anything still in progress.
-- `AiMenuViewModel` adds the AI lines to the icon's menu through `ITrayMenuContributor` (Core): check the connection, choose a model, ask for a hello, stop a reply. The hello line is a stand-in for trying the connection until the conversation window exists (Phase 6).
+- `AiMenuViewModel` adds the AI lines to the icon's menu through `ITrayMenuContributor` (Core): check the connection, choose a model, ask for a hello, stop a reply. It announces progress and results as events; `App` shows them in `MessageWindow`, one reused window whose words are replaced as a reply grows. The hello line is a stand-in for trying the connection until the conversation window exists (Phase 6).
 
 Rules the code follows:
 
@@ -116,7 +116,7 @@ Nothing is sent anywhere. There is no telemetry.
 | 2026-11-12 | The Ollama provider uses `HttpClient` and `System.Text.Json` directly rather than an Ollama client library. | Two simple requests; avoids a dependency and keeps full control of time limits and cancellation. |
 | 2026-11-12 | The reply time limit restarts with each piece received. | Local models can take a long time overall; only silence means something is wrong. |
 | 2026-11-12 | The connection test is the model list request. | One request answers both "is Ollama there?" and "what can I choose?". |
-| 2026-11-12 | Until the conversation window exists, the AI is reached from the icon's menu, with replies shown as messages beside the clock. | Lets the owner prove the connection on their own PC now, without inventing temporary windows. |
+| 2026-11-12 | Until the conversation window exists, the AI is reached from the icon's menu, with progress and replies shown in one small message window (`MessageWindow`). | Lets the owner prove the connection on their own PC now. Messages beside the clock were tried first, but Windows can hide those (Do Not Disturb, notification settings), which left a click looking as if it did nothing. |
 | 2026-11-12 | A built-in personality (DESIGN.md 5.4) is sent unless the user has written their own. It gives the rider no name and says it cannot see the screen. | A sensible default is needed for any reply; names and other details are the owner's to decide. |
-| 2026-11-12 | Clicking a message beside the clock only brings the rider back when the message was the "rider is hidden" reminder. | Clicking an AI message should not undo the user's choice to hide the rider. |
+| 2026-11-12 | Every AI menu choice shows a message the moment it is clicked, before any result. | The user must always see that the click was received, even when Ollama is slow. |
 | 2026-11-12 | The icon is always present while Desktop Rider runs. The "Minimise to system tray" setting is left for the settings screen in Phase 8. | With no taskbar button, the icon is the only way back to a hidden rider. |

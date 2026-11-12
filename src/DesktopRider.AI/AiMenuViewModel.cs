@@ -5,9 +5,18 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DesktopRider.AI;
 
+/// <summary>Something to tell the user about the AI: a short heading and a sentence or two.</summary>
+public sealed class AiMessageEventArgs(string title, string message) : EventArgs
+{
+    public string Title { get; } = title;
+
+    public string Message { get; } = message;
+}
+
 /// <summary>
 /// The AI lines of the notification-area menu: check the connection, choose a model, and ask the rider for a
 /// short hello to prove the whole chain works. Nothing is sent to the AI until the user picks one of these.
+/// Every choice is answered straight away with a message, then with its result, so a click never appears to do nothing.
 /// The hello line is a stand-in until the conversation window arrives.
 /// </summary>
 public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
@@ -19,8 +28,8 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
     public const string StopReplyText = "Stop the rider's reply";
     public const string HelloPrompt = "Say hello to me in one short sentence.";
 
-    /// <summary>Windows cuts notification messages at 255 characters; stay inside that.</summary>
-    public const int MaxMessageLength = 240;
+    /// <summary>Keeps a runaway reply from filling the screen.</summary>
+    public const int MaxMessageLength = 1200;
 
     private readonly IAiChatService _chat;
     private readonly ILogger<AiMenuViewModel> _logger;
@@ -38,7 +47,11 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
         _selectedModelSource = () => settings.Current.Ai.Model;
     }
 
-    public event EventHandler<TrayHintEventArgs>? HintRequested;
+    /// <summary>Raised with the outcome of something the user asked for.</summary>
+    public event EventHandler<AiMessageEventArgs>? MessageRequested;
+
+    /// <summary>Raised while something the user asked for is under way: at once when it starts, and as a reply grows.</summary>
+    public event EventHandler<AiMessageEventArgs>? ProgressChanged;
 
     public IReadOnlyList<TrayMenuEntry> BuildEntries()
     {
@@ -88,6 +101,7 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
 
         try
         {
+            Progress("Checking the AI connection", "Looking for Ollama. This takes a few seconds at most.");
             var report = await _chat.CheckConnectionAsync().ConfigureAwait(false);
             lock (_gate)
             {
@@ -145,9 +159,11 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
         var reply = new StringBuilder();
         try
         {
+            Progress("Asking the rider", $"Waiting for the AI model. The first reply can take a minute while Ollama loads it. To give up, choose \"{StopReplyText}\" from the icon's menu.");
             await foreach (var piece in _chat.StreamReplyAsync([new ChatMessage(ChatRole.User, HelloPrompt)], stop.Token).ConfigureAwait(false))
             {
                 reply.Append(piece);
+                Progress("The rider is answering", reply.ToString().TrimStart());
             }
 
             var text = reply.ToString().Trim();
@@ -218,13 +234,19 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
 
     private void Tell(string title, string message)
     {
-        if (message.Length > MaxMessageLength)
-        {
-            message = message[..(MaxMessageLength - 1)].TrimEnd() + "…";
-        }
-
-        HintRequested?.Invoke(this, new TrayHintEventArgs(title, message));
+        LogOutcome(_logger, title);
+        MessageRequested?.Invoke(this, new AiMessageEventArgs(title, Shorten(message)));
     }
+
+    private void Progress(string title, string message) =>
+        ProgressChanged?.Invoke(this, new AiMessageEventArgs(title, Shorten(message)));
+
+    private static string Shorten(string message) =>
+        message.Length > MaxMessageLength ? message[..(MaxMessageLength - 1)].TrimEnd() + "…" : message;
+
+    // Only the heading is logged. The message may contain the rider's reply, which stays out of the log.
+    [LoggerMessage(Level = LogLevel.Information, Message = "AI menu outcome: {Title}.")]
+    private static partial void LogOutcome(ILogger logger, string title);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The choice of AI model could not be saved.")]
     private static partial void LogSaveFailed(ILogger logger, Exception exception);

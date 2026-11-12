@@ -134,7 +134,7 @@ public class AiMenuViewModelTests
     public async Task SayHello_WithAVeryLongReply_ShortensItToFitTheMessage()
     {
         using var context = new Context();
-        context.Provider.Reply.Add(new string('a', 1000));
+        context.Provider.Reply.Add(new string('a', 5000));
 
         await context.Menu.SayHelloAsync();
 
@@ -212,6 +212,33 @@ public class AiMenuViewModelTests
     }
 
     [Fact]
+    public async Task Check_SaysItHasStartedBeforeTheResultArrives()
+    {
+        using var context = new Context(model: null);
+        var order = new List<string>();
+        context.Menu.ProgressChanged += (_, progress) => order.Add("progress: " + progress.Title);
+        context.Menu.MessageRequested += (_, message) => order.Add("result: " + message.Title);
+
+        await context.Menu.CheckConnectionAsync();
+
+        Assert.Equal(["progress: Checking the AI connection", "result: Ollama is connected"], order);
+    }
+
+    [Fact]
+    public async Task SayHello_SaysItIsWaiting_ThenShowsTheReplyGrowing()
+    {
+        using var context = new Context();
+        context.Provider.Reply.AddRange([" Braaap! ", "Hello."]);
+
+        await context.Menu.SayHelloAsync();
+
+        Assert.Equal(["Asking the rider", "The rider is answering", "The rider is answering"], context.Progress.Select(progress => progress.Title));
+        Assert.Contains(AiMenuViewModel.StopReplyText, context.Progress[0].Message, StringComparison.Ordinal);
+        Assert.Equal(["Braaap! ", "Braaap! Hello."], context.Progress.Skip(1).Select(progress => progress.Message));
+        Assert.Equal("Braaap! Hello.", Assert.Single(context.Hints).Message);
+    }
+
+    [Fact]
     public async Task TheMenuCommand_RunsTheCheck()
     {
         using var context = new Context(model: null);
@@ -230,7 +257,8 @@ public class AiMenuViewModelTests
             Settings.Current.Ai.Model = model;
             Service = new AiChatService(new AiProviderRegistry([Provider]), Settings);
             Menu = new AiMenuViewModel(Service, Settings);
-            Menu.HintRequested += (_, hint) =>
+            Menu.ProgressChanged += (_, progress) => Progress.Add(progress);
+            Menu.MessageRequested += (_, hint) =>
             {
                 Hints.Add(hint);
                 HintArrived.TrySetResult();
@@ -245,7 +273,9 @@ public class AiMenuViewModelTests
 
         public AiMenuViewModel Menu { get; }
 
-        public List<TrayHintEventArgs> Hints { get; } = [];
+        public List<AiMessageEventArgs> Hints { get; } = [];
+
+        public List<AiMessageEventArgs> Progress { get; } = [];
 
         public TaskCompletionSource HintArrived { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
