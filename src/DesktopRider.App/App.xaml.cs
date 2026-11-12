@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using DesktopRider.AI;
 using DesktopRider.Core;
 using DesktopRider.Core.Configuration;
 using DesktopRider.Core.Infrastructure;
@@ -21,6 +22,8 @@ public partial class App : Application
     private ServiceProvider? _services;
     private ILogger<App>? _logger;
     private TrayIconController? _tray;
+    private AiMenuViewModel? _aiMenu;
+    private MessageWindow? _messageWindow;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -45,6 +48,7 @@ public partial class App : Application
 
             var services = new ServiceCollection();
             services.AddDesktopRiderCore(paths);
+            services.AddDesktopRiderAi();
             services.AddSingleton<IScreenProvider, WindowsScreenProvider>();
             services.AddSingleton<OverlayViewModel>();
             services.AddSingleton<TrayViewModel>();
@@ -75,6 +79,10 @@ public partial class App : Application
                 _services.GetRequiredService<ILogger<TrayIconController>>());
             _tray.Show();
 
+            _aiMenu = _services.GetRequiredService<AiMenuViewModel>();
+            _aiMenu.ProgressChanged += OnAiMessage;
+            _aiMenu.MessageRequested += OnAiMessage;
+
             window.ApplyVisibility();
             trayViewModel.AnnounceIfStartedHidden();
         }
@@ -104,11 +112,29 @@ public partial class App : Application
         DispatcherUnhandledException -= OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException -= OnDomainUnhandledException;
         TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+        if (_aiMenu is not null)
+        {
+            _aiMenu.ProgressChanged -= OnAiMessage;
+            _aiMenu.MessageRequested -= OnAiMessage;
+        }
+
         _tray?.Dispose();
         _services?.Dispose();
         _instanceGuard?.Dispose();
         base.OnExit(e);
     }
+
+    // AI messages arrive from background work, so the window is only touched from the interface thread.
+    private void OnAiMessage(object? sender, AiMessageEventArgs e) => Dispatcher.BeginInvoke(() =>
+    {
+        if (_messageWindow is null)
+        {
+            _messageWindow = new MessageWindow();
+            _messageWindow.Closed += (_, _) => _messageWindow = null;
+        }
+
+        _messageWindow.ShowMessage(e.Title, e.Message);
+    });
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {

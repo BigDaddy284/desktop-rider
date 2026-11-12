@@ -4,7 +4,7 @@ Last updated: 12 November 2026
 
 ## Current task
 
-Phase 2 is complete. Next is Phase 5: Ollama integration.
+Phases 1 and 2 are complete. Phase 5 (Ollama integration) is complete: built, tested automatically, and confirmed by the owner against their own Ollama. Next is Phase 6: the conversation interface.
 
 ## Completed tasks
 
@@ -26,6 +26,11 @@ Phase 2 is complete. Next is Phase 5: Ollama integration.
 | 4 | Animation playback, transitions, priorities | Built and unit tested (`DesktopRider.Animation`). |
 | 4 | Initial animations | All thirteen from DESIGN.md 3.6 built in Blender and approved by the owner, plus sleep start and end. |
 | 4 | Animated rider in the window | Built. The owner ran it on Windows 11 and reported it looks and works well; see M3 in TESTING.md. |
+| 5 | Implement provider abstraction | Built and unit tested (`IAiProvider`, `AiProviderRegistry`, `AiChatService` in `DesktopRider.AI`). |
+| 5 | Connect to Ollama | Built and unit tested, including a round trip over a real local port. The owner confirmed it on Windows 11 with the 0.5.1 build. |
+| 5 | Discover models | Built and unit tested; the user picks the model from the icon's menu. Nothing is assumed. The owner confirmed it on Windows 11 with the 0.5.1 build. |
+| 5 | Send messages and receive streaming responses | Built and unit tested. Until the conversation window exists, **Ask the rider to say hello** in the icon's menu tries it out. The owner confirmed it on Windows 11 with the 0.5.1 build. |
+| 5 | Handle errors and cancellation | Built and unit tested: Ollama not running, model missing, time limits, broken connections, stopping a reply, closing during a reply. Tested automatically only; not yet tried by hand. |
 | 3 | Organise all supplied references | Done. Stored privately by the owner; folder structure and written summary are in `References/`. |
 
 ## Latest results
@@ -33,7 +38,7 @@ Phase 2 is complete. Next is Phase 5: Ollama integration.
 | Check | Result |
 |---|---|
 | Build (`dotnet build`, warnings as errors) | Succeeded, 0 warnings, 0 errors |
-| Tests (`dotnet test`) | 177 passed, 0 failed, 0 skipped |
+| Tests (`dotnet test`) | 247 passed, 0 failed, 0 skipped (Core 127, Animation 51, AI 69) |
 | GitHub Actions build and test on Windows | Passed for Phase 1; runs again on each push |
 | Standalone Windows build (`dotnet publish`, win-x64) | Succeeded |
 | Manual checks on Windows 11 | The owner ran the 0.3.0 test build: it starts, shows the animated rider and works. M1 to M3 not yet reported step by step. |
@@ -41,7 +46,6 @@ Phase 2 is complete. Next is Phase 5: Ollama integration.
 ## Remaining tasks
 
 - **Phase 4 – Animation system:** connect animations to behaviour (moving around the screen, reacting to the user) as those features arrive.
-- **Phase 5 – Ollama integration.**
 - **Phase 6 – Conversation interface.**
 - **Phase 7 – Personality and memory.**
 - **Phase 8 – Settings and polish.**
@@ -53,6 +57,9 @@ Phase 2 is complete. Next is Phase 5: Ollama integration.
 
 ## Known issues
 
+- The owner tried the 0.5.0 build: choosing **Check the AI connection** appeared to do nothing. Results were shown as Windows notifications, which Windows can hide. 0.5.1 shows them in Desktop Rider's own small window instead, starting the moment the menu item is clicked. The owner confirmed 0.5.1 works.
+- The developer can only run the AI code against a stand-in for Ollama. The owner has confirmed discovery, model choice and a streamed reply against a real Ollama; the failure and stop cases have only been tested automatically.
+- The address, personality, temperature and waiting time have no settings screen yet (Phase 8); they can only be changed in the settings file.
 - The window has never been run by the developer, because the build machine is Linux. Everything visual depends on manual checks M1 and M2.
 
 
@@ -64,4 +71,4 @@ Recorded in ARCHITECTURE.md.
 
 ## Next task
 
-Phase 5: Ollama integration.
+Phase 6: Conversation interface (speech bubbles, conversation window, text input, animations that follow the conversation).

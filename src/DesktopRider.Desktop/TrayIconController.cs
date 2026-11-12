@@ -108,21 +108,36 @@ public sealed partial class TrayIconController : IDisposable
         }
 
         _menu.Items.Clear();
-        foreach (var entry in _viewModel.BuildMenu())
+        AddEntries(_menu.Items, _viewModel.BuildMenu());
+
+        e.Cancel = false;
+    }
+
+    private static void AddEntries(Forms.ToolStripItemCollection items, IReadOnlyList<TrayMenuEntry> entries)
+    {
+        foreach (var entry in entries)
         {
             if (entry.IsSeparator)
             {
-                _menu.Items.Add(new Forms.ToolStripSeparator());
+                items.Add(new Forms.ToolStripSeparator());
                 continue;
             }
 
-            var command = entry.Command!;
             var item = new Forms.ToolStripMenuItem(entry.Text) { Checked = entry.IsChecked };
-            item.Click += (_, _) => command.Execute(null);
-            _menu.Items.Add(item);
-        }
+            if (entry.Children is { } children)
+            {
+                // Sub-menus do not get the tick column unless asked, so the chosen line could not show its tick.
+                ((Forms.ToolStripDropDownMenu)item.DropDown).ShowImageMargin = false;
+                ((Forms.ToolStripDropDownMenu)item.DropDown).ShowCheckMargin = true;
+                AddEntries(item.DropDownItems, children);
+            }
+            else if (entry.Command is { } command)
+            {
+                item.Click += (_, _) => command.Execute(null);
+            }
 
-        e.Cancel = false;
+            items.Add(item);
+        }
     }
 
     private void OnHintRequested(object? sender, TrayHintEventArgs e) =>

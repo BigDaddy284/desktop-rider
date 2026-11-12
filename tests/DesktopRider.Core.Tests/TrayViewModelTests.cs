@@ -198,13 +198,39 @@ public class TrayViewModelTests
 
     private static TrayMenuEntry Entry(Context context, string text) => context.Tray.BuildMenu().Single(entry => entry.Text == text);
 
+    [Fact]
+    public void Contributors_AddTheirLinesBetweenTheRidersAndExit()
+    {
+        var contributor = new FakeContributor();
+        using var context = new Context(contributors: [contributor, new FakeContributor { Entries = [] }]);
+
+        var menu = context.Tray.BuildMenu();
+
+        Assert.Equal(
+            [TrayViewModel.HideText, TrayViewModel.AlwaysOnTopText, TrayViewModel.ResetPositionText, string.Empty, "Extra", "More", string.Empty, TrayViewModel.ExitText],
+            menu.Select(entry => entry.Text));
+        Assert.False(menu[5].IsSeparator);
+        Assert.Equal(["Choice"], menu[5].Children!.Select(entry => entry.Text));
+    }
+
+    private sealed class FakeContributor : ITrayMenuContributor
+    {
+        public IReadOnlyList<TrayMenuEntry> Entries { get; set; } =
+        [
+            new("Extra", new RelayCommand(() => { })),
+            new("More", null, Children: [new("Choice", new RelayCommand(() => { }), IsChecked: true)]),
+        ];
+
+        public IReadOnlyList<TrayMenuEntry> BuildEntries() => Entries;
+    }
+
     private sealed class Context : IDisposable
     {
-        public Context(bool startHidden = false)
+        public Context(bool startHidden = false, IEnumerable<ITrayMenuContributor>? contributors = null)
         {
             Settings.Current.Appearance.CharacterVisible = !startHidden;
             Overlay = new OverlayViewModel(Settings);
-            Tray = new TrayViewModel(Overlay, Settings);
+            Tray = new TrayViewModel(Overlay, Settings, contributors);
             Tray.HintRequested += (_, hint) => Hints.Add(hint);
         }
 
