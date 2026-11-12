@@ -4,7 +4,7 @@ Last updated: 12 November 2026
 
 ## Current task
 
-Phases 1 and 2 are complete. Phase 5 (Ollama integration) is built and tested automatically. It is waiting for the owner's check against a real Ollama (M5 in TESTING.md). Next is Phase 6: the conversation interface.
+Phases 1 and 2 are complete. Phase 5 (Ollama integration) is complete: built, tested automatically, and confirmed by the owner against their own Ollama. Next is Phase 6: the conversation interface.
 
 ## Completed tasks
 
@@ -27,10 +27,10 @@ Phases 1 and 2 are complete. Phase 5 (Ollama integration) is built and tested au
 | 4 | Initial animations | All thirteen from DESIGN.md 3.6 built in Blender and approved by the owner, plus sleep start and end. |
 | 4 | Animated rider in the window | Built. The owner ran it on Windows 11 and reported it looks and works well; see M3 in TESTING.md. |
 | 5 | Implement provider abstraction | Built and unit tested (`IAiProvider`, `AiProviderRegistry`, `AiChatService` in `DesktopRider.AI`). |
-| 5 | Connect to Ollama | Built and unit tested, including a round trip over a real local port. Manual check M5 awaiting the owner. |
-| 5 | Discover models | Built and unit tested; the user picks the model from the icon's menu. Nothing is assumed. Manual check M5 awaiting the owner. |
-| 5 | Send messages and receive streaming responses | Built and unit tested. Until the conversation window exists, **Ask the rider to say hello** in the icon's menu tries it out. Manual check M5 awaiting the owner. |
-| 5 | Handle errors and cancellation | Built and unit tested: Ollama not running, model missing, time limits, broken connections, stopping a reply, closing during a reply. Manual check M5 awaiting the owner. |
+| 5 | Connect to Ollama | Built and unit tested, including a round trip over a real local port. The owner confirmed it on Windows 11 with the 0.5.1 build. |
+| 5 | Discover models | Built and unit tested; the user picks the model from the icon's menu. Nothing is assumed. The owner confirmed it on Windows 11 with the 0.5.1 build. |
+| 5 | Send messages and receive streaming responses | Built and unit tested. Until the conversation window exists, **Ask the rider to say hello** in the icon's menu tries it out. The owner confirmed it on Windows 11 with the 0.5.1 build. |
+| 5 | Handle errors and cancellation | Built and unit tested: Ollama not running, model missing, time limits, broken connections, stopping a reply, closing during a reply. Tested automatically only; not yet tried by hand. |
 | 3 | Organise all supplied references | Done. Stored privately by the owner; folder structure and written summary are in `References/`. |
 
 ## Latest results
@@ -46,7 +46,6 @@ Phases 1 and 2 are complete. Phase 5 (Ollama integration) is built and tested au
 ## Remaining tasks
 
 - **Phase 4 – Animation system:** connect animations to behaviour (moving around the screen, reacting to the user) as those features arrive.
-- **Phase 5 – Ollama integration:** the owner's check against a real Ollama (M5).
 - **Phase 6 – Conversation interface.**
 - **Phase 7 – Personality and memory.**
 - **Phase 8 – Settings and polish.**
@@ -58,8 +57,8 @@ Phases 1 and 2 are complete. Phase 5 (Ollama integration) is built and tested au
 
 ## Known issues
 
-- The owner tried the 0.5.0 build: choosing **Check the AI connection** appeared to do nothing. Results were shown as Windows notifications, which Windows can hide. 0.5.1 shows them in Desktop Rider's own small window instead, starting the moment the menu item is clicked. Whether that was the whole cause is not confirmed until the owner tries 0.5.1.
-- The AI code has only been run against a stand-in for Ollama, because the build machine has no Ollama. The real thing depends on manual check M5.
+- The owner tried the 0.5.0 build: choosing **Check the AI connection** appeared to do nothing. Results were shown as Windows notifications, which Windows can hide. 0.5.1 shows them in Desktop Rider's own small window instead, starting the moment the menu item is clicked. The owner confirmed 0.5.1 works.
+- The developer can only run the AI code against a stand-in for Ollama. The owner has confirmed discovery, model choice and a streamed reply against a real Ollama; the failure and stop cases have only been tested automatically.
 - The address, personality, temperature and waiting time have no settings screen yet (Phase 8); they can only be changed in the settings file.
 - The window has never been run by the developer, because the build machine is Linux. Everything visual depends on manual checks M1 and M2.
 

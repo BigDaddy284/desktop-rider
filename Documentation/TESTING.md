@@ -120,4 +120,4 @@ Needs Ollama installed with at least one model. Every message in this procedure 
 9. Quit Ollama and choose **Ask the rider to say hello**. **Expect:** "The rider could not answer" with the same plain explanation as step 1.
 10. With Desktop Rider running and nothing chosen from the menu, watch Task Manager for a minute. **Expect:** processor use as low as before; nothing contacts Ollama on its own.
 
-Status: **awaiting the owner's check on Windows 11.** With the 0.5.0 build, which used Windows notifications for these messages, the owner reported that step 1 or 2 showed nothing. 0.5.1 replaced the notifications with the window described above.
+Status: the owner ran the 0.5.1 build on Windows 11 against their own Ollama on 12 November 2026 and reported that it works: the models were found and the rider replied. The steps were not reported one by one, so the Ollama-not-running, stop and exit-during-reply steps (1, 6, 7, 9) are still to be confirmed individually. With the earlier 0.5.0 build, which used Windows notifications for these messages, the check appeared to do nothing; 0.5.1 replaced the notifications with the window described above.
