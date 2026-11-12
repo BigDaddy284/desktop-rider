@@ -29,6 +29,9 @@ public sealed partial class WindowPlacementController : IDisposable
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>Raised when the user clicks the character without dragging it anywhere.</summary>
+    public event EventHandler? Clicked;
+
     private IntPtr Handle => new WindowInteropHelper(_window).Handle;
 
     public void Attach()
@@ -87,6 +90,8 @@ public sealed partial class WindowPlacementController : IDisposable
             return;
         }
 
+        // The second press of a double-click is not a second click on the character.
+        var single = e.ClickCount == 1;
         try
         {
             // Returns when the user lets go of the mouse button.
@@ -95,11 +100,20 @@ public sealed partial class WindowPlacementController : IDisposable
         catch (InvalidOperationException)
         {
             // The button was released before the drag could begin.
+        }
+
+        if (!TryGetBounds(out var after))
+        {
             return;
         }
 
-        if (!TryGetBounds(out var after) || after.Location == before.Location)
+        if (after.Location == before.Location)
         {
+            if (single)
+            {
+                Clicked?.Invoke(this, EventArgs.Empty);
+            }
+
             return;
         }
 

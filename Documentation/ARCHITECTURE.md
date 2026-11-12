@@ -53,6 +53,8 @@ Until the artwork is approved, the window shows a neutral grey stand-in card tha
 
 `RiderSprite` (App project) is the thin Windows layer around it. It owns one timer that ticks at the sprites' frame rate, cuts the current frame out of its sheet and hands it to the window. The timer stops while the character is hidden. If the sprite files are missing or damaged the window shows a plain stand-in card instead of failing, and the reason is logged.
 
+`CharacterBehaviour` (Animation project) is the state-based behaviour system from DESIGN.md section 6. The rest of the application only says which state the character is in (`Idle`, `Thinking`, `Talking`); the behaviour turns that into requests to the player. Thinking is a single gesture in the sprites, so it is asked for again each time it ends. Talking is a loop; it waits for a gesture in progress to finish, and is shown for at least two seconds so a very quick reply is still seen being spoken. Further states (moving, sleeping and so on) will be added here as those features arrive.
+
 `IdleVariationPicker` asks for a small idle animation every 8 to 20 seconds while the rider is resting, unless idle animations are switched off in settings.
 
 ## AI
@@ -63,15 +65,28 @@ The AI project depends on Core only. Nothing in Animation or Desktop refers to i
 - `OllamaProvider` implements it over Ollama's HTTP interface (`GET /api/tags`, `POST /api/chat` with streaming). It reads the address and waiting time from settings for every request, so a change applies immediately.
 - `AiProviderRegistry` finds the provider named in settings. Adding LM Studio or another local provider later means writing one class and registering it.
 - `AiChatService` is what the rest of the application uses. It applies the user's settings (provider, model, personality, temperature) so callers only pass the conversation. Closing the application cancels anything still in progress.
-- `AiMenuViewModel` adds the AI lines to the icon's menu through `ITrayMenuContributor` (Core): check the connection, choose a model, ask for a hello, stop a reply. It announces progress and results as events; `App` shows them in `MessageWindow`, one reused window whose words are replaced as a reply grows. The hello line is a stand-in for trying the connection until the conversation window exists (Phase 6).
+- `AiMenuViewModel` adds the AI lines to the icon's menu through `ITrayMenuContributor` (Core): talk to the rider, check the connection, choose a model. It announces progress and results as events; `App` shows them in `MessageWindow`, one reused window.
 
 Rules the code follows:
 
-- **No request without the user asking.** Creating the services contacts nothing. There is no polling and no background check.
+- **No request without the user asking.** Creating the services contacts nothing. There is no polling and no background check. Opening the conversation window asks Ollama once for its model list, which is how the window shows the connection status and the models to choose from.
 - **No model name is assumed.** The only model names the code ever uses come from Ollama's own list, after the user picks one.
 - **Time limits are on silence, not on the whole reply.** Listing models allows 10 seconds. A reply allows `Ai.RequestTimeoutSeconds` (120 by default) before the first piece and again between pieces, so a long reply that keeps arriving is never cut off, but a stalled one is.
 - **Stopped is not failed.** Cancellation by the user or by shutdown surfaces as `OperationCanceledException`, never as an error message.
 - **Privacy.** Conversation text is never logged. Addresses are logged and shown without any sign-in details they may contain.
+
+## Conversation
+
+The conversation follows the same rule as everything else: decisions in window-free, tested classes; thin windows that carry them out.
+
+- `ConversationViewModel` (AI project) is the conversation: the lines said so far, what is being typed, send, stop and clear, the model in use, the connection status and plain-English advice when the AI is not ready. Its `State` (`Idle`, `Thinking`, `Talking`) is what the rider's animation follows. Explanations of problems are shown as lines of their own and are never sent to the AI. At most the newest 30 lines are sent with each message and at most 200 are kept on screen.
+- `SpeechBubbleViewModel` (AI project) decides what the speech bubble says and when. The bubble is for when the conversation window is closed: "Thinking…", the reply as it arrives, then the finished reply for a reading time based on its length. While the conversation window is open the bubble stays away, because the same words are already there.
+- `ChatWindow` and `SpeechBubbleWindow` (App project) are the two windows. Both are borderless and transparent around their rounded shapes. The bubble never takes the keyboard.
+- `PlacementCalculator.Beside` (Core) decides where they go: above the rider by preference, then left, right, below, always fully on the rider's screen. `CompanionWindowPlacer` (Desktop) carries that out in physical pixels and keeps them beside the rider while it is dragged.
+- `ConversationPresenter` (App project) joins it all up: a click on the rider opens or closes the conversation window, the conversation's state is passed to `CharacterBehaviour`, and hiding the rider hides both windows. The windows are created the first time they are needed.
+- `WindowPlacementController` tells a click from a drag: if the rider has not moved when the mouse button comes up, it was a click. The second press of a double-click is ignored.
+
+The conversation exists only in memory for now. Saving it between sessions is Phase 7.
 
 ## Local data
 
@@ -119,4 +134,11 @@ Nothing is sent anywhere. There is no telemetry.
 | 2026-11-12 | Until the conversation window exists, the AI is reached from the icon's menu, with progress and replies shown in one small message window (`MessageWindow`). | Lets the owner prove the connection on their own PC now. Messages beside the clock were tried first, but Windows can hide those (Do Not Disturb, notification settings), which left a click looking as if it did nothing. |
 | 2026-11-12 | A built-in personality (DESIGN.md 5.4) is sent unless the user has written their own. It gives the rider no name and says it cannot see the screen. | A sensible default is needed for any reply; names and other details are the owner's to decide. |
 | 2026-11-12 | Every AI menu choice shows a message the moment it is clicked, before any result. | The user must always see that the click was received, even when Ollama is slow. |
+| 2026-11-12 | The speech bubble and the conversation window are separate windows placed beside the rider, not part of the rider's own window. | The rider's window is sized to the artwork and its position is saved; growing it for a bubble would move the rider and block clicks around it. |
+| 2026-11-12 | The speech bubble only shows while the conversation window is closed. | With the window open the reply is already on screen; showing it twice side by side would be clutter. Closing the window mid-reply hands the rest to the bubble. |
+| 2026-11-12 | The conversation window always sits beside the rider and cannot be dragged on its own. | It keeps the rider as the interface: move the rider and the conversation comes too. |
+| 2026-11-12 | The conversation window and bubble use the same neutral greys as the existing message window. | No colour scheme is invented for the rider's interface; colours taken from the artwork can be chosen with the owner during polish (Phase 8). |
+| 2026-11-12 | The conversation view model does not use `ConfigureAwait(false)`. | Its lists are shown directly by the window, and Windows only allows those to change on the interface thread. |
+| 2026-11-12 | The "Ask the rider to say hello" menu line and its tests were removed. | It was a stand-in for the conversation window, which now exists. Its cases (reply growing, stopping, empty reply, problems, shutdown) are covered by `ConversationViewModelTests`. |
+| 2026-11-12 | Opening the conversation window checks the connection once. | DESIGN.md 5.1 asks for a connection status and current model; one small request when the user opens the window provides both without any background polling. |
 | 2026-11-12 | The icon is always present while Desktop Rider runs. The "Minimise to system tray" setting is left for the settings screen in Phase 8. | With no taskbar button, the icon is the only way back to a hidden rider. |

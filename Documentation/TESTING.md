@@ -27,13 +27,17 @@ Every push and pull request is also built and tested on Windows by GitHub Action
 | Notification-area icon logic | `TrayViewModelTests` | Lines added by other parts (the AI), the menu while the rider is showing and while hidden, show, hide and exit, the tick on Always on top, what a click does, the hover text, and the reminder (once ever on first hide, every time on a hidden start, never twice). |
 | Icon picture layout | `IconLayoutTests` | Finding the drawn part of a frame and fitting it into a square without distortion. |
 | Sprite list | `SpriteManifestTests` | Reading the list, frame positions on a sheet, twelve kinds of broken list, and the real rider list covering every animation DESIGN.md requires. |
+| Speech bubble and conversation window placement | `PlacementCalculatorTests` | Above the rider by preference, then left, right and below; always fully on the rider's own screen; the gap; no screens at all. |
+| Conversation animations | `CharacterBehaviourTests` | Thinking repeats without settling, thinking then talking then resting, a very quick reply still seen being spoken, a failed reply going straight back to rest, a new question interrupting, tricks still working, waking a sleeping rider first, characters without these animations, and the real sprites having them. |
 | Animation playback | `AnimationPlayerTests` | Loops, one-shots, returning to the right loop, waiting requests, priorities, lead-in and lead-out animations, speed, long pauses. |
 | Idle animations | `IdleVariationPickerTests` | Timing, switched off, not interrupting other animations. |
 | Wiring | `CompositionTests` | Services resolve and work together; single-instance guard. |
 | Ollama provider | `OllamaProviderTests` (AI) | Listing models, the request sent for a chat, pieces arriving one at a time, Ollama not running, model not installed, errors before and during a reply, replies that end early, broken connections, answers that are not from Ollama, time limits before and during a reply, a long reply that keeps arriving, stopping by the caller, and a full round trip over a real local network port. |
 | Chat service | `AiChatServiceTests` (AI) | No model chosen, the user's model, temperature and personality being applied, unknown provider, connection reports, stopping a reply, shutdown during a reply, choosing a model. |
-| AI menu lines | `AiMenuViewModelTests` (AI) | Nothing contacted until asked, a message the moment something starts, the reply growing as it arrives, every connection-check message, choosing a model and its tick, the hello reply, long replies shortened, stopping, problems shown in plain words, shutdown mid-reply. |
-| AI wiring | `CompositionTests` (AI) | AI services resolve with Core, the menu gains the AI lines, the connection follows settings. |
+| AI menu lines | `AiMenuViewModelTests` (AI) | Nothing contacted until asked, the talk line, a message the moment a check starts, every connection-check message, choosing a model and its tick, a failed save, use after shutdown. |
+| Conversation | `ConversationViewModelTests` (AI) | Nothing contacted until asked, sending and the reply growing in place, thinking then talking then idle, empty and over-long messages, earlier lines carried into later messages, problems explained but never sent to the AI, no model chosen, model gone, a reply with no words, stopping, clearing mid-reply, shutdown mid-reply, the limits on lines sent and kept, the connection check and its advice, choosing a model and a failed save. |
+| Speech bubble | `SpeechBubbleViewModelTests` (AI) | Hidden at first, thinking then the growing reply then left to be read, staying away while the conversation window is open, taking over when the window closes mid-reply, problems, dismissing, clearing, long replies shortened, reading time, the wait restarting for each new message. |
+| AI wiring | `CompositionTests` (AI) | AI services resolve with Core, the menu gains the AI lines, the conversation and its bubble resolve, the connection follows settings. |
 
 Code coverage has not been measured. The requirement is that all applicable tests pass, and they do.
 
@@ -43,6 +47,7 @@ Code coverage has not been measured. The requirement is that all applicable test
 - Loading the sprite pictures and drawing them (`RiderSprite`) needs a real window, so it is covered by manual procedure M3.
 - The automated AI tests use a stand-in for Ollama (scripted answers, and one small local web server). They prove Desktop Rider handles everything Ollama can send, but only manual procedure M5 proves it against a real Ollama and a real model.
 - `MessageWindow`, which shows AI progress and results, needs a real window, so it is covered by M5.
+- The conversation window, the speech bubble and the code that puts them beside the rider (`ChatWindow`, `SpeechBubbleWindow`, `ConversationPresenter`, `CompanionWindowPlacer`) need real windows, so they are covered by M6. Telling a click on the rider from a drag also needs a real mouse and is covered by M6. Everything they decide (what is said, when the bubble shows, where things go, which animation plays) is made by tested code.
 - There are no automated tests of the WPF window itself. Its decisions (where to sit, what the menu does) are made by tested code in Core; the thin window layer that carries them out (`OverlayWindow`, `WindowPlacementController`, `TrayIconController`, `TrayIconFactory`) is covered by the manual procedures below.
 
 - Multiple monitors (M2 steps 9 and 10) cannot be checked by hand: the owner has one ultrawide monitor. `PlacementCalculatorTests` covers those rules automatically.
@@ -112,12 +117,31 @@ Needs Ollama installed with at least one model. Every message in this procedure 
 1. Close Ollama completely (right-click its icon beside the clock and quit). Right-click the Desktop Rider icon and choose **Check the AI connection**. **Expect:** a small Desktop Rider window opens at once in the middle of the screen saying "Checking the AI connection"; within a few seconds it changes to "The AI is not connected", explaining that Ollama cannot be reached at `http://localhost:11434`. The rider keeps animating throughout.
 2. Start Ollama. Choose **Check the AI connection** again. **Expect:** "Ollama is connected" with the number of models found.
 3. Open the icon's menu. **Expect:** a new line **Choose an AI model** that opens a list of your models, none ticked.
-4. Pick a model. **Expect:** a message "AI model chosen". Open the menu again. **Expect:** that model is ticked and there is a new line **Ask the rider to say hello**.
-5. Choose **Ask the rider to say hello**. **Expect:** the window says "Asking the rider" at once; after a wait (longer the first time, while Ollama loads the model) the greeting appears and grows word by word, ending under the heading "The rider says". While waiting, the rider keeps animating and can be dragged.
-6. Choose **Ask the rider to say hello** again and straight away open the menu and choose **Stop the rider's reply**. **Expect:** a message "Reply stopped" and no greeting.
-7. Choose **Ask the rider to say hello** and, while it is working, choose **Exit Desktop Rider**. **Expect:** it closes straight away and `DesktopRider.exe` is gone from Task Manager.
-8. Start Desktop Rider again and open the icon's menu. **Expect:** **Ask the rider to say hello** is there straight away (the model choice was remembered).
-9. Quit Ollama and choose **Ask the rider to say hello**. **Expect:** "The rider could not answer" with the same plain explanation as step 1.
-10. With Desktop Rider running and nothing chosen from the menu, watch Task Manager for a minute. **Expect:** processor use as low as before; nothing contacts Ollama on its own.
+4. Pick a model. **Expect:** a message "AI model chosen" that says how to start talking. Open the menu again. **Expect:** that model is ticked.
+5. With Desktop Rider running and nothing chosen from the menu, watch Task Manager for a minute. **Expect:** processor use as low as before; nothing contacts Ollama on its own.
+
+Until 0.5.1 this procedure also had steps for **Ask the rider to say hello**, a stand-in for the conversation window. From 0.6.0 that line is replaced by **Talk to the rider**, and replies, stopping and exiting mid-reply are checked in M6.
 
 Status: the owner ran the 0.5.1 build on Windows 11 against their own Ollama on 12 November 2026 and reported that it works: the models were found and the rider replied. The steps were not reported one by one, so the Ollama-not-running, stop and exit-during-reply steps (1, 6, 7, 9) are still to be confirmed individually. With the earlier 0.5.0 build, which used Windows notifications for these messages, the check appeared to do nothing; 0.5.1 replaced the notifications with the window described above.
+
+### M6. Talking to the rider (Phase 6: speech bubbles, conversation window, animations)
+
+Needs Ollama running with a model chosen (M5).
+
+1. Click the rider once without moving the mouse. **Expect:** a compact window headed "Talk to the rider" opens just above the rider, with the typing cursor already in the message box. The line under the heading shows your AI model and, after a moment, a green dot and "Connected".
+2. Drag the rider somewhere else. **Expect:** the rider moves as before, the conversation window follows it, and letting go does not close the window. Drag the rider to the top edge of the screen. **Expect:** the window moves to the rider's side and stays fully on the screen.
+3. Type a greeting and press Enter. **Expect:** your message appears on the right in a dark balloon; "The rider is thinking…" shows with a moving bar and the rider plays its thinking movement; then the reply appears on the left and grows word by word while the rider plays its talking movement; then the rider settles back to rest. The rider keeps animating smoothly throughout.
+4. Ask a follow-up that only makes sense with the first message (for example "say that again in French"). **Expect:** the reply shows the rider remembered the conversation.
+5. Ask for something long (for example "tell me a long story") and press **Stop** while it is arriving. **Expect:** the reply stops, what had arrived stays, and a yellow line says "Reply stopped."
+6. Ask something, then press Esc (or the ✕) while the rider is still thinking. **Expect:** the window closes; a speech bubble above the rider says "Thinking…", then shows the reply growing; a few seconds after the reply finishes the bubble goes away by itself. It never takes the keyboard away from another program you are typing in.
+7. Ask something else the same way and click the bubble while it is showing. **Expect:** the conversation window opens with the whole conversation in it, and the bubble goes.
+8. Click the rider while the window is open. **Expect:** the window closes. Click again. **Expect:** it opens with the conversation still there.
+9. Press **Clear**. **Expect:** the conversation empties and a hint about typing a message shows.
+10. Use the list beside "AI model:" to pick a different model, then send a message. **Expect:** the reply comes from the new model, and the icon's menu shows the new model ticked.
+11. Quit Ollama, then send a message. **Expect:** a yellow line explains in plain words that Ollama cannot be reached, the dot turns red with "Not connected", and the rider goes back to rest. Start Ollama, press **Check again** (close and reopen the window if the button is not showing). **Expect:** "Connected" again, and the next message is answered.
+12. Right-click the rider and choose **Talk to the rider**; hide the rider and choose **Talk to the rider** from the icon's menu beside the clock. **Expect:** both open the conversation window; the second brings the rider back first.
+13. Hide the rider while the window is open. **Expect:** the window goes with it.
+14. Send a message and, while the reply is arriving, choose **Exit Desktop Rider**. **Expect:** it closes straight away and `DesktopRider.exe` is gone from Task Manager.
+15. Open another program and type in it while the rider is resting with the conversation window closed. **Expect:** Desktop Rider never takes the keyboard, and Task Manager shows processor use as low as before.
+
+Status: **awaiting the owner's check on Windows 11** (0.6.0 build).

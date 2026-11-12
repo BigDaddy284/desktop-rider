@@ -24,6 +24,7 @@ public partial class App : Application
     private TrayIconController? _tray;
     private AiMenuViewModel? _aiMenu;
     private MessageWindow? _messageWindow;
+    private ConversationPresenter? _conversation;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -83,6 +84,14 @@ public partial class App : Application
             _aiMenu.ProgressChanged += OnAiMessage;
             _aiMenu.MessageRequested += OnAiMessage;
 
+            _conversation = new ConversationPresenter(
+                window,
+                _services.GetRequiredService<OverlayViewModel>(),
+                _services.GetRequiredService<ConversationViewModel>(),
+                _services.GetRequiredService<SpeechBubbleViewModel>(),
+                _services.GetRequiredService<IScreenProvider>());
+            _aiMenu.TalkRequested += OnTalkRequested;
+
             window.ApplyVisibility();
             trayViewModel.AnnounceIfStartedHidden();
         }
@@ -116,7 +125,10 @@ public partial class App : Application
         {
             _aiMenu.ProgressChanged -= OnAiMessage;
             _aiMenu.MessageRequested -= OnAiMessage;
+            _aiMenu.TalkRequested -= OnTalkRequested;
         }
+
+        _conversation?.Dispose();
 
         _tray?.Dispose();
         _services?.Dispose();
@@ -135,6 +147,8 @@ public partial class App : Application
 
         _messageWindow.ShowMessage(e.Title, e.Message);
     });
+
+    private void OnTalkRequested(object? sender, EventArgs e) => Dispatcher.BeginInvoke(() => _conversation?.OpenConversation());
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {

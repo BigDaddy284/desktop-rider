@@ -187,4 +187,107 @@ public class PlacementCalculatorTests
         Assert.Equal(new PixelPoint(0, 0), a.Location);
         Assert.Equal(new PixelSize(100, 100), a.Size);
     }
+
+    // The rider at 60% size is roughly 240 by 200 pixels; the conversation window is taller than that.
+    private static readonly PixelSize Bubble = new(300, 80);
+    private static readonly PixelSize Chat = new(392, 492);
+
+    [Fact]
+    public void Beside_PrefersAboveTheCharacter_CentredOnIt()
+    {
+        var rider = new PixelRect(800, 600, 240, 200);
+
+        var placement = PlacementCalculator.Beside(rider, Bubble, Both);
+
+        Assert.Equal(CompanionSide.Above, placement.Side);
+        Assert.Equal(new PixelPoint(800 + ((240 - 300) / 2), 600 - 80), placement.Position);
+    }
+
+    [Fact]
+    public void Beside_InTheDefaultCorner_StaysOnTheScreen()
+    {
+        var rider = PixelRect.From(PlacementCalculator.DefaultPosition(new PixelSize(240, 200), Both), new PixelSize(240, 200));
+
+        var placement = PlacementCalculator.Beside(rider, Chat, Both);
+
+        Assert.Equal(CompanionSide.Above, placement.Side);
+        Assert.Equal(rider.Y - Chat.Height, placement.Position.Y);
+        Assert.Equal(1920 - Chat.Width, placement.Position.X);
+    }
+
+    [Fact]
+    public void Beside_AppliesTheGap_AndANegativeGapTucksIn()
+    {
+        var rider = new PixelRect(800, 600, 240, 200);
+
+        Assert.Equal(600 - 80 - 10, PlacementCalculator.Beside(rider, Bubble, Both, gap: 10).Position.Y);
+        Assert.Equal(600 - 80 + 12, PlacementCalculator.Beside(rider, Bubble, Both, gap: -12).Position.Y);
+    }
+
+    [Fact]
+    public void Beside_WithNoRoomAbove_GoesToTheLeft()
+    {
+        var rider = new PixelRect(900, 20, 240, 200);
+
+        var placement = PlacementCalculator.Beside(rider, Chat, Both);
+
+        Assert.Equal(CompanionSide.Left, placement.Side);
+        Assert.Equal(900 - Chat.Width, placement.Position.X);
+        Assert.Equal(0, placement.Position.Y);
+    }
+
+    [Fact]
+    public void Beside_WithNoRoomAboveOrLeft_GoesToTheRight()
+    {
+        var rider = new PixelRect(10, 20, 240, 200);
+
+        var placement = PlacementCalculator.Beside(rider, Chat, [Main]);
+
+        Assert.Equal(CompanionSide.Right, placement.Side);
+        Assert.Equal(new PixelPoint(250, 0), placement.Position);
+    }
+
+    [Fact]
+    public void Beside_WithRoomOnlyBelow_GoesBelow()
+    {
+        var narrow = new ScreenArea("narrow", new PixelRect(0, 0, 500, 1000), IsPrimary: true);
+        var rider = new PixelRect(130, 20, 240, 200);
+
+        var placement = PlacementCalculator.Beside(rider, Chat, [narrow]);
+
+        Assert.Equal(CompanionSide.Below, placement.Side);
+        Assert.Equal(new PixelPoint(130 + ((240 - 392) / 2), 220), placement.Position);
+    }
+
+    [Fact]
+    public void Beside_WithNoRoomAnywhere_StaysFullyOnTheScreen()
+    {
+        var small = new ScreenArea("small", new PixelRect(0, 0, 500, 520), IsPrimary: true);
+        var rider = new PixelRect(130, 160, 240, 200);
+
+        var placement = PlacementCalculator.Beside(rider, Chat, [small]);
+
+        Assert.Equal(CompanionSide.Above, placement.Side);
+        Assert.Equal(new PixelPoint(54, 0), placement.Position);
+    }
+
+    [Fact]
+    public void Beside_UsesTheScreenTheCharacterIsOn()
+    {
+        var rider = new PixelRect(-300, 700, 240, 200);
+
+        var placement = PlacementCalculator.Beside(rider, Chat, Both);
+
+        Assert.Equal(CompanionSide.Above, placement.Side);
+        Assert.Equal(-Chat.Width, placement.Position.X);
+        Assert.True(placement.Position.X >= Left.WorkingArea.X);
+    }
+
+    [Fact]
+    public void Beside_WithNoScreens_StillAnswers()
+    {
+        var placement = PlacementCalculator.Beside(new PixelRect(100, 100, 240, 200), Bubble, []);
+
+        Assert.Equal(new PixelPoint(70, 20), placement.Position);
+    }
 }

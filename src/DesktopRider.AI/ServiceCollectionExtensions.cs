@@ -27,6 +27,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AiProviderRegistry>();
         services.AddSingleton<IAiChatService, AiChatService>();
         services.AddSingleton<AiMenuViewModel>();
+        services.AddSingleton<ConversationViewModel>();
+        services.AddSingleton<SpeechBubbleViewModel>();
         services.AddSingleton<ITrayMenuContributor>(provider => provider.GetRequiredService<AiMenuViewModel>());
         return services;
     }

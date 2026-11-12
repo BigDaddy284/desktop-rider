@@ -1,0 +1,283 @@
+<Window x:Class="DesktopRider.App.ChatWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ai="clr-namespace:DesktopRider.AI;assembly=DesktopRider.AI"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=ai:ConversationViewModel}"
+        Title="Talk to the rider"
+        Width="392"
+        Height="492"
+        Left="-32000"
+        Top="-32000"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        WindowStartupLocation="Manual"
+        ShowInTaskbar="False"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display"
+        PreviewKeyDown="OnWindowPreviewKeyDown">
+    <!--
+        The compact conversation window. It opens beside the rider when the rider is clicked and closes the same way,
+        with the X, or with Esc. Closing it does not stop a reply: the rest appears in the rider's speech bubble.
+    -->
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="ShowWhenTrue" />
+
+        <SolidColorBrush x:Key="Ink" Color="#FF1F2937" />
+        <SolidColorBrush x:Key="SoftInk" Color="#FF4B5563" />
+        <SolidColorBrush x:Key="FaintInk" Color="#FF6B7280" />
+        <SolidColorBrush x:Key="Outline" Color="#FF374151" />
+        <SolidColorBrush x:Key="Paper" Color="#FFF7F7F7" />
+        <SolidColorBrush x:Key="Line" Color="#FFD1D5DB" />
+
+        <!-- A quiet button that looks like a word you can click. -->
+        <Style x:Key="QuietButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource SoftInk}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Face" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="#FFE5E7EB" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="#FFE5E7EB" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- The main button: Send, or Stop while a reply is arriving. -->
+        <Style x:Key="MainButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="{StaticResource Ink}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="MinWidth" Value="64" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Face" Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="{StaticResource Outline}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- One line of the conversation. The words can be selected and copied. -->
+        <DataTemplate DataType="{x:Type ai:ConversationLine}">
+            <Border x:Name="Balloon"
+                    Margin="0,4,44,4"
+                    Padding="10,7"
+                    CornerRadius="12,12,12,3"
+                    Background="White"
+                    BorderBrush="{StaticResource Line}"
+                    BorderThickness="1"
+                    HorizontalAlignment="Left">
+                <TextBox x:Name="Words"
+                         Text="{Binding Text, Mode=OneWay}"
+                         IsReadOnly="True"
+                         IsTabStop="False"
+                         TextWrapping="Wrap"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         Padding="0"
+                         FontSize="13.5"
+                         Foreground="{StaticResource Ink}" />
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Speaker}" Value="{x:Static ai:Speaker.User}">
+                    <Setter TargetName="Balloon" Property="HorizontalAlignment" Value="Right" />
+                    <Setter TargetName="Balloon" Property="Margin" Value="44,4,0,4" />
+                    <Setter TargetName="Balloon" Property="CornerRadius" Value="12,12,3,12" />
+                    <Setter TargetName="Balloon" Property="Background" Value="{StaticResource Ink}" />
+                    <Setter TargetName="Balloon" Property="BorderBrush" Value="{StaticResource Ink}" />
+                    <Setter TargetName="Words" Property="Foreground" Value="White" />
+                    <Setter TargetName="Words" Property="CaretBrush" Value="White" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Speaker}" Value="{x:Static ai:Speaker.Notice}">
+                    <Setter TargetName="Balloon" Property="HorizontalAlignment" Value="Stretch" />
+                    <Setter TargetName="Balloon" Property="Margin" Value="0,4" />
+                    <Setter TargetName="Balloon" Property="CornerRadius" Value="8" />
+                    <Setter TargetName="Balloon" Property="Background" Value="#FFFEF3C7" />
+                    <Setter TargetName="Balloon" Property="BorderBrush" Value="#FFF59E0B" />
+                    <Setter TargetName="Words" Property="FontSize" Value="12.5" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Border Margin="10" CornerRadius="16" Background="{StaticResource Paper}" BorderBrush="{StaticResource Outline}" BorderThickness="2">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.3" />
+        </Border.Effect>
+        <Grid Margin="12,10,12,12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Heading -->
+            <DockPanel Grid.Row="0">
+                <Button DockPanel.Dock="Right" Style="{StaticResource QuietButton}" Content="✕" FontSize="13" Click="OnCloseClick"
+                        ToolTip="Close (Esc). The rider carries on in a speech bubble." />
+                <Button DockPanel.Dock="Right" Style="{StaticResource QuietButton}" Content="Clear" Command="{Binding ClearCommand}"
+                        ToolTip="Start a fresh conversation" />
+                <TextBlock Text="Talk to the rider" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource Ink}" VerticalAlignment="Center" />
+            </DockPanel>
+
+            <!-- Which AI model is answering, and whether it can be reached -->
+            <DockPanel Grid.Row="1" Margin="0,6,0,0">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                    <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,5,0">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="#FF9CA3AF" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                        <Setter Property="Fill" Value="#FF16A34A" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ConnectionText}" Value="{x:Static ai:ConversationViewModel.NotConnectedText}">
+                                        <Setter Property="Fill" Value="#FFDC2626" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock Text="{Binding ConnectionText}" FontSize="12" Foreground="{StaticResource SoftInk}" VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock DockPanel.Dock="Left" Text="AI model:" FontSize="12" Foreground="{StaticResource FaintInk}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <Grid>
+                    <ComboBox x:Name="ModelPicker"
+                              ItemsSource="{Binding Models}"
+                              SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
+                              FontSize="12"
+                              VerticalAlignment="Center"
+                              ToolTip="Choose which AI model the rider uses">
+                        <ComboBox.Style>
+                            <Style TargetType="ComboBox">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Models.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ComboBox.Style>
+                    </ComboBox>
+                    <TextBlock Text="{Binding ModelText}" FontSize="12" Foreground="{StaticResource SoftInk}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Models.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </DockPanel>
+
+            <!-- What to do when the AI is not ready -->
+            <Border Grid.Row="2" Margin="0,8,0,0" Padding="10,8" CornerRadius="8" Background="#FFFEF3C7" BorderBrush="#FFF59E0B" BorderThickness="1"
+                    Visibility="{Binding HasAdvice, Converter={StaticResource ShowWhenTrue}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Advice}" TextWrapping="Wrap" FontSize="12.5" Foreground="{StaticResource Ink}" />
+                    <Button Style="{StaticResource QuietButton}" Content="Check again" Command="{Binding CheckConnectionCommand}"
+                            HorizontalAlignment="Left" Margin="-8,4,0,-3" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+
+            <!-- The conversation -->
+            <Grid Grid.Row="3" Margin="0,8,0,0">
+                <ScrollViewer x:Name="History" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                              ScrollChanged="OnHistoryScrollChanged">
+                    <ItemsControl ItemsSource="{Binding Lines}" Margin="0,0,4,0" Focusable="False" />
+                </ScrollViewer>
+                <TextBlock Text="Type a message below and press Enter. The rider will answer here."
+                           TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="28,0"
+                           FontSize="13" Foreground="{StaticResource FaintInk}" IsHitTestVisible="False">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Lines.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+
+            <!-- Shown while the AI is working -->
+            <StackPanel Grid.Row="4" Margin="0,6,0,0" Visibility="{Binding IsBusy, Converter={StaticResource ShowWhenTrue}}">
+                <TextBlock Text="{Binding ProcessingText}" FontSize="12" Foreground="{StaticResource SoftInk}" />
+                <ProgressBar IsIndeterminate="{Binding IsBusy}" Height="3" Margin="0,3,0,0" BorderThickness="0" Background="{StaticResource Line}" Foreground="{StaticResource Outline}" />
+            </StackPanel>
+
+            <!-- Typing -->
+            <DockPanel Grid.Row="5" Margin="0,8,0,0">
+                <Grid DockPanel.Dock="Right" Margin="8,0,0,0" VerticalAlignment="Bottom">
+                    <Button x:Name="SendButton" Style="{StaticResource MainButton}" Content="Send" Command="{Binding SendCommand}" ToolTip="Send (Enter)" />
+                    <Button Style="{StaticResource MainButton}" Content="Stop" Command="{Binding StopCommand}" ToolTip="Stop the rider's reply"
+                            Visibility="{Binding IsBusy, Converter={StaticResource ShowWhenTrue}}" />
+                </Grid>
+                <Border CornerRadius="10" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="1" Padding="6,4">
+                    <Grid>
+                        <TextBox x:Name="Input"
+                                 Text="{Binding Draft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MaxLength="4000"
+                                 MaxHeight="84"
+                                 VerticalScrollBarVisibility="Auto"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 FontSize="13.5"
+                                 Foreground="{StaticResource Ink}"
+                                 PreviewKeyDown="OnInputPreviewKeyDown" />
+                        <TextBlock Text="Type a message…" FontSize="13.5" Foreground="#FF9CA3AF" Margin="3,0,0,0" IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Draft}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </DockPanel>
+        </Grid>
+    </Border>
+</Window>

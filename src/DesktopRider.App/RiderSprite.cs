@@ -24,6 +24,7 @@ internal sealed partial class RiderSprite : IDisposable
     private readonly ILogger _logger;
     private readonly AnimationPlayer _player;
     private readonly IdleVariationPicker _idle;
+    private readonly CharacterBehaviour _behaviour;
     private readonly DispatcherTimer _timer;
     private readonly Stopwatch _clock = new();
     private readonly Dictionary<string, BitmapSource> _sheets = new(StringComparer.OrdinalIgnoreCase);
@@ -36,6 +37,7 @@ internal sealed partial class RiderSprite : IDisposable
         _logger = logger;
         Manifest = manifest;
         _player = new AnimationPlayer(manifest);
+        _behaviour = new CharacterBehaviour(_player, manifest);
         _idle = new IdleVariationPicker(_player, IdleChoices.Where(name => manifest.TryGet(name, out _)));
         _timer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromSeconds(1.0 / manifest.FramesPerSecond) };
         _timer.Tick += OnTick;
@@ -58,6 +60,13 @@ internal sealed partial class RiderSprite : IDisposable
     {
         get => _idle.Enabled;
         set => _idle.Enabled = value;
+    }
+
+    /// <summary>What the rider is doing in the conversation. The animation follows on the next tick.</summary>
+    public CharacterState State
+    {
+        get => _behaviour.State;
+        set => _behaviour.State = value;
     }
 
     public Facing Facing
@@ -131,7 +140,7 @@ internal sealed partial class RiderSprite : IDisposable
         }
 
         _idle.Advance(elapsed);
-        if (_player.Advance(elapsed))
+        if (_behaviour.Advance(elapsed))
         {
             Refresh();
         }

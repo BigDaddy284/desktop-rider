@@ -24,6 +24,8 @@
     <Grid x:Name="CharacterRoot" Margin="14" Opacity="{Binding CharacterOpacity, Mode=OneWay}" Cursor="SizeAll">
         <Grid.ContextMenu>
             <ContextMenu>
+                <MenuItem Header="Talk to the rider" FontWeight="SemiBold" Click="OnTalkClick" />
+                <Separator />
                 <MenuItem Header="Always on top"
                           IsChecked="{Binding AlwaysOnTop, Mode=OneWay}"
                           Command="{Binding ToggleAlwaysOnTopCommand}" />

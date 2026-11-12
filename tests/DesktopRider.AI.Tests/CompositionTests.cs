@@ -27,6 +27,12 @@ public class CompositionTests
                 var menu = provider.GetRequiredService<TrayViewModel>().BuildMenu();
 
                 Assert.Contains(menu, entry => entry.Text == AiMenuViewModel.CheckText);
+                Assert.Contains(menu, entry => entry.Text == AiMenuViewModel.TalkText);
+
+                // The conversation and its speech bubble share one conversation.
+                var conversation = provider.GetRequiredService<ConversationViewModel>();
+                Assert.Same(conversation, provider.GetRequiredService<ConversationViewModel>());
+                Assert.False(provider.GetRequiredService<SpeechBubbleViewModel>().IsVisible);
                 Assert.Equal(TrayViewModel.ExitText, menu[^1].Text);
             }
         }

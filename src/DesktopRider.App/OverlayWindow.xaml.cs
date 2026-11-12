@@ -50,9 +50,25 @@ public partial class OverlayWindow : Window
 
         _placement = new WindowPlacementController(this, settings, screens, placementLogger);
         _placement.Attach();
+        _placement.Clicked += OnCharacterClicked;
         _viewModel.ResetPositionRequested += OnResetPositionRequested;
         _viewModel.ExitRequested += OnExitRequested;
         _viewModel.PropertyChanged += OnViewModelChanged;
+    }
+
+    /// <summary>Raised when the user clicks the rider or chooses "Talk to the rider" from its menu.</summary>
+    internal event EventHandler? TalkRequested;
+
+    /// <summary>What the rider is doing in the conversation, so that its animation can follow.</summary>
+    internal CharacterState CharacterState
+    {
+        set
+        {
+            if (_rider is not null)
+            {
+                _rider.State = value;
+            }
+        }
     }
 
     /// <summary>The rider's current picture, used to make the notification-area icon. Null while the stand-in is showing.</summary>
@@ -82,6 +98,7 @@ public partial class OverlayWindow : Window
         _viewModel.PropertyChanged -= OnViewModelChanged;
         _viewModel.ResetPositionRequested -= OnResetPositionRequested;
         _viewModel.ExitRequested -= OnExitRequested;
+        _placement.Clicked -= OnCharacterClicked;
         _placement.Dispose();
         if (_rider is not null)
         {
@@ -125,6 +142,10 @@ public partial class OverlayWindow : Window
             _rider?.Play(name, priority: 1);
         }
     }
+
+    private void OnCharacterClicked(object? sender, EventArgs e) => TalkRequested?.Invoke(this, EventArgs.Empty);
+
+    private void OnTalkClick(object sender, RoutedEventArgs e) => TalkRequested?.Invoke(this, EventArgs.Empty);
 
     private void OnTurnAroundClick(object sender, RoutedEventArgs e)
     {

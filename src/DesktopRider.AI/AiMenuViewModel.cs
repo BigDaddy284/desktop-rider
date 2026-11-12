@@ -1,4 +1,3 @@
-using System.Text;
 using DesktopRider.Core.ViewModels;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -14,19 +13,16 @@ public sealed class AiMessageEventArgs(string title, string message) : EventArgs
 }
 
 /// <summary>
-/// The AI lines of the notification-area menu: check the connection, choose a model, and ask the rider for a
-/// short hello to prove the whole chain works. Nothing is sent to the AI until the user picks one of these.
+/// The AI lines of the notification-area menu: talk to the rider, check the connection and choose a model.
+/// Nothing is sent to the AI until the user picks one of these.
 /// Every choice is answered straight away with a message, then with its result, so a click never appears to do nothing.
-/// The hello line is a stand-in until the conversation window arrives.
 /// </summary>
-public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
+public sealed partial class AiMenuViewModel : ITrayMenuContributor
 {
     public const string CheckText = "Check the AI connection";
     public const string CheckingText = "Checking the AI connection…";
     public const string ChooseModelText = "Choose an AI model";
-    public const string SayHelloText = "Ask the rider to say hello";
-    public const string StopReplyText = "Stop the rider's reply";
-    public const string HelloPrompt = "Say hello to me in one short sentence.";
+    public const string TalkText = "Talk to the rider";
 
     /// <summary>Keeps a runaway reply from filling the screen.</summary>
     public const int MaxMessageLength = 1200;
@@ -37,7 +33,6 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
     private readonly Lock _gate = new();
     private IReadOnlyList<AiModelInfo> _models = [];
     private bool _checking;
-    private CancellationTokenSource? _reply;
 
     public AiMenuViewModel(IAiChatService chat, Core.Configuration.ISettingsService settings, ILogger<AiMenuViewModel>? logger = null)
     {
@@ -50,8 +45,11 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
     /// <summary>Raised with the outcome of something the user asked for.</summary>
     public event EventHandler<AiMessageEventArgs>? MessageRequested;
 
-    /// <summary>Raised while something the user asked for is under way: at once when it starts, and as a reply grows.</summary>
+    /// <summary>Raised while something the user asked for is under way, at once when it starts.</summary>
     public event EventHandler<AiMessageEventArgs>? ProgressChanged;
+
+    /// <summary>Raised when the user chooses to talk to the rider.</summary>
+    public event EventHandler? TalkRequested;
 
     public IReadOnlyList<TrayMenuEntry> BuildEntries()
     {
@@ -60,6 +58,7 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
             var selectedModel = _selectedModelSource();
             var entries = new List<TrayMenuEntry>
             {
+                new(TalkText, new RelayCommand(() => TalkRequested?.Invoke(this, EventArgs.Empty))),
                 new(_checking ? CheckingText : CheckText, new RelayCommand(() => _ = CheckConnectionAsync())),
             };
             if (_models.Count > 0)
@@ -71,15 +70,6 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
                         string.Equals(model.Name, selectedModel, StringComparison.OrdinalIgnoreCase)))
                     .ToList();
                 entries.Add(new TrayMenuEntry(ChooseModelText, null, Children: choices));
-            }
-
-            if (_reply is not null)
-            {
-                entries.Add(new TrayMenuEntry(StopReplyText, new RelayCommand(StopReply)));
-            }
-            else if (selectedModel is not null)
-            {
-                entries.Add(new TrayMenuEntry(SayHelloText, new RelayCommand(() => _ = SayHelloAsync())));
             }
 
             return entries;
@@ -132,7 +122,7 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
         try
         {
             await _chat.SelectModelAsync(model).ConfigureAwait(false);
-            Tell("AI model chosen", $"The rider will use {model}. Choose \"{SayHelloText}\" from this menu to try it.");
+            Tell("AI model chosen", $"The rider will use {model}. Click the rider, or choose \"{TalkText}\" from this menu, to start talking.");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -140,72 +130,6 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor, IDisposable
             Tell("The choice could not be saved", "Desktop Rider could not save your choice of AI model. Please try again.");
         }
     }
-
-    /// <summary>Asks the chosen model for a short greeting and shows it, to prove that replies arrive.</summary>
-    public async Task SayHelloAsync()
-    {
-        var stop = new CancellationTokenSource();
-        lock (_gate)
-        {
-            if (_reply is not null)
-            {
-                stop.Dispose();
-                return;
-            }
-
-            _reply = stop;
-        }
-
-        var reply = new StringBuilder();
-        try
-        {
-            Progress("Asking the rider", $"Waiting for the AI model. The first reply can take a minute while Ollama loads it. To give up, choose \"{StopReplyText}\" from the icon's menu.");
-            await foreach (var piece in _chat.StreamReplyAsync([new ChatMessage(ChatRole.User, HelloPrompt)], stop.Token).ConfigureAwait(false))
-            {
-                reply.Append(piece);
-                Progress("The rider is answering", reply.ToString().TrimStart());
-            }
-
-            var text = reply.ToString().Trim();
-            Tell("The rider says", text.Length == 0 ? "The AI model answered, but with no words. Try again or choose another model." : text);
-        }
-        catch (AiProviderException problem)
-        {
-            Tell("The rider could not answer", problem.Message);
-        }
-        catch (OperationCanceledException) when (stop.IsCancellationRequested)
-        {
-            Tell("Reply stopped", "The rider's reply was stopped.");
-        }
-        catch (OperationCanceledException)
-        {
-            // Desktop Rider is closing; there is nobody to tell.
-        }
-        catch (ObjectDisposedException)
-        {
-            // As above.
-        }
-        finally
-        {
-            lock (_gate)
-            {
-                _reply = null;
-            }
-
-            stop.Dispose();
-        }
-    }
-
-    /// <summary>Stops a reply that is still being produced.</summary>
-    public void StopReply()
-    {
-        lock (_gate)
-        {
-            _reply?.Cancel();
-        }
-    }
-
-    public void Dispose() => StopReply();
 
     private static (string Title, string Message) Describe(AiConnectionReport report)
     {

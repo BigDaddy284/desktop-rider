@@ -5,13 +5,13 @@ namespace DesktopRider.AI.Tests;
 public class AiMenuViewModelTests
 {
     [Fact]
-    public void Menu_AtFirst_OnlyOffersTheConnectionCheck_AndContactsNothing()
+    public void Menu_AtFirst_OffersTalkingAndTheConnectionCheck_AndContactsNothing()
     {
         using var context = new Context(model: null);
 
         var menu = context.Menu.BuildEntries();
 
-        Assert.Equal([AiMenuViewModel.CheckText], menu.Select(entry => entry.Text));
+        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText], menu.Select(entry => entry.Text));
         Assert.Equal(0, context.Provider.ListCalls);
         Assert.Empty(context.Provider.Requests);
     }
@@ -29,27 +29,29 @@ public class AiMenuViewModelTests
         Assert.Contains("Found 2 AI models", hint.Message, StringComparison.Ordinal);
         Assert.Contains(AiMenuViewModel.ChooseModelText, hint.Message, StringComparison.Ordinal);
         var menu = context.Menu.BuildEntries();
-        Assert.Equal([AiMenuViewModel.CheckText, AiMenuViewModel.ChooseModelText], menu.Select(entry => entry.Text));
-        Assert.False(menu[1].IsSeparator);
-        Assert.Equal(["alpha (7B, Q4)", "beta"], menu[1].Children!.Select(entry => entry.Text));
-        Assert.DoesNotContain(menu[1].Children!, entry => entry.IsChecked);
+        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText, AiMenuViewModel.ChooseModelText], menu.Select(entry => entry.Text));
+        Assert.False(menu[2].IsSeparator);
+        Assert.Equal(["alpha (7B, Q4)", "beta"], menu[2].Children!.Select(entry => entry.Text));
+        Assert.DoesNotContain(menu[2].Children!, entry => entry.IsChecked);
     }
 
     [Fact]
-    public async Task ChoosingAModel_SavesIt_TicksIt_AndOffersTheHello()
+    public async Task ChoosingAModel_SavesIt_TicksIt_AndSaysHowToStartTalking()
     {
         using var context = new Context(model: null);
         context.Provider.Models.AddRange([new("alpha"), new("beta")]);
         await context.Menu.CheckConnectionAsync();
         context.Hints.Clear();
 
-        context.Menu.BuildEntries()[1].Children![1].Command!.Execute(null);
+        context.Menu.BuildEntries()[2].Children![1].Command!.Execute(null);
 
         Assert.Equal("beta", context.Settings.Current.Ai.Model);
-        Assert.Contains("beta", Assert.Single(context.Hints).Message, StringComparison.Ordinal);
+        var hint = Assert.Single(context.Hints).Message;
+        Assert.Contains("beta", hint, StringComparison.Ordinal);
+        Assert.Contains(AiMenuViewModel.TalkText, hint, StringComparison.Ordinal);
         var menu = context.Menu.BuildEntries();
-        Assert.Equal([AiMenuViewModel.CheckText, AiMenuViewModel.ChooseModelText, AiMenuViewModel.SayHelloText], menu.Select(entry => entry.Text));
-        Assert.Equal([false, true], menu[1].Children!.Select(entry => entry.IsChecked));
+        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText, AiMenuViewModel.ChooseModelText], menu.Select(entry => entry.Text));
+        Assert.Equal([false, true], menu[2].Children!.Select(entry => entry.IsChecked));
     }
 
     [Fact]
@@ -94,7 +96,7 @@ public class AiMenuViewModelTests
         await context.Menu.CheckConnectionAsync();
 
         Assert.Contains("no AI models yet", context.Hints[0].Message, StringComparison.Ordinal);
-        Assert.Equal([AiMenuViewModel.CheckText], context.Menu.BuildEntries().Select(entry => entry.Text));
+        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText], context.Menu.BuildEntries().Select(entry => entry.Text));
     }
 
     [Fact]
@@ -107,7 +109,7 @@ public class AiMenuViewModelTests
 
         Assert.Equal("The AI is not connected", context.Hints[0].Title);
         Assert.Equal("Desktop Rider cannot reach Ollama.", context.Hints[0].Message);
-        Assert.Equal([AiMenuViewModel.CheckText], context.Menu.BuildEntries().Select(entry => entry.Text));
+        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText], context.Menu.BuildEntries().Select(entry => entry.Text));
 
         context.Provider.Problem = null;
         context.Provider.Models.Add(new("alpha"));
@@ -117,98 +119,28 @@ public class AiMenuViewModelTests
     }
 
     [Fact]
-    public async Task SayHello_ShowsTheWholeReply()
+    public async Task UsingTheMenuAfterClosing_DoesNothingAndDoesNotFail()
     {
         using var context = new Context();
-        context.Provider.Reply.AddRange(["Braaap! ", "Hello ", "there."]);
-
-        await context.Menu.SayHelloAsync();
-
-        var hint = Assert.Single(context.Hints);
-        Assert.Equal("The rider says", hint.Title);
-        Assert.Equal("Braaap! Hello there.", hint.Message);
-        Assert.Equal(AiMenuViewModel.HelloPrompt, context.Provider.Requests[0].Messages[^1].Content);
-    }
-
-    [Fact]
-    public async Task SayHello_WithAVeryLongReply_ShortensItToFitTheMessage()
-    {
-        using var context = new Context();
-        context.Provider.Reply.Add(new string('a', 5000));
-
-        await context.Menu.SayHelloAsync();
-
-        var message = context.Hints[0].Message;
-        Assert.Equal(AiMenuViewModel.MaxMessageLength, message.Length);
-        Assert.EndsWith("…", message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task SayHello_WhenTheModelSaysNothing_ExplainsRatherThanShowingABlank()
-    {
-        using var context = new Context();
-        context.Provider.Reply.Add("  ");
-
-        await context.Menu.SayHelloAsync();
-
-        Assert.Contains("no words", context.Hints[0].Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task SayHello_WhenSomethingGoesWrong_ShowsTheReason()
-    {
-        using var context = new Context();
-        context.Provider.Problem = new AiProviderException(AiErrorKind.ModelNotFound, "Ollama does not have that model.");
-
-        await context.Menu.SayHelloAsync();
-
-        Assert.Equal("The rider could not answer", context.Hints[0].Title);
-        Assert.Equal("Ollama does not have that model.", context.Hints[0].Message);
-        Assert.Contains(context.Menu.BuildEntries(), entry => entry.Text == AiMenuViewModel.SayHelloText);
-    }
-
-    [Fact]
-    public async Task WhileTheRiderIsReplying_TheMenuOffersToStop_AndStoppingWorks()
-    {
-        using var context = new Context();
-        context.Provider.Reply.AddRange(["one", "two"]);
-        context.Provider.Gate = new TaskCompletionSource();
-
-        var replying = context.Menu.SayHelloAsync();
-        await context.Provider.FirstPieceSent.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        var menu = context.Menu.BuildEntries();
-        Assert.Contains(menu, entry => entry.Text == AiMenuViewModel.StopReplyText);
-        Assert.DoesNotContain(menu, entry => entry.Text == AiMenuViewModel.SayHelloText);
-
-        // Asking again while a reply is in progress does not start a second one.
-        await context.Menu.SayHelloAsync();
-        Assert.Single(context.Provider.Requests);
-
-        menu.Single(entry => entry.Text == AiMenuViewModel.StopReplyText).Command!.Execute(null);
-        await replying.WaitAsync(TimeSpan.FromSeconds(5));
-
-        Assert.Equal("Reply stopped", Assert.Single(context.Hints).Title);
-        Assert.Contains(context.Menu.BuildEntries(), entry => entry.Text == AiMenuViewModel.SayHelloText);
-    }
-
-    [Fact]
-    public async Task ClosingTheApplicationMidReply_EndsQuietly()
-    {
-        using var context = new Context();
-        context.Provider.Reply.AddRange(["one", "two"]);
-        context.Provider.Gate = new TaskCompletionSource();
-
-        var replying = context.Menu.SayHelloAsync();
-        await context.Provider.FirstPieceSent.Task.WaitAsync(TimeSpan.FromSeconds(5));
         context.Service.Dispose();
-        await replying.WaitAsync(TimeSpan.FromSeconds(5));
 
-        Assert.Empty(context.Hints);
-
-        // Using the menu after closing does nothing and does not fail.
         await context.Menu.CheckConnectionAsync();
-        await context.Menu.SayHelloAsync();
+
         Assert.Empty(context.Hints);
+    }
+
+    [Fact]
+    public void TalkToTheRider_AsksForTheConversation_WithoutContactingTheAi()
+    {
+        using var context = new Context(model: null);
+        var asked = 0;
+        context.Menu.TalkRequested += (_, _) => asked++;
+
+        context.Menu.BuildEntries().Single(entry => entry.Text == AiMenuViewModel.TalkText).Command!.Execute(null);
+
+        Assert.Equal(1, asked);
+        Assert.Equal(0, context.Provider.ListCalls);
+        Assert.Empty(context.Provider.Requests);
     }
 
     [Fact]
@@ -225,26 +157,12 @@ public class AiMenuViewModelTests
     }
 
     [Fact]
-    public async Task SayHello_SaysItIsWaiting_ThenShowsTheReplyGrowing()
-    {
-        using var context = new Context();
-        context.Provider.Reply.AddRange([" Braaap! ", "Hello."]);
-
-        await context.Menu.SayHelloAsync();
-
-        Assert.Equal(["Asking the rider", "The rider is answering", "The rider is answering"], context.Progress.Select(progress => progress.Title));
-        Assert.Contains(AiMenuViewModel.StopReplyText, context.Progress[0].Message, StringComparison.Ordinal);
-        Assert.Equal(["Braaap! ", "Braaap! Hello."], context.Progress.Skip(1).Select(progress => progress.Message));
-        Assert.Equal("Braaap! Hello.", Assert.Single(context.Hints).Message);
-    }
-
-    [Fact]
     public async Task TheMenuCommand_RunsTheCheck()
     {
         using var context = new Context(model: null);
         context.Provider.Models.Add(new("alpha"));
 
-        context.Menu.BuildEntries()[0].Command!.Execute(null);
+        context.Menu.BuildEntries().Single(entry => entry.Text == AiMenuViewModel.CheckText).Command!.Execute(null);
         await context.HintArrived.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         Assert.Equal(1, context.Provider.ListCalls);
@@ -281,7 +199,6 @@ public class AiMenuViewModelTests
 
         public void Dispose()
         {
-            Menu.Dispose();
             Service.Dispose();
         }
     }
