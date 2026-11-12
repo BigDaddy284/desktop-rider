@@ -4,7 +4,7 @@ Last updated: 12 November 2026
 
 ## Current task
 
-Phase 5 (Ollama integration) is built and tested automatically. It is waiting for the owner's check against a real Ollama (M5 in TESTING.md). Next is Phase 6: the conversation interface.
+Phases 1 and 2 are complete. Phase 5 (Ollama integration) is built and tested automatically. It is waiting for the owner's check against a real Ollama (M5 in TESTING.md). Next is Phase 6: the conversation interface.
 
 ## Completed tasks
 
@@ -45,7 +45,6 @@ Phase 5 (Ollama integration) is built and tested automatically. It is waiting fo
 
 ## Remaining tasks
 
-- **Phase 2 – Desktop overlay:** multiple monitor verification by the owner. (Placement rules for multiple monitors are already built and unit tested.)
 - **Phase 4 – Animation system:** connect animations to behaviour (moving around the screen, reacting to the user) as those features arrive.
 - **Phase 5 – Ollama integration:** the owner's check against a real Ollama (M5).
 - **Phase 6 – Conversation interface.**
@@ -63,6 +62,8 @@ Phase 5 (Ollama integration) is built and tested automatically. It is waiting fo
 - The address, personality, temperature and waiting time have no settings screen yet (Phase 8); they can only be changed in the settings file.
 - The window has never been run by the developer, because the build machine is Linux. Everything visual depends on manual checks M1 and M2.
 
+
+- Multiple monitors have not been tried on real hardware. The owner uses a single 49-inch ultrawide monitor and has no second screen, so M2 steps 9 and 10 cannot be done there. The placement rules for several monitors are covered by automated tests only.
 
 ## Technical decisions
 
