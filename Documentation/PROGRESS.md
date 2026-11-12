@@ -56,7 +56,7 @@ Phase 2, task 6 (system tray controls) is built and unit tested. It is waiting f
 
 - The window has never been run by the developer, because the build machine is Linux. Everything visual depends on manual checks M1 and M2.
 - The icon beside the clock is a shrunken picture of the whole rider and bike. At the smallest size it may be hard to make out; the owner is to judge it in M4.
-- The rider's sprite pictures are not in this branch. The owner has agreed they can go in the repository (real-life photographs must not); they are being added from the animation work.
+
 
 ## Technical decisions
 
