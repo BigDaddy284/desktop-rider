@@ -1,0 +1,134 @@
+{
+  "frameWidth": 467,
+  "frameHeight": 389,
+  "framesPerSecond": 12,
+  "pixelsPerMetre": 240,
+  "groundY": 382,
+  "animations": [
+    {
+      "name": "Idle",
+      "loop": true,
+      "frameCount": 24,
+      "columns": 8,
+      "right": "Right/Idle.png",
+      "left": "Left/Idle.png"
+    },
+    {
+      "name": "IdleVariation",
+      "loop": false,
+      "frameCount": 49,
+      "columns": 8,
+      "right": "Right/IdleVariation.png",
+      "left": "Left/IdleVariation.png"
+    },
+    {
+      "name": "LookLeft",
+      "loop": false,
+      "frameCount": 17,
+      "columns": 8,
+      "right": "Right/LookLeft.png",
+      "left": "Left/LookLeft.png"
+    },
+    {
+      "name": "LookRight",
+      "loop": false,
+      "frameCount": 17,
+      "columns": 8,
+      "right": "Right/LookRight.png",
+      "left": "Left/LookRight.png"
+    },
+    {
+      "name": "Revving",
+      "loop": true,
+      "frameCount": 12,
+      "columns": 8,
+      "right": "Right/Revving.png",
+      "left": "Left/Revving.png"
+    },
+    {
+      "name": "Thinking",
+      "loop": false,
+      "frameCount": 37,
+      "columns": 8,
+      "right": "Right/Thinking.png",
+      "left": "Left/Thinking.png"
+    },
+    {
+      "name": "Talking",
+      "loop": true,
+      "frameCount": 12,
+      "columns": 8,
+      "right": "Right/Talking.png",
+      "left": "Left/Talking.png"
+    },
+    {
+      "name": "Wheelie",
+      "loop": false,
+      "frameCount": 31,
+      "columns": 8,
+      "right": "Right/Wheelie.png",
+      "left": "Left/Wheelie.png"
+    },
+    {
+      "name": "Celebration",
+      "loop": false,
+      "frameCount": 25,
+      "columns": 8,
+      "right": "Right/Celebration.png",
+      "left": "Left/Celebration.png"
+    },
+    {
+      "name": "SleepStart",
+      "loop": false,
+      "frameCount": 13,
+      "columns": 8,
+      "right": "Right/SleepStart.png",
+      "left": "Left/SleepStart.png"
+    },
+    {
+      "name": "Sleeping",
+      "loop": true,
+      "frameCount": 48,
+      "columns": 8,
+      "right": "Right/Sleeping.png",
+      "left": "Left/Sleeping.png",
+      "enter": "SleepStart",
+      "exit": "SleepEnd"
+    },
+    {
+      "name": "SleepEnd",
+      "loop": false,
+      "frameCount": 13,
+      "columns": 8,
+      "right": "Right/SleepEnd.png",
+      "left": "Left/SleepEnd.png"
+    },
+    {
+      "name": "RideOff",
+      "loop": false,
+      "frameCount": 16,
+      "columns": 8,
+      "right": "Right/RideOff.png",
+      "left": "Left/RideOff.png"
+    },
+    {
+      "name": "RidingLoop",
+      "loop": true,
+      "frameCount": 12,
+      "columns": 8,
+      "right": "Right/RidingLoop.png",
+      "left": "Left/RidingLoop.png",
+      "enter": "RideOff",
+      "exit": "RideOn"
+    },
+    {
+      "name": "RideOn",
+      "loop": false,
+      "frameCount": 16,
+      "columns": 8,
+      "right": "Right/RideOn.png",
+      "left": "Left/RideOn.png"
+    }
+  ],
+  "defaultAnimation": "Idle"
+}
