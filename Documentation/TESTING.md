@@ -76,4 +76,4 @@ Status: **awaiting the owner's check on Windows 11.**
 9. Drag the rider while it is animating. **Expect:** it moves as before and keeps animating.
 10. Open Task Manager and watch Desktop Rider for a minute while it rests. **Expect:** processor use stays low (a few percent at most).
 
-Status: **awaiting the owner's check on Windows 11.**
+Status: the owner ran the 0.3.0 test build on 12 November 2026 and reported that it looks and works well. The steps were not reported one by one, so steps 2, 9 and 10 (click-through, dragging while animating, processor use) are still to be confirmed individually.

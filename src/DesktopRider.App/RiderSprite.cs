@@ -16,7 +16,7 @@ namespace DesktopRider.App;
 internal sealed partial class RiderSprite : IDisposable
 {
     /// <summary>On-screen size of a sprite pixel at normal character size.</summary>
-    public const double DisplayFactor = 0.75;
+    public const double DisplayFactor = 0.45;
 
     private static readonly string[] IdleChoices = ["IdleVariation", "LookLeft", "LookRight"];
 

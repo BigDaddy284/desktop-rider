@@ -31,7 +31,7 @@ The left-facing sheets are rendered separately, not flipped copies, because the 
 
 Because every frame is the same size and the ground line never moves, frames line up exactly when the animation changes.
 
-On screen, a frame is drawn at three quarters of its pixel size when the character size setting is 1.0.
+On screen, a frame is drawn at 45% of its pixel size when the character size setting is 1.0 (about 210 × 175). The owner chose this size on 12 November 2026.
 
 ## The list of animations (`sprites.json`)
 

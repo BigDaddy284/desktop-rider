@@ -4,7 +4,7 @@ Last updated: 12 November 2026
 
 ## Current task
 
-Phase 4: the animated rider is in the application and waits for the owner's manual check M3. Next is Phase 2, task 6: system tray controls.
+Phase 2, task 6: system tray controls. (The animated rider is in the application and the owner has seen it working.)
 
 ## Completed tasks
 
@@ -24,7 +24,7 @@ Phase 4: the animated rider is in the application and waits for the owner's manu
 | 3 | Sprite conventions and rendering | Done. 15 animations rendered in both directions; see SPRITE_SPECIFICATION.md. |
 | 4 | Animation playback, transitions, priorities | Built and unit tested (`DesktopRider.Animation`). |
 | 4 | Initial animations | All thirteen from DESIGN.md 3.6 built in Blender and approved by the owner, plus sleep start and end. |
-| 4 | Animated rider in the window | Built. Manual check M3 awaiting the owner. |
+| 4 | Animated rider in the window | Built. The owner ran it on Windows 11 and reported it looks and works well; see M3 in TESTING.md. |
 | 3 | Organise all supplied references | Done. Stored privately by the owner; folder structure and written summary are in `References/`. |
 
 ## Latest results
@@ -35,7 +35,7 @@ Phase 4: the animated rider is in the application and waits for the owner's manu
 | Tests (`dotnet test`) | 141 passed, 0 failed, 0 skipped |
 | GitHub Actions build and test on Windows | Passed for Phase 1; runs again on each push |
 | Standalone Windows build (`dotnet publish`, win-x64) | Succeeded |
-| Manual checks M1, M2 and M3 on Windows 11 | Not yet run |
+| Manual checks on Windows 11 | The owner ran the 0.3.0 test build: it starts, shows the animated rider and works. M1 to M3 not yet reported step by step. |
 
 ## Remaining tasks
 
