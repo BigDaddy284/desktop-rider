@@ -6,12 +6,27 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DesktopRider.Core.ViewModels;
 
-/// <summary>One line of the notification-area menu. A line with no command is a divider.</summary>
-public sealed record TrayMenuEntry(string Text, ICommand? Command, bool IsChecked = false)
+/// <summary>
+/// One line of the notification-area menu. A line with children opens a further menu;
+/// a line with neither a command nor children is a divider.
+/// </summary>
+public sealed record TrayMenuEntry(string Text, ICommand? Command, bool IsChecked = false, IReadOnlyList<TrayMenuEntry>? Children = null)
 {
     public static TrayMenuEntry Separator { get; } = new(string.Empty, null);
 
-    public bool IsSeparator => Command is null;
+    public bool IsSeparator => Command is null && Children is null;
+}
+
+/// <summary>
+/// Another part of Desktop Rider that adds its own lines to the notification-area menu and can show short messages there.
+/// </summary>
+public interface ITrayMenuContributor
+{
+    /// <summary>Raised when the user should be told something beside the icon.</summary>
+    event EventHandler<TrayHintEventArgs>? HintRequested;
+
+    /// <summary>The lines to add, as they should look right now. Must return at once without doing any work.</summary>
+    IReadOnlyList<TrayMenuEntry> BuildEntries();
 }
 
 /// <summary>A short message shown beside the notification-area icon.</summary>
@@ -39,15 +54,28 @@ public sealed partial class TrayViewModel : IDisposable
     private readonly OverlayViewModel _overlay;
     private readonly ISettingsService _settings;
     private readonly ILogger<TrayViewModel> _logger;
+    private readonly IReadOnlyList<ITrayMenuContributor> _contributors;
     private bool _wasVisible;
+    private bool _lastHintWasFromAContributor;
 
-    public TrayViewModel(OverlayViewModel overlay, ISettingsService settings, ILogger<TrayViewModel>? logger = null)
+    public TrayViewModel(
+        OverlayViewModel overlay,
+        ISettingsService settings,
+        IEnumerable<ITrayMenuContributor>? contributors = null,
+        ILogger<TrayViewModel>? logger = null)
     {
         _overlay = overlay ?? throw new ArgumentNullException(nameof(overlay));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _logger = logger ?? NullLogger<TrayViewModel>.Instance;
         _wasVisible = overlay.CharacterVisible;
         _overlay.PropertyChanged += OnOverlayChanged;
+        _contributors = [.. contributors ?? []];
+        foreach (var contributor in _contributors)
+        {
+            contributor.HintRequested += OnContributorHint;
+        }
+
+        HintClickedCommand = new RelayCommand(OnHintClicked);
     }
 
     /// <summary>Raised when the user should be reminded where the rider has gone.</summary>
@@ -59,8 +87,8 @@ public sealed partial class TrayViewModel : IDisposable
     /// <summary>What a click or double-click on the icon does: hides the rider, or brings it back.</summary>
     public ICommand DefaultCommand => _overlay.ToggleVisibilityCommand;
 
-    /// <summary>What clicking the reminder does: brings the rider back.</summary>
-    public ICommand HintClickedCommand => _overlay.ShowCommand;
+    /// <summary>What clicking a message does: the "rider is hidden" reminder brings the rider back; other messages do nothing.</summary>
+    public ICommand HintClickedCommand { get; }
 
     /// <summary>The menu as it should look right now.</summary>
     public IReadOnlyList<TrayMenuEntry> BuildMenu()
@@ -76,6 +104,16 @@ public sealed partial class TrayViewModel : IDisposable
             menu.Add(new TrayMenuEntry(ResetPositionText, _overlay.ResetPositionCommand));
         }
 
+        foreach (var contributor in _contributors)
+        {
+            var entries = contributor.BuildEntries();
+            if (entries.Count > 0)
+            {
+                menu.Add(TrayMenuEntry.Separator);
+                menu.AddRange(entries);
+            }
+        }
+
         menu.Add(TrayMenuEntry.Separator);
         menu.Add(new TrayMenuEntry(ExitText, _overlay.ExitCommand));
         return menu;
@@ -89,11 +127,38 @@ public sealed partial class TrayViewModel : IDisposable
     {
         if (!_overlay.CharacterVisible)
         {
-            HintRequested?.Invoke(this, new TrayHintEventArgs(HintTitle, HintMessage));
+            ShowReminder();
         }
     }
 
-    public void Dispose() => _overlay.PropertyChanged -= OnOverlayChanged;
+    public void Dispose()
+    {
+        _overlay.PropertyChanged -= OnOverlayChanged;
+        foreach (var contributor in _contributors)
+        {
+            contributor.HintRequested -= OnContributorHint;
+        }
+    }
+
+    private void ShowReminder()
+    {
+        _lastHintWasFromAContributor = false;
+        HintRequested?.Invoke(this, new TrayHintEventArgs(HintTitle, HintMessage));
+    }
+
+    private void OnContributorHint(object? sender, TrayHintEventArgs e)
+    {
+        _lastHintWasFromAContributor = true;
+        HintRequested?.Invoke(this, e);
+    }
+
+    private void OnHintClicked()
+    {
+        if (!_lastHintWasFromAContributor)
+        {
+            _overlay.ShowCommand.Execute(null);
+        }
+    }
 
     private void OnOverlayChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -104,7 +169,7 @@ public sealed partial class TrayViewModel : IDisposable
         {
             // Marked before raising the event so the save's own change notice cannot trigger a second reminder.
             _settings.Current.Application.TrayHintShown = true;
-            HintRequested?.Invoke(this, new TrayHintEventArgs(HintTitle, HintMessage));
+            ShowReminder();
             _ = RememberHintShownAsync();
         }
     }

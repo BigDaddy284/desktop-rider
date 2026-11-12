@@ -4,7 +4,7 @@ Last updated: 12 November 2026
 
 ## Current task
 
-Phase 2 is complete apart from the owner trying a second monitor. Next is Phase 5: Ollama integration.
+Phase 5 (Ollama integration) is built and tested automatically. It is waiting for the owner's check against a real Ollama (M5 in TESTING.md). Next is Phase 6: the conversation interface.
 
 ## Completed tasks
 
@@ -26,6 +26,11 @@ Phase 2 is complete apart from the owner trying a second monitor. Next is Phase 
 | 4 | Animation playback, transitions, priorities | Built and unit tested (`DesktopRider.Animation`). |
 | 4 | Initial animations | All thirteen from DESIGN.md 3.6 built in Blender and approved by the owner, plus sleep start and end. |
 | 4 | Animated rider in the window | Built. The owner ran it on Windows 11 and reported it looks and works well; see M3 in TESTING.md. |
+| 5 | Implement provider abstraction | Built and unit tested (`IAiProvider`, `AiProviderRegistry`, `AiChatService` in `DesktopRider.AI`). |
+| 5 | Connect to Ollama | Built and unit tested, including a round trip over a real local port. Manual check M5 awaiting the owner. |
+| 5 | Discover models | Built and unit tested; the user picks the model from the icon's menu. Nothing is assumed. Manual check M5 awaiting the owner. |
+| 5 | Send messages and receive streaming responses | Built and unit tested. Until the conversation window exists, **Ask the rider to say hello** in the icon's menu tries it out. Manual check M5 awaiting the owner. |
+| 5 | Handle errors and cancellation | Built and unit tested: Ollama not running, model missing, time limits, broken connections, stopping a reply, closing during a reply. Manual check M5 awaiting the owner. |
 | 3 | Organise all supplied references | Done. Stored privately by the owner; folder structure and written summary are in `References/`. |
 
 ## Latest results
@@ -33,7 +38,7 @@ Phase 2 is complete apart from the owner trying a second monitor. Next is Phase 
 | Check | Result |
 |---|---|
 | Build (`dotnet build`, warnings as errors) | Succeeded, 0 warnings, 0 errors |
-| Tests (`dotnet test`) | 177 passed, 0 failed, 0 skipped |
+| Tests (`dotnet test`) | 248 passed, 0 failed, 0 skipped (Core 130, Animation 51, AI 67) |
 | GitHub Actions build and test on Windows | Passed for Phase 1; runs again on each push |
 | Standalone Windows build (`dotnet publish`, win-x64) | Succeeded |
 | Manual checks on Windows 11 | The owner ran the 0.3.0 test build: it starts, shows the animated rider and works. M1 to M3 not yet reported step by step. |
@@ -42,7 +47,7 @@ Phase 2 is complete apart from the owner trying a second monitor. Next is Phase 
 
 - **Phase 2 – Desktop overlay:** multiple monitor verification by the owner. (Placement rules for multiple monitors are already built and unit tested.)
 - **Phase 4 – Animation system:** connect animations to behaviour (moving around the screen, reacting to the user) as those features arrive.
-- **Phase 5 – Ollama integration.**
+- **Phase 5 – Ollama integration:** the owner's check against a real Ollama (M5).
 - **Phase 6 – Conversation interface.**
 - **Phase 7 – Personality and memory.**
 - **Phase 8 – Settings and polish.**
@@ -54,6 +59,8 @@ Phase 2 is complete apart from the owner trying a second monitor. Next is Phase 
 
 ## Known issues
 
+- The AI code has only been run against a stand-in for Ollama, because the build machine has no Ollama. The real thing depends on manual check M5.
+- The address, personality, temperature and waiting time have no settings screen yet (Phase 8); they can only be changed in the settings file.
 - The window has never been run by the developer, because the build machine is Linux. Everything visual depends on manual checks M1 and M2.
 
 
@@ -63,4 +70,4 @@ Recorded in ARCHITECTURE.md.
 
 ## Next task
 
-Phase 5: Ollama integration.
+Phase 6: Conversation interface (speech bubbles, conversation window, text input, animations that follow the conversation).

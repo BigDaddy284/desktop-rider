@@ -198,13 +198,82 @@ public class TrayViewModelTests
 
     private static TrayMenuEntry Entry(Context context, string text) => context.Tray.BuildMenu().Single(entry => entry.Text == text);
 
+    [Fact]
+    public void Contributors_AddTheirLinesBetweenTheRidersAndExit()
+    {
+        var contributor = new FakeContributor();
+        using var context = new Context(contributors: [contributor, new FakeContributor { Entries = [] }]);
+
+        var menu = context.Tray.BuildMenu();
+
+        Assert.Equal(
+            [TrayViewModel.HideText, TrayViewModel.AlwaysOnTopText, TrayViewModel.ResetPositionText, string.Empty, "Extra", "More", string.Empty, TrayViewModel.ExitText],
+            menu.Select(entry => entry.Text));
+        Assert.False(menu[5].IsSeparator);
+        Assert.Equal(["Choice"], menu[5].Children!.Select(entry => entry.Text));
+    }
+
+    [Fact]
+    public void ContributorMessages_AreShown_AndClickingThemDoesNotBringAHiddenRiderBack()
+    {
+        var contributor = new FakeContributor();
+        using var context = new Context(startHidden: true, contributors: [contributor]);
+
+        contributor.Say("Title", "Message");
+        context.Tray.HintClickedCommand.Execute(null);
+
+        var hint = Assert.Single(context.Hints);
+        Assert.Equal(("Title", "Message"), (hint.Title, hint.Message));
+        Assert.False(context.Overlay.CharacterVisible);
+    }
+
+    [Fact]
+    public void ClickingTheHiddenReminder_StillBringsTheRiderBack_EvenAfterOtherMessages()
+    {
+        var contributor = new FakeContributor();
+        using var context = new Context(startHidden: true, contributors: [contributor]);
+
+        contributor.Say("Title", "Message");
+        context.Tray.AnnounceIfStartedHidden();
+        context.Tray.HintClickedCommand.Execute(null);
+
+        Assert.True(context.Overlay.CharacterVisible);
+    }
+
+    [Fact]
+    public void AfterDispose_ContributorMessagesAreNoLongerShown()
+    {
+        var contributor = new FakeContributor();
+        var context = new Context(contributors: [contributor]);
+        context.Dispose();
+
+        contributor.Say("Title", "Message");
+
+        Assert.Empty(context.Hints);
+    }
+
+    private sealed class FakeContributor : ITrayMenuContributor
+    {
+        public event EventHandler<TrayHintEventArgs>? HintRequested;
+
+        public IReadOnlyList<TrayMenuEntry> Entries { get; set; } =
+        [
+            new("Extra", new RelayCommand(() => { })),
+            new("More", null, Children: [new("Choice", new RelayCommand(() => { }), IsChecked: true)]),
+        ];
+
+        public IReadOnlyList<TrayMenuEntry> BuildEntries() => Entries;
+
+        public void Say(string title, string message) => HintRequested?.Invoke(this, new TrayHintEventArgs(title, message));
+    }
+
     private sealed class Context : IDisposable
     {
-        public Context(bool startHidden = false)
+        public Context(bool startHidden = false, IEnumerable<ITrayMenuContributor>? contributors = null)
         {
             Settings.Current.Appearance.CharacterVisible = !startHidden;
             Overlay = new OverlayViewModel(Settings);
-            Tray = new TrayViewModel(Overlay, Settings);
+            Tray = new TrayViewModel(Overlay, Settings, contributors);
             Tray.HintRequested += (_, hint) => Hints.Add(hint);
         }
 

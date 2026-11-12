@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DesktopRider.AI\DesktopRider.AI.csproj" />
     <ProjectReference Include="..\DesktopRider.Animation\DesktopRider.Animation.csproj" />
     <ProjectReference Include="..\DesktopRider.Core\DesktopRider.Core.csproj" />
     <ProjectReference Include="..\DesktopRider.Desktop\DesktopRider.Desktop.csproj" />

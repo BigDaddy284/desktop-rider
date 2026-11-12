@@ -24,12 +24,16 @@ Every push and pull request is also built and tested on Windows by GitHub Action
 | Character placement | `PlacementCalculatorTests` | Default corner, restoring a saved spot, negative-coordinate monitors, unplugged monitors, resolution changes, nudging back on screen, bad saved numbers. |
 | Settings in use | `SettingsServiceTests` | Changes are applied, saved, kept in range and announced; nothing is announced when a save fails. |
 | Character window logic | `OverlayViewModelTests` | Always-on-top toggle, showing and hiding the rider, menu actions, behaviour when a save fails. |
-| Notification-area icon logic | `TrayViewModelTests` | The menu while the rider is showing and while hidden, show, hide and exit, the tick on Always on top, what a click does, the hover text, and the reminder (once ever on first hide, every time on a hidden start, never twice). |
+| Notification-area icon logic | `TrayViewModelTests` | Lines added by other parts (the AI), their messages, what clicking a message does, the menu while the rider is showing and while hidden, show, hide and exit, the tick on Always on top, what a click does, the hover text, and the reminder (once ever on first hide, every time on a hidden start, never twice). |
 | Icon picture layout | `IconLayoutTests` | Finding the drawn part of a frame and fitting it into a square without distortion. |
 | Sprite list | `SpriteManifestTests` | Reading the list, frame positions on a sheet, twelve kinds of broken list, and the real rider list covering every animation DESIGN.md requires. |
 | Animation playback | `AnimationPlayerTests` | Loops, one-shots, returning to the right loop, waiting requests, priorities, lead-in and lead-out animations, speed, long pauses. |
 | Idle animations | `IdleVariationPickerTests` | Timing, switched off, not interrupting other animations. |
 | Wiring | `CompositionTests` | Services resolve and work together; single-instance guard. |
+| Ollama provider | `OllamaProviderTests` (AI) | Listing models, the request sent for a chat, pieces arriving one at a time, Ollama not running, model not installed, errors before and during a reply, replies that end early, broken connections, answers that are not from Ollama, time limits before and during a reply, a long reply that keeps arriving, stopping by the caller, and a full round trip over a real local network port. |
+| Chat service | `AiChatServiceTests` (AI) | No model chosen, the user's model, temperature and personality being applied, unknown provider, connection reports, stopping a reply, shutdown during a reply, choosing a model. |
+| AI menu lines | `AiMenuViewModelTests` (AI) | Nothing contacted until asked, every connection-check message, choosing a model and its tick, the hello reply, long replies shortened, stopping, problems shown in plain words, shutdown mid-reply. |
+| AI wiring | `CompositionTests` (AI) | AI services resolve with Core, the menu gains the AI lines, the connection follows settings. |
 
 Code coverage has not been measured. The requirement is that all applicable tests pass, and they do.
 
@@ -37,6 +41,7 @@ Code coverage has not been measured. The requirement is that all applicable test
 
 - Development happens on a Linux build machine. It compiles the WPF application but cannot run it, so anything involving a real window is verified by GitHub Actions on Windows (build only) and by hand on the owner's Windows 11 PC.
 - Loading the sprite pictures and drawing them (`RiderSprite`) needs a real window, so it is covered by manual procedure M3.
+- The automated AI tests use a stand-in for Ollama (scripted answers, and one small local web server). They prove Desktop Rider handles everything Ollama can send, but only manual procedure M5 proves it against a real Ollama and a real model.
 - There are no automated tests of the WPF window itself. Its decisions (where to sit, what the menu does) are made by tested code in Core; the thin window layer that carries them out (`OverlayWindow`, `WindowPlacementController`, `TrayIconController`, `TrayIconFactory`) is covered by the manual procedures below.
 
 ## Manual test procedures
@@ -96,3 +101,20 @@ Status: the owner ran the 0.3.0 test build on 12 November 2026 and reported that
 12. Untick **Always on top** from the icon's menu. **Expect:** the same effect as from the rider's own menu, and the tick matches in both menus.
 
 Status: the owner ran the 0.4.0 build on Windows 11 on 12 November 2026 and reported that it all looks and works well. The steps were not reported one by one.
+
+### M5. Connecting to Ollama (Phase 5)
+
+Needs Ollama installed with at least one model.
+
+1. Close Ollama completely (right-click its icon beside the clock and quit). Right-click the Desktop Rider icon and choose **Check the AI connection**. **Expect:** within a few seconds, a message "The AI is not connected" explaining that Ollama cannot be reached at `http://localhost:11434`. The rider keeps animating throughout.
+2. Start Ollama. Choose **Check the AI connection** again. **Expect:** "Ollama is connected" with the number of models found.
+3. Open the icon's menu. **Expect:** a new line **Choose an AI model** that opens a list of your models, none ticked.
+4. Pick a model. **Expect:** a message "AI model chosen". Open the menu again. **Expect:** that model is ticked and there is a new line **Ask the rider to say hello**.
+5. Choose **Ask the rider to say hello**. **Expect:** after a wait (longer the first time, while Ollama loads the model), a message "The rider says" with a short greeting. While waiting, the rider keeps animating and can be dragged.
+6. Choose **Ask the rider to say hello** again and straight away open the menu and choose **Stop the rider's reply**. **Expect:** a message "Reply stopped" and no greeting.
+7. Choose **Ask the rider to say hello** and, while it is working, choose **Exit Desktop Rider**. **Expect:** it closes straight away and `DesktopRider.exe` is gone from Task Manager.
+8. Start Desktop Rider again and open the icon's menu. **Expect:** **Ask the rider to say hello** is there straight away (the model choice was remembered).
+9. Quit Ollama and choose **Ask the rider to say hello**. **Expect:** "The rider could not answer" with the same plain explanation as step 1.
+10. With Desktop Rider running and nothing chosen from the menu, watch Task Manager for a minute. **Expect:** processor use as low as before; nothing contacts Ollama on its own.
+
+Status: **awaiting the owner's check on Windows 11.**

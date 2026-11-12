@@ -10,10 +10,10 @@ Desktop Rider is a native Windows application written in C# on .NET 10 with WPF,
 | `src/DesktopRider.Desktop` | `net10.0-windows` | Windows desktop integration: the monitor list, moving the character's window in physical pixels, and the icon beside the clock. |
 | `src/DesktopRider.App` | `net10.0-windows` | The WPF application: start-up, shutdown, windows and view models. Produces `DesktopRider.exe`. |
 | `src/DesktopRider.Animation` | `net10.0` | The sprite list and the animation player: which frame of which animation shows at any moment. No window, no timer, fully unit tested. |
+| `src/DesktopRider.AI` | `net10.0` | Talking to AI models: the provider abstraction, the Ollama provider, the chat service and the AI lines of the icon's menu. No window, fully unit tested. |
+| `tests/DesktopRider.AI.Tests` | `net10.0` | xUnit tests for AI. |
 | `tests/DesktopRider.Core.Tests` | `net10.0` | xUnit tests for Core. |
 | `tests/DesktopRider.Animation.Tests` | `net10.0` | xUnit tests for Animation. |
-
-The remaining projects named in DESIGN.md (`DesktopRider.AI` and its tests) are added when their phase begins, so the solution never contains empty projects.
 
 The rule for where code goes: if it can work without a window, it lives outside the App project so that it can be tested automatically on any machine.
 
@@ -55,6 +55,24 @@ Until the artwork is approved, the window shows a neutral grey stand-in card tha
 
 `IdleVariationPicker` asks for a small idle animation every 8 to 20 seconds while the rider is resting, unless idle animations are switched off in settings.
 
+## AI
+
+The AI project depends on Core only. Nothing in Animation or Desktop refers to it, so the rider animates and behaves normally whether or not an AI is available.
+
+- `IAiProvider` is the abstraction every provider implements: list the models (which doubles as the connection test) and stream a reply piece by piece. Both can be cancelled. Problems are always reported as an `AiProviderException` with a kind (`NotRunning`, `Timeout`, `NoModelSelected`, `ModelNotFound`, `ConnectionLost`, `InvalidResponse`, `ProviderError`, `UnknownProvider`) and a plain-English message that can be shown to the user as it is.
+- `OllamaProvider` implements it over Ollama's HTTP interface (`GET /api/tags`, `POST /api/chat` with streaming). It reads the address and waiting time from settings for every request, so a change applies immediately.
+- `AiProviderRegistry` finds the provider named in settings. Adding LM Studio or another local provider later means writing one class and registering it.
+- `AiChatService` is what the rest of the application uses. It applies the user's settings (provider, model, personality, temperature) so callers only pass the conversation. Closing the application cancels anything still in progress.
+- `AiMenuViewModel` adds the AI lines to the icon's menu through `ITrayMenuContributor` (Core): check the connection, choose a model, ask for a hello, stop a reply. The hello line is a stand-in for trying the connection until the conversation window exists (Phase 6).
+
+Rules the code follows:
+
+- **No request without the user asking.** Creating the services contacts nothing. There is no polling and no background check.
+- **No model name is assumed.** The only model names the code ever uses come from Ollama's own list, after the user picks one.
+- **Time limits are on silence, not on the whole reply.** Listing models allows 10 seconds. A reply allows `Ai.RequestTimeoutSeconds` (120 by default) before the first piece and again between pieces, so a long reply that keeps arriving is never cut off, but a stalled one is.
+- **Stopped is not failed.** Cancellation by the user or by shutdown surfaces as `OperationCanceledException`, never as an error message.
+- **Privacy.** Conversation text is never logged. Addresses are logged and shown without any sign-in details they may contain.
+
 ## Local data
 
 Everything is stored under `%LOCALAPPDATA%\DesktopRider` on the user's own computer:
@@ -95,4 +113,10 @@ Nothing is sent anywhere. There is no telemetry.
 | 2026-11-12 | The icon picture is made from the rider's own resting frame when the application starts. | The approved artwork is the only permitted source for the rider's appearance; no separate icon is invented. |
 | 2026-11-12 | Whether the rider is hidden is remembered between sessions, and a hidden start always shows a reminder beside the clock. | Respects the user's choice without leaving them wondering whether the application started. |
 | 2026-11-12 | The reminder on hiding is shown once ever (`Application.TrayHintShown`). | Helpful the first time, an unnecessary pop-up afterwards. |
+| 2026-11-12 | The Ollama provider uses `HttpClient` and `System.Text.Json` directly rather than an Ollama client library. | Two simple requests; avoids a dependency and keeps full control of time limits and cancellation. |
+| 2026-11-12 | The reply time limit restarts with each piece received. | Local models can take a long time overall; only silence means something is wrong. |
+| 2026-11-12 | The connection test is the model list request. | One request answers both "is Ollama there?" and "what can I choose?". |
+| 2026-11-12 | Until the conversation window exists, the AI is reached from the icon's menu, with replies shown as messages beside the clock. | Lets the owner prove the connection on their own PC now, without inventing temporary windows. |
+| 2026-11-12 | A built-in personality (DESIGN.md 5.4) is sent unless the user has written their own. It gives the rider no name and says it cannot see the screen. | A sensible default is needed for any reply; names and other details are the owner's to decide. |
+| 2026-11-12 | Clicking a message beside the clock only brings the rider back when the message was the "rider is hidden" reminder. | Clicking an AI message should not undo the user's choice to hide the rider. |
 | 2026-11-12 | The icon is always present while Desktop Rider runs. The "Minimise to system tray" setting is left for the settings screen in Phase 8. | With no taskbar button, the icon is the only way back to a hidden rider. |

@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using DesktopRider.AI;
 using DesktopRider.Core;
 using DesktopRider.Core.Configuration;
 using DesktopRider.Core.Infrastructure;
@@ -45,6 +46,7 @@ public partial class App : Application
 
             var services = new ServiceCollection();
             services.AddDesktopRiderCore(paths);
+            services.AddDesktopRiderAi();
             services.AddSingleton<IScreenProvider, WindowsScreenProvider>();
             services.AddSingleton<OverlayViewModel>();
             services.AddSingleton<TrayViewModel>();
