@@ -19,7 +19,7 @@ Phase 2, task 5: multiple monitor support verification, then task 6: system tray
 | 2 | Implement always-on-top | Built and unit tested (menu toggle, remembered). Manual check M2 awaiting the owner. |
 | 2 | Implement dragging | Built. Manual check M2 awaiting the owner. |
 | 2 | Implement desktop positioning | Built and unit tested (placement rules). Manual check M2 awaiting the owner. |
-| 3 | Inspect existing reference photographs | Done. 24 photographs received in two batches; see the visual reference summary. |
+| 3 | Inspect existing reference photographs | Done. 28 photographs received in three batches; see the visual reference summary. |
 | 3 | Organise all supplied references | Done. Stored privately by the owner; folder structure and written summary are in `References/`. |
 
 ## Latest results
@@ -45,7 +45,7 @@ Phase 2, task 5: multiple monitor support verification, then task 6: system tray
 
 ## Blockers
 
-- **Final artwork** cannot start until the owner supplies the remaining references (bike rear, helmet side, gloves, bike model) and answers the two decisions listed in `References/Annotated-References/VISUAL_REFERENCE_SUMMARY.md`. Software work is not blocked.
+- **Final artwork** cannot start until the owner answers the four decisions listed in `References/Annotated-References/VISUAL_REFERENCE_SUMMARY.md`. Software work is not blocked.
 
 ## Known issues
 

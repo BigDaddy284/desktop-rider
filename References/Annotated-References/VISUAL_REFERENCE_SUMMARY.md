@@ -1,6 +1,6 @@
 # Visual reference summary
 
-This describes what the owner's 24 reference photographs show. It is the written source of truth for the artwork, because the photographs themselves are kept out of this public repository. Personal details (the rider's name and small local sponsor names) are intentionally left out of this public copy; the owner holds the full version.
+This describes what the owner's 28 reference photographs show. It is the written source of truth for the artwork, because the photographs themselves are kept out of this public repository. Personal details (the rider's name and small local sponsor names) are intentionally left out of this public copy; the owner holds the full version.
 
 Only details that are clearly visible are recorded. Anything listed under "Not yet known" must be asked for, not invented.
 
@@ -48,7 +48,24 @@ The whole look is built on four colours plus the bike's factory orange:
 
 ## Bike
 
-A small-wheel KTM youth motocross bike (KTM branding is visible on the grips and silencer). The exact model and year are not confirmed.
+A **KTM 50 SX, 2013 model**, confirmed by the owner, with these modifications:
+
+- Big wheel kit and extended swingarm kit.
+- Full FMF exhaust: chrome expansion pipe and silencer.
+- VHM cylinder head (gold anodised, visible above the cylinder on the left side).
+- RFX footpegs (blue anodised, wide, with steel teeth).
+
+### Two states of the bike
+
+The photographs show the bike at two points in 2012. The owner needs to say which one the cartoon follows.
+
+| Part | February 2012 | June 2012 |
+|---|---|---|
+| Ignition cover (left side) | Gold anodised, engraved with 28 | Pink anodised, with an academy logo |
+| Wheel rims | Black | Purple-magenta anodised |
+| Hubs | Gold | Blue |
+| Rear sprocket | Black | Blue |
+| Graphics | As described below | The same, with one extra logo on the shroud, front plate and swingarm |
 
 **Shared details**
 
@@ -81,7 +98,7 @@ A small-wheel KTM youth motocross bike (KTM branding is visible on the grips and
 
 A young rider in full motocross gear.
 
-- **Helmet:** (front, back and a three-quarter view are now available) Full-face motocross helmet with peak. Busy multi-colour graphic of sky blue, magenta, fluorescent yellow and black in jagged, radiating shapes, with a pink lower edge trim and a pink and blue chin bar with a yellow-green mouth vent.
+- **Helmet:** (front, back and left side available) Full-face motocross helmet with peak. Busy multi-colour graphic of sky blue, magenta, fluorescent yellow and black in jagged, radiating shapes, with a pink lower edge trim and a pink and blue chin bar with a yellow-green mouth vent. From the left side: the shell is mainly sky blue; a large fluorescent yellow panel sits above the eye opening; a magenta stripe runs along the top of the peak and crown; bold black angular lettering-style shapes with blue infill cover the rear half; yellow and black bands with a small animal-head logo sit low at the back; the chin bar has fine yellow rays fanning forward over magenta; a magenta band runs around the bottom edge; black liner and blue cheek pads show in the opening.
 - **Goggles:** Black frame with pink and yellow splatter pattern; pink strap with a black repeating pattern; clear lens.
 - **Jersey:** Sky blue base with magenta and black diagonal brush-stroke bands, halftone dot shading where colours meet, and thin white zig-zag line work. Blue V-neck at the front, black collar band at the back. A large white brand logo sits on the chest.
   - **Back:** the rider's first name in small capitals above the surname in large capitals, both in a collegiate block typeface, pink with a darker outline. Beneath, a large pink **28** in the same block style with a black outline and drop shadow. Below the number is the team logo, then two smaller logos.
@@ -98,18 +115,17 @@ A young rider in full motocross gear.
 
   Left and right were worked out from which side the buckles are on, and should be confirmed with the owner at concept stage.
 
-## Not yet known
+## Not available
 
-Supplied since the first request: the rider on the bike, and the boots from every side.
+The owner has confirmed there are no photographs of the following. How each is handled must be agreed with the owner before it is drawn:
 
-Still needed before final artwork, and not to be guessed:
-
-1. **The rear of the bike.** Needed for ride-off animations and the rear fender design.
-2. **The side of the helmet.** Front, back and one small three-quarter view are available; a clear side view is what a side-on character shows most.
+1. **The rear of the bike.**
+2. **The right side of the helmet.**
 3. **The gloves close up.**
-4. **The bike's model and year.**
 
 ## Decisions needed from the owner
 
 1. Whether the cartoon carries the rider's real name, or only the number 28.
 2. How brand and sponsor logos are handled: drawn faithfully, simplified into unreadable shapes, or left off.
+3. Which state of the bike to draw: February 2012 or June 2012.
+4. How to handle the three details with no photographs.
