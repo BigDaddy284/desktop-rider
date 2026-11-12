@@ -4,7 +4,7 @@ Last updated: 12 November 2026
 
 ## Current task
 
-Phase 2 is complete apart from the owner trying a second monitor. Next is Phase 5: Ollama integration.
+Phase 2 is complete. Next is Phase 5: Ollama integration.
 
 ## Completed tasks
 
@@ -40,7 +40,6 @@ Phase 2 is complete apart from the owner trying a second monitor. Next is Phase 
 
 ## Remaining tasks
 
-- **Phase 2 – Desktop overlay:** multiple monitor verification by the owner. (Placement rules for multiple monitors are already built and unit tested.)
 - **Phase 4 – Animation system:** connect animations to behaviour (moving around the screen, reacting to the user) as those features arrive.
 - **Phase 5 – Ollama integration.**
 - **Phase 6 – Conversation interface.**
@@ -56,6 +55,8 @@ Phase 2 is complete apart from the owner trying a second monitor. Next is Phase 
 
 - The window has never been run by the developer, because the build machine is Linux. Everything visual depends on manual checks M1 and M2.
 
+
+- Multiple monitors have not been tried on real hardware. The owner uses a single 49-inch ultrawide monitor and has no second screen, so M2 steps 9 and 10 cannot be done there. The placement rules for several monitors are covered by automated tests only.
 
 ## Technical decisions
 
