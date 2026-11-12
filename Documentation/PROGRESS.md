@@ -45,7 +45,7 @@ Phase 2, task 5: multiple monitor support verification, then task 6: system tray
 
 ## Blockers
 
-- **Final artwork** cannot start until the owner answers the four decisions listed in `References/Annotated-References/VISUAL_REFERENCE_SUMMARY.md`. Software work is not blocked.
+- **Sprite frames** wait on the owner approving the animations built in Blender from their own painted models (see ASSET_INDEX.md). Software work is not blocked.
 
 ## Known issues
 
