@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DesktopRider.App/DesktopRider.App.csproj" />
+    <Project Path="src/DesktopRider.Core/DesktopRider.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DesktopRider.Core.Tests/DesktopRider.Core.Tests.csproj" />
+  </Folder>
+</Solution>
