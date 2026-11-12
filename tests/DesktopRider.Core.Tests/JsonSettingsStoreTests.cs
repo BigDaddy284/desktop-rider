@@ -39,6 +39,7 @@ public sealed class JsonSettingsStoreTests : IDisposable
         settings.Appearance.Opacity = 0.7;
         settings.Appearance.AlwaysOnTop = false;
         settings.Appearance.ClickThrough = true;
+        settings.Appearance.ChatInBubbles = true;
         settings.Appearance.Position = new SavedPosition { X = -320.5, Y = 48, Monitor = @"\\.\DISPLAY2" };
         settings.Behaviour.ProactiveComments = true;
         settings.Behaviour.ProactiveIntervalMinutes = 45;
@@ -63,6 +64,7 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.Equal(0.7, loaded.Appearance.Opacity);
         Assert.False(loaded.Appearance.AlwaysOnTop);
         Assert.True(loaded.Appearance.ClickThrough);
+        Assert.True(loaded.Appearance.ChatInBubbles);
         Assert.Equal(-320.5, loaded.Appearance.Position!.X);
         Assert.Equal(48, loaded.Appearance.Position.Y);
         Assert.Equal(@"\\.\DISPLAY2", loaded.Appearance.Position.Monitor);

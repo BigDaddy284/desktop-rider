@@ -10,15 +10,17 @@ using DesktopRider.Desktop;
 namespace DesktopRider.App;
 
 /// <summary>
-/// Joins the conversation to the desktop: opens and closes the conversation window beside the rider, shows the
-/// speech bubble, and tells the rider's animation what the conversation is doing. The decisions are made by the
-/// view models; this class only carries them out with real windows, which are created the first time they are needed.
+/// Joins the conversation to the desktop. A click on the rider opens whichever way of talking the user has chosen:
+/// the conversation window, or (with "Chat in bubbles") a small typing bubble below the rider. It also shows the
+/// rider's speech bubble and tells the rider's animation what the conversation is doing. The decisions are made by
+/// the view models; this class only carries them out with real windows, created the first time they are needed.
 /// </summary>
 internal sealed class ConversationPresenter : IDisposable
 {
-    // The rider's window has an empty margin around the artwork, so the bubble is tucked slightly into it.
+    // The rider's window has an empty margin around the artwork, so its companions are tucked slightly into it.
     private const int BubbleGap = -12;
     private const int ChatGap = -6;
+    private const int InputGap = -12;
 
     private readonly OverlayWindow _overlay;
     private readonly OverlayViewModel _overlayViewModel;
@@ -28,8 +30,11 @@ internal sealed class ConversationPresenter : IDisposable
     private readonly DispatcherTimer _bubbleTimer;
     private ChatWindow? _chatWindow;
     private CompanionWindowPlacer? _chatPlacer;
+    private InputBubbleWindow? _inputWindow;
+    private CompanionWindowPlacer? _inputPlacer;
     private SpeechBubbleWindow? _bubbleWindow;
     private CompanionWindowPlacer? _bubblePlacer;
+    private bool _inBubbles;
     private bool _openWhenShown;
     private bool _disposed;
 
@@ -45,6 +50,7 @@ internal sealed class ConversationPresenter : IDisposable
         _conversation = conversation;
         _bubble = bubble;
         _screens = screens;
+        _inBubbles = overlayViewModel.ChatInBubbles;
         _bubbleTimer = new DispatcherTimer(DispatcherPriority.Background, overlay.Dispatcher);
         _bubbleTimer.Tick += OnBubbleTimeUp;
 
@@ -57,43 +63,30 @@ internal sealed class ConversationPresenter : IDisposable
         _bubble.PropertyChanged += OnBubbleChanged;
     }
 
-    /// <summary>Opens the conversation window, bringing the rider back first if it is hidden.</summary>
+    private bool ChatShowing => _chatWindow is { IsVisible: true };
+
+    private bool InputShowing => _inputWindow is { IsVisible: true };
+
+    /// <summary>Opens the conversation in the way the user has chosen, bringing the rider back first if it is hidden.</summary>
     public void OpenConversation()
     {
-        if (_disposed)
+        if (_inBubbles)
         {
-            return;
+            OpenTypingBubble();
         }
-
-        if (!_overlay.IsVisible)
+        else
         {
-            _openWhenShown = true;
-            _overlayViewModel.ShowCommand.Execute(null);
-            return;
+            OpenConversationWindow();
         }
-
-        if (_chatWindow is null)
-        {
-            _chatWindow = new ChatWindow(_conversation) { Topmost = _overlayViewModel.AlwaysOnTop };
-            _chatWindow.IsVisibleChanged += OnChatVisibleChanged;
-            _chatPlacer = new CompanionWindowPlacer(_chatWindow, _overlay, _screens, ChatGap);
-            _chatPlacer.Attach();
-        }
-
-        _chatWindow.Show();
-        _chatPlacer?.Place();
-        _chatWindow.FocusInput();
-
-        // Opening the conversation is the user asking about the AI, so this is when its state is looked up.
-        _conversation.CheckConnectionCommand.Execute(null);
     }
 
-    /// <summary>What a click on the rider does: opens the conversation window, or closes it if it is open.</summary>
+    /// <summary>What a click on the rider does: opens the conversation, or puts it away if it is open.</summary>
     public void ToggleConversation()
     {
-        if (_chatWindow is { IsVisible: true })
+        if (ChatShowing || InputShowing)
         {
-            _chatWindow.Hide();
+            _chatWindow?.Hide();
+            _inputWindow?.Hide();
         }
         else
         {
@@ -119,12 +112,22 @@ internal sealed class ConversationPresenter : IDisposable
         _conversation.PropertyChanged -= OnConversationChanged;
         _bubble.PropertyChanged -= OnBubbleChanged;
         _chatPlacer?.Dispose();
+        _inputPlacer?.Dispose();
         _bubblePlacer?.Dispose();
         if (_chatWindow is not null)
         {
             _chatWindow.IsVisibleChanged -= OnChatVisibleChanged;
+            _chatWindow.BubblesRequested -= OnBubblesRequested;
             _chatWindow.ClosingForGood = true;
             _chatWindow.Close();
+        }
+
+        if (_inputWindow is not null)
+        {
+            _inputWindow.IsVisibleChanged -= OnInputVisibleChanged;
+            _inputWindow.WindowRequested -= OnWindowRequested;
+            _inputWindow.ClosingForGood = true;
+            _inputWindow.Close();
         }
 
         if (_bubbleWindow is not null)
@@ -134,15 +137,89 @@ internal sealed class ConversationPresenter : IDisposable
         }
     }
 
-    // Desktop Rider is closing: the conversation window and speech bubble go with the rider.
-    private void OnExiting(object? sender, EventArgs e) => Dispose();
+    /// <summary>Opens the conversation window, with everything said so far.</summary>
+    private void OpenConversationWindow()
+    {
+        if (!ReadyToOpen())
+        {
+            return;
+        }
+
+        if (_chatWindow is null)
+        {
+            _chatWindow = new ChatWindow(_conversation) { Topmost = _overlayViewModel.AlwaysOnTop };
+            _chatWindow.IsVisibleChanged += OnChatVisibleChanged;
+            _chatWindow.BubblesRequested += OnBubblesRequested;
+            _chatPlacer = new CompanionWindowPlacer(_chatWindow, _overlay, _screens, ChatGap);
+            _chatPlacer.Attach();
+        }
+
+        _inputWindow?.Hide();
+        _chatWindow.Show();
+        _chatPlacer?.Place();
+        _chatWindow.FocusInput();
+
+        // Opening the conversation is the user asking about the AI, so this is when its state is looked up.
+        _conversation.CheckConnectionCommand.Execute(null);
+    }
+
+    /// <summary>Opens the small typing bubble below the rider. The rider answers in its speech bubble.</summary>
+    private void OpenTypingBubble()
+    {
+        if (!ReadyToOpen())
+        {
+            return;
+        }
+
+        if (_inputWindow is null)
+        {
+            _inputWindow = new InputBubbleWindow(_conversation) { Topmost = _overlayViewModel.AlwaysOnTop };
+            _inputWindow.IsVisibleChanged += OnInputVisibleChanged;
+            _inputWindow.WindowRequested += OnWindowRequested;
+            _inputPlacer = new CompanionWindowPlacer(_inputWindow, _overlay, _screens, InputGap, CompanionSide.Below);
+            _inputPlacer.SideChanged += (_, _) => _inputWindow.TailVisible = _inputPlacer.Side == CompanionSide.Below;
+            _inputPlacer.Attach();
+        }
+
+        _chatWindow?.Hide();
+        _inputWindow.Show();
+        _inputPlacer?.Place();
+        _inputWindow.FocusInput();
+    }
+
+    // A hidden rider is brought back first; the conversation then opens once it is in its place.
+    private bool ReadyToOpen()
+    {
+        if (_disposed)
+        {
+            return false;
+        }
+
+        if (!_overlay.IsVisible)
+        {
+            _openWhenShown = true;
+            _overlayViewModel.ShowCommand.Execute(null);
+            return false;
+        }
+
+        return true;
+    }
 
     private void OnTalkRequested(object? sender, EventArgs e) => ToggleConversation();
 
-    private void OnBubbleClicked(object? sender, EventArgs e) => OpenConversation();
+    // The bubble only ever shows part of a long reply, so clicking it opens the window with all of it.
+    private void OnBubbleClicked(object? sender, EventArgs e) => OpenConversationWindow();
 
-    private void OnChatVisibleChanged(object sender, DependencyPropertyChangedEventArgs e) =>
-        _bubble.ConversationOpen = _chatWindow is { IsVisible: true };
+    private void OnBubblesRequested(object? sender, EventArgs e) => _ = _overlayViewModel.SetChatInBubblesAsync(true);
+
+    private void OnWindowRequested(object? sender, EventArgs e) => _ = _overlayViewModel.SetChatInBubblesAsync(false);
+
+    private void OnChatVisibleChanged(object sender, DependencyPropertyChangedEventArgs e) => _bubble.ConversationOpen = ChatShowing;
+
+    // While the user is typing in the bubble, the rider's last reply stays up instead of fading away.
+    private void OnInputVisibleChanged(object sender, DependencyPropertyChangedEventArgs e) => _bubble.KeepOpen = InputShowing;
+
+    private void OnExiting(object? sender, EventArgs e) => Dispose();
 
     private void OnOverlayVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
@@ -151,15 +228,14 @@ internal sealed class ConversationPresenter : IDisposable
             if (_openWhenShown)
             {
                 _openWhenShown = false;
-
-                // Wait until the rider has been put in its place, so the conversation opens beside it.
                 _overlay.Dispatcher.BeginInvoke(OpenConversation, DispatcherPriority.Loaded);
             }
         }
         else
         {
-            // A hidden rider takes its conversation window and speech bubble with it.
+            // A hidden rider takes its conversation and speech bubble with it.
             _chatWindow?.Hide();
+            _inputWindow?.Hide();
             _bubble.Dismiss();
         }
     }
@@ -167,15 +243,29 @@ internal sealed class ConversationPresenter : IDisposable
     // Raised from whichever thread saved the settings, so the windows are only touched from their own thread.
     private void OnOverlayViewModelChanged(object? sender, PropertyChangedEventArgs e) => OnInterfaceThread(() =>
     {
-        var topmost = _overlayViewModel.AlwaysOnTop;
-        if (_chatWindow is not null)
+        if (_disposed)
         {
-            _chatWindow.Topmost = topmost;
+            return;
         }
 
-        if (_bubbleWindow is not null)
+        var topmost = _overlayViewModel.AlwaysOnTop;
+        foreach (var window in new Window?[] { _chatWindow, _inputWindow, _bubbleWindow })
         {
-            _bubbleWindow.Topmost = topmost;
+            if (window is not null)
+            {
+                window.Topmost = topmost;
+            }
+        }
+
+        // The user flipped "Chat in bubbles": if a conversation is open, carry it over to the other way of talking.
+        var inBubbles = _overlayViewModel.ChatInBubbles;
+        if (inBubbles != _inBubbles)
+        {
+            _inBubbles = inBubbles;
+            if (ChatShowing || InputShowing)
+            {
+                OpenConversation();
+            }
         }
     });
 

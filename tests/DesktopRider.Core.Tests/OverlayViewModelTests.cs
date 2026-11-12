@@ -151,4 +151,35 @@ public class OverlayViewModelTests
         Assert.False(viewModel.CharacterVisible);
         Assert.Equal(1, notifications);
     }
+
+    [Fact]
+    public async Task ChatInBubbles_IsOffAtFirst_AndTheChoiceIsSavedOnce()
+    {
+        var settings = new FakeSettingsService();
+        using var viewModel = new OverlayViewModel(settings);
+        Assert.False(viewModel.ChatInBubbles);
+
+        await viewModel.SetChatInBubblesAsync(true);
+        await viewModel.SetChatInBubblesAsync(true);
+
+        Assert.True(viewModel.ChatInBubbles);
+        Assert.True(settings.Current.Appearance.ChatInBubbles);
+        Assert.Equal(1, settings.SaveCount);
+    }
+
+    [Fact]
+    public void ToggleChatInBubblesCommand_FlipsTheChoice_AndTellsTheWindow()
+    {
+        var settings = new FakeSettingsService();
+        using var viewModel = new OverlayViewModel(settings);
+        var notifications = 0;
+        viewModel.PropertyChanged += (_, _) => notifications++;
+
+        viewModel.ToggleChatInBubblesCommand.Execute(null);
+        Assert.True(viewModel.ChatInBubbles);
+
+        viewModel.ToggleChatInBubblesCommand.Execute(null);
+        Assert.False(viewModel.ChatInBubbles);
+        Assert.Equal(2, notifications);
+    }
 }

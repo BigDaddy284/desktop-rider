@@ -22,6 +22,7 @@ public sealed partial class TrayIconController : IDisposable
     private readonly Dispatcher _dispatcher;
     private readonly Forms.NotifyIcon _icon;
     private readonly Forms.ContextMenuStrip _menu;
+    private readonly DarkMenuRenderer _renderer = new();
     private readonly System.Drawing.Icon _image;
     private readonly bool _ownsImage;
     private bool _disposed;
@@ -35,7 +36,12 @@ public sealed partial class TrayIconController : IDisposable
         _ownsImage = image is not null;
         _image = image ?? System.Drawing.SystemIcons.Application;
 
-        _menu = new Forms.ContextMenuStrip { ShowImageMargin = false, ShowCheckMargin = true };
+        _menu = new Forms.ContextMenuStrip
+        {
+            ShowImageMargin = false,
+            ShowCheckMargin = true,
+            Font = new System.Drawing.Font("Segoe UI", 10f),
+        };
         _menu.Opening += OnMenuOpening;
 
         _icon = new Forms.NotifyIcon
@@ -109,6 +115,7 @@ public sealed partial class TrayIconController : IDisposable
 
         _menu.Items.Clear();
         AddEntries(_menu.Items, _viewModel.BuildMenu());
+        DarkMenuRenderer.Apply(_menu, _renderer);
 
         e.Cancel = false;
     }

@@ -24,17 +24,22 @@
     <Grid x:Name="CharacterRoot" Margin="14" Opacity="{Binding CharacterOpacity, Mode=OneWay}" Cursor="SizeAll">
         <Grid.ContextMenu>
             <ContextMenu>
-                <MenuItem Header="Talk to the rider" FontWeight="SemiBold" Click="OnTalkClick" />
+                <MenuItem Header="Talk to the rider" Icon="&#xE8BD;" Click="OnTalkClick" />
+                <MenuItem Header="Chat in bubbles" Icon="&#xE8F2;"
+                          IsChecked="{Binding ChatInBubbles, Mode=OneWay}"
+                          Command="{Binding ToggleChatInBubblesCommand}"
+                          ToolTip="Type in a small bubble below the rider instead of the conversation window" />
                 <Separator />
-                <MenuItem Header="Always on top"
+                <MenuItem x:Name="TricksMenu" Header="Do something" Icon="&#xE768;" Visibility="Collapsed" />
+                <MenuItem x:Name="TurnAroundItem" Header="Turn around" Icon="&#xE8AB;" Visibility="Collapsed" Click="OnTurnAroundClick" />
+                <Separator />
+                <MenuItem Header="Always on top" Icon="&#xE718;"
                           IsChecked="{Binding AlwaysOnTop, Mode=OneWay}"
                           Command="{Binding ToggleAlwaysOnTopCommand}" />
-                <MenuItem Header="Move back to the corner" Command="{Binding ResetPositionCommand}" />
-                <MenuItem x:Name="TricksMenu" Header="Do something" Visibility="Collapsed" />
-                <MenuItem x:Name="TurnAroundItem" Header="Turn around" Visibility="Collapsed" Click="OnTurnAroundClick" />
+                <MenuItem Header="Move back to the corner" Icon="&#xE80F;" Command="{Binding ResetPositionCommand}" />
                 <Separator />
-                <MenuItem Header="Hide the rider" Command="{Binding HideCommand}" />
-                <MenuItem Header="Exit Desktop Rider" Command="{Binding ExitCommand}" />
+                <MenuItem Header="Hide the rider" Icon="&#xED1A;" Command="{Binding HideCommand}" />
+                <MenuItem Header="Exit Desktop Rider" Icon="&#xE7E8;" Command="{Binding ExitCommand}" />
             </ContextMenu>
         </Grid.ContextMenu>
 

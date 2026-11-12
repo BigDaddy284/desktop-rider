@@ -15,25 +15,29 @@ public sealed class CompanionWindowPlacer : IDisposable
     private readonly Window _anchor;
     private readonly IScreenProvider _screens;
     private readonly int _gap;
+    private readonly CompanionSide _preferred;
     private bool _attached;
 
     /// <param name="companion">The window to keep beside the character.</param>
     /// <param name="anchor">The character's window.</param>
     /// <param name="screens">The screens available.</param>
     /// <param name="gap">Space between the two in pixels. Negative tucks the companion into the character's empty margin.</param>
-    public CompanionWindowPlacer(Window companion, Window anchor, IScreenProvider screens, int gap = 0)
+    /// <param name="preferred">The side of the character to use when there is room.</param>
+    public CompanionWindowPlacer(Window companion, Window anchor, IScreenProvider screens, int gap = 0, CompanionSide preferred = CompanionSide.Above)
     {
         _companion = companion ?? throw new ArgumentNullException(nameof(companion));
         _anchor = anchor ?? throw new ArgumentNullException(nameof(anchor));
         _screens = screens ?? throw new ArgumentNullException(nameof(screens));
         _gap = gap;
+        _preferred = preferred;
+        Side = preferred;
     }
 
     /// <summary>Raised when the companion moves to a different side of the character.</summary>
     public event EventHandler? SideChanged;
 
     /// <summary>Which side of the character the companion is on.</summary>
-    public CompanionSide Side { get; private set; } = CompanionSide.Above;
+    public CompanionSide Side { get; private set; }
 
     public void Attach()
     {
@@ -71,7 +75,8 @@ public sealed class CompanionWindowPlacer : IDisposable
             new PixelRect(target.Left, target.Top, target.Right - target.Left, target.Bottom - target.Top),
             new PixelSize(own.Right - own.Left, own.Bottom - own.Top),
             _screens.GetScreens(),
-            _gap);
+            _gap,
+            _preferred);
         if (placement.Position != new PixelPoint(own.Left, own.Top))
         {
             NativeMethods.SetWindowPos(

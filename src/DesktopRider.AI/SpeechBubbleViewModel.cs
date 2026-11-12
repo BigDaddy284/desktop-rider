@@ -22,6 +22,8 @@ public sealed class SpeechBubbleViewModel : ViewModelBase, IDisposable
     private string _text = string.Empty;
     private bool _visible;
     private bool _conversationOpen;
+    private bool _keepOpen;
+    private bool _complete;
     private TimeSpan? _hideAfter;
 
     public SpeechBubbleViewModel(ConversationViewModel conversation)
@@ -97,10 +99,33 @@ public sealed class SpeechBubbleViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>
+    /// Set while the typing bubble is showing. The user is in the middle of a chat, so a finished reply stays
+    /// until the next one instead of going away by itself.
+    /// </summary>
+    public bool KeepOpen
+    {
+        get => _keepOpen;
+        set
+        {
+            if (_keepOpen == value)
+            {
+                return;
+            }
+
+            _keepOpen = value;
+            if (IsVisible && _complete)
+            {
+                HideAfter = value ? null : ReadingTime(Text);
+            }
+        }
+    }
+
     /// <summary>Takes the bubble away: the user clicked it, its time ran out, or the rider was hidden.</summary>
     public void Dismiss()
     {
         IsVisible = false;
+        _complete = false;
         HideAfter = null;
     }
 
@@ -206,6 +231,7 @@ public sealed class SpeechBubbleViewModel : ViewModelBase, IDisposable
     {
         Text = words;
         IsVisible = true;
-        HideAfter = stay ? ReadingTime(words) : null;
+        _complete = stay;
+        HideAfter = stay && !_keepOpen ? ReadingTime(words) : null;
     }
 }

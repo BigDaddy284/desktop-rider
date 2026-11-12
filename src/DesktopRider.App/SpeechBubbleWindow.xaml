@@ -18,20 +18,21 @@
         ShowInTaskbar="False"
         ShowActivated="False"
         Focusable="False"
-        UseLayoutRounding="True">
+        UseLayoutRounding="True"
+        FontFamily="{StaticResource UiFont}">
     <!--
-        The rider's speech bubble. Only the bubble itself is drawn, so clicks around it reach whatever is behind.
-        It never takes the keyboard away from what the user is doing.
+        The rider's speech bubble, in the same dark rounded style as the menu. Only the bubble itself is drawn,
+        so clicks around it reach whatever is behind. It never takes the keyboard away from what the user is doing.
     -->
-    <StackPanel Margin="10,10,10,2" Cursor="Hand" MouseLeftButtonUp="OnBubbleClick" ToolTip="Click to open the conversation">
-        <Border x:Name="Bubble" CornerRadius="14" Background="White" BorderBrush="#FF374151" BorderThickness="2" Padding="14,10" MinWidth="72" MaxWidth="300">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.25" />
-            </Border.Effect>
-            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="14" Foreground="#FF1F2937" />
-        </Border>
+    <StackPanel Margin="12,10,12,2" Cursor="Hand" MouseLeftButtonUp="OnBubbleClick" ToolTip="Click to open the whole conversation">
+        <Grid>
+            <Border CornerRadius="14" Background="{StaticResource Surface}" Effect="{StaticResource SoftShadow}" />
+            <Border CornerRadius="14" Background="{StaticResource Surface}" BorderBrush="{StaticResource Edge}" BorderThickness="1" Padding="14,10" MinWidth="72" MaxWidth="320">
+                <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="14" Foreground="{StaticResource Ink}" />
+            </Border>
+        </Grid>
         <!-- The tail, pointing down at the rider. Hidden when the bubble has had to go beside or below. -->
-        <Path x:Name="Tail" Data="M 0,0 L 11,13 L 22,0" Fill="White" Stroke="#FF374151" StrokeThickness="2" StrokeLineJoin="Round"
-              HorizontalAlignment="Center" Margin="0,-2,0,0" />
+        <Path x:Name="Tail" Data="M 0,0 L 10,11 L 20,0" Fill="{StaticResource Surface}" Stroke="{StaticResource Edge}" StrokeThickness="1" StrokeLineJoin="Round"
+              HorizontalAlignment="Center" Margin="0,-1,0,0" />
     </StackPanel>
 </Window>

@@ -290,4 +290,52 @@ public class PlacementCalculatorTests
 
         Assert.Equal(new PixelPoint(70, 20), placement.Position);
     }
+
+    // The typing bubble for "Chat in bubbles" asks to go below the rider.
+    private static readonly PixelSize TypingBubble = new(340, 54);
+
+    [Fact]
+    public void Beside_WithAPreferredSide_UsesItWhenThereIsRoom()
+    {
+        var rider = new PixelRect(800, 400, 240, 200);
+
+        var placement = PlacementCalculator.Beside(rider, TypingBubble, Both, gap: -12, preferred: CompanionSide.Below);
+
+        Assert.Equal(CompanionSide.Below, placement.Side);
+        Assert.Equal(new PixelPoint(800 + ((240 - 340) / 2), 600 - 12), placement.Position);
+    }
+
+    [Fact]
+    public void Beside_InTheDefaultCorner_TheTypingBubbleJustFitsBelowTheRider()
+    {
+        var rider = PixelRect.From(PlacementCalculator.DefaultPosition(new PixelSize(240, 200), Both), new PixelSize(240, 200));
+
+        var placement = PlacementCalculator.Beside(rider, TypingBubble, Both, gap: -12, preferred: CompanionSide.Below);
+
+        Assert.Equal(CompanionSide.Below, placement.Side);
+        Assert.True(placement.Position.Y + TypingBubble.Height <= Main.WorkingArea.Bottom);
+        Assert.True(placement.Position.X + TypingBubble.Width <= Main.WorkingArea.Right);
+    }
+
+    [Fact]
+    public void Beside_WhenThePreferredSideHasNoRoom_TriesTheOthersInTurn()
+    {
+        var rider = new PixelRect(800, 1040 - 200, 240, 200);
+
+        var placement = PlacementCalculator.Beside(rider, TypingBubble, Both, preferred: CompanionSide.Below);
+
+        Assert.Equal(CompanionSide.Above, placement.Side);
+    }
+
+    [Fact]
+    public void Beside_WithNoRoomAnywhere_KeepsToThePreferredSide_OnTheScreen()
+    {
+        var small = new ScreenArea("small", new PixelRect(0, 0, 400, 260), IsPrimary: true);
+        var rider = new PixelRect(80, 30, 240, 200);
+
+        var placement = PlacementCalculator.Beside(rider, new PixelSize(340, 54), [small], preferred: CompanionSide.Below);
+
+        Assert.Equal(CompanionSide.Below, placement.Side);
+        Assert.Equal(new PixelPoint(30, 206), placement.Position);
+    }
 }

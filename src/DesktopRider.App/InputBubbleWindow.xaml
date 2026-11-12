@@ -1,0 +1,78 @@
+<Window x:Class="DesktopRider.App.InputBubbleWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ai="clr-namespace:DesktopRider.AI;assembly=DesktopRider.AI"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=ai:ConversationViewModel}"
+        Title="Message the rider"
+        Left="-32000"
+        Top="-32000"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual"
+        ShowInTaskbar="False"
+        UseLayoutRounding="True"
+        FontFamily="{StaticResource UiFont}"
+        PreviewKeyDown="OnWindowPreviewKeyDown">
+    <!--
+        The typing bubble for "Chat in bubbles": a small message box below the rider, like the one at the bottom of a
+        messaging app. The rider answers in its speech bubble. Esc or another click on the rider puts it away.
+    -->
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="ShowWhenTrue" />
+        <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBar}" />
+    </Window.Resources>
+    <StackPanel Margin="10,0,10,6">
+        <!-- The tail, pointing up at the rider. Hidden when the bubble has had to go beside or above. -->
+        <Path x:Name="Tail" Data="M 0,9 L 9,0 L 18,9" Fill="{StaticResource Surface}" Stroke="{StaticResource Edge}" StrokeThickness="1" StrokeLineJoin="Round"
+              HorizontalAlignment="Center" Margin="0,0,0,-1" Panel.ZIndex="1" />
+        <Grid Width="320">
+            <Border CornerRadius="20" Background="{StaticResource Surface}" Effect="{StaticResource SoftShadow}" />
+            <Border CornerRadius="20" Background="{StaticResource Surface}" BorderBrush="{StaticResource Edge}" BorderThickness="1" Padding="14,3,3,3">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Right" Margin="4,0,0,0" VerticalAlignment="Bottom">
+                        <Button Style="{StaticResource RoundButton}" Content="&#xE724;" Command="{Binding SendCommand}" ToolTip="Send (Enter)" />
+                        <Button Style="{StaticResource RoundButton}" Content="&#xE71A;" Command="{Binding StopCommand}" ToolTip="Stop the rider's reply"
+                                Visibility="{Binding IsBusy, Converter={StaticResource ShowWhenTrue}}" />
+                    </Grid>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource QuietButton}" FontFamily="{StaticResource GlyphFont}" FontSize="14" Content="&#xE8A7;"
+                            VerticalAlignment="Bottom" Margin="0,0,0,3" Click="OnWindowClick"
+                            ToolTip="Switch to the conversation window, with everything said so far" />
+                    <Grid VerticalAlignment="Center">
+                        <TextBox x:Name="Input"
+                                 Text="{Binding Draft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MaxLength="4000"
+                                 MaxHeight="64"
+                                 VerticalScrollBarVisibility="Auto"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 FontSize="14"
+                                 Foreground="{StaticResource Ink}"
+                                 CaretBrush="{StaticResource Ink}"
+                                 SelectionBrush="{StaticResource FaintInk}"
+                                 PreviewKeyDown="OnInputPreviewKeyDown" />
+                        <TextBlock Text="Message the rider" FontSize="14" Foreground="{StaticResource FaintInk}" Margin="3,0,0,0" IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Draft}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </StackPanel>
+</Window>

@@ -196,4 +196,60 @@ public class SpeechBubbleViewModelTests
 
         Assert.Equal(2, waits);
     }
+
+    [Fact]
+    public async Task WhileTheTypingBubbleIsOpen_AFinishedReplyStays_UntilItIsPutAway()
+    {
+        using var context = new ConversationViewModelTests.Context();
+        using var bubble = new SpeechBubbleViewModel(context.Chat) { KeepOpen = true };
+        context.Provider.Reply.Add("Hello.");
+        context.Chat.Draft = "Hi";
+
+        await context.Chat.SendAsync();
+
+        Assert.True(bubble.IsVisible);
+        Assert.Equal("Hello.", bubble.Text);
+        Assert.Null(bubble.HideAfter);
+
+        bubble.KeepOpen = false;
+
+        Assert.True(bubble.IsVisible);
+        Assert.Equal(SpeechBubbleViewModel.ReadingTime("Hello."), bubble.HideAfter);
+
+        // Opening the typing bubble again while the reply is still showing holds it once more.
+        bubble.KeepOpen = true;
+        Assert.Null(bubble.HideAfter);
+    }
+
+    [Fact]
+    public async Task ClosingTheTypingBubbleMidReply_DoesNotStartTheWaitEarly()
+    {
+        using var context = new ConversationViewModelTests.Context();
+        using var bubble = new SpeechBubbleViewModel(context.Chat) { KeepOpen = true };
+        context.Provider.Reply.AddRange(["one ", "two"]);
+        context.Provider.Gate = new TaskCompletionSource();
+        context.Chat.Draft = "Go";
+        var sending = context.Chat.SendAsync();
+        await context.Provider.FirstPieceSent.Task.WaitAsync(Patience);
+
+        bubble.KeepOpen = false;
+        Assert.Null(bubble.HideAfter);
+
+        context.Provider.Gate.SetResult();
+        await sending.WaitAsync(Patience);
+        Assert.NotNull(bubble.HideAfter);
+    }
+
+    [Fact]
+    public void KeepOpen_WithNothingShowing_ShowsNothing()
+    {
+        using var context = new ConversationViewModelTests.Context();
+        using var bubble = new SpeechBubbleViewModel(context.Chat);
+
+        bubble.KeepOpen = true;
+        bubble.KeepOpen = false;
+
+        Assert.False(bubble.IsVisible);
+        Assert.Null(bubble.HideAfter);
+    }
 }

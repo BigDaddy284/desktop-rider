@@ -23,7 +23,7 @@ Every push and pull request is also built and tested on Windows by GitHub Action
 | Logging | `FileLoggerProviderTests` | Line format, exception details, level filtering, a new file each day, old-file clean-up, many threads at once, an unusable folder, use after shutdown. |
 | Character placement | `PlacementCalculatorTests` | Default corner, restoring a saved spot, negative-coordinate monitors, unplugged monitors, resolution changes, nudging back on screen, bad saved numbers. |
 | Settings in use | `SettingsServiceTests` | Changes are applied, saved, kept in range and announced; nothing is announced when a save fails. |
-| Character window logic | `OverlayViewModelTests` | Always-on-top toggle, showing and hiding the rider, menu actions, behaviour when a save fails. |
+| Character window logic | `OverlayViewModelTests` | The chat-in-bubbles switch, always-on-top toggle, showing and hiding the rider, menu actions, behaviour when a save fails. |
 | Notification-area icon logic | `TrayViewModelTests` | Lines added by other parts (the AI), the menu while the rider is showing and while hidden, show, hide and exit, the tick on Always on top, what a click does, the hover text, and the reminder (once ever on first hide, every time on a hidden start, never twice). |
 | Icon picture layout | `IconLayoutTests` | Finding the drawn part of a frame and fitting it into a square without distortion. |
 | Sprite list | `SpriteManifestTests` | Reading the list, frame positions on a sheet, twelve kinds of broken list, and the real rider list covering every animation DESIGN.md requires. |
@@ -47,7 +47,7 @@ Code coverage has not been measured. The requirement is that all applicable test
 - Loading the sprite pictures and drawing them (`RiderSprite`) needs a real window, so it is covered by manual procedure M3.
 - The automated AI tests use a stand-in for Ollama (scripted answers, and one small local web server). They prove Desktop Rider handles everything Ollama can send, but only manual procedure M5 proves it against a real Ollama and a real model.
 - `MessageWindow`, which shows AI progress and results, needs a real window, so it is covered by M5.
-- The conversation window, the speech bubble and the code that puts them beside the rider (`ChatWindow`, `SpeechBubbleWindow`, `ConversationPresenter`, `CompanionWindowPlacer`) need real windows, so they are covered by M6. Telling a click on the rider from a drag also needs a real mouse and is covered by M6. Everything they decide (what is said, when the bubble shows, where things go, which animation plays) is made by tested code.
+- The conversation window, the bubbles, the dark style and the code that puts them beside the rider (`ChatWindow`, `SpeechBubbleWindow`, `InputBubbleWindow`, `Themes/Dark.xaml`, `DarkMenuRenderer`, `ConversationPresenter`, `CompanionWindowPlacer`) need real windows, so they are covered by M6 and M7. Telling a click on the rider from a drag also needs a real mouse and is covered by M6. Everything they decide (what is said, when the bubble shows, where things go, which animation plays) is made by tested code.
 - There are no automated tests of the WPF window itself. Its decisions (where to sit, what the menu does) are made by tested code in Core; the thin window layer that carries them out (`OverlayWindow`, `WindowPlacementController`, `TrayIconController`, `TrayIconFactory`) is covered by the manual procedures below.
 
 - Multiple monitors (M2 steps 9 and 10) cannot be checked by hand: the owner has one ultrawide monitor. `PlacementCalculatorTests` covers those rules automatically.
@@ -144,4 +144,22 @@ Needs Ollama running with a model chosen (M5).
 14. Send a message and, while the reply is arriving, choose **Exit Desktop Rider**. **Expect:** it closes straight away and `DesktopRider.exe` is gone from Task Manager.
 15. Open another program and type in it while the rider is resting with the conversation window closed. **Expect:** Desktop Rider never takes the keyboard, and Task Manager shows processor use as low as before.
 
-Status: **awaiting the owner's check on Windows 11** (0.6.0 build).
+Status: the owner ran the 0.6.0 build on 12 November 2026 and reported that it works. The steps were not reported one by one. The window's style changed in 0.6.1 (dark, with the model list as a menu), so its look is to be checked again with M7.
+
+### M7. Dark style and chat in bubbles (0.6.1)
+
+1. Right-click the rider. **Expect:** a dark menu with rounded corners, white words and a small picture beside each line, like Windows 11's own right-click menu. The line under the mouse is highlighted with a rounded shape. **Always on top** shows a tick instead of its picture.
+2. Point at **Do something**. **Expect:** the list of animations opens beside it in the same style.
+3. Right-click the Desktop Rider icon beside the clock. **Expect:** the same dark colours, with white ticks and arrows.
+4. Click the rider. **Expect:** the conversation window is dark with rounded corners; your messages and the rider's are in grey balloons; the message box is a rounded bar with a round send button.
+5. Click **AI model** in the window. **Expect:** your models open as a dark menu with the current one ticked; picking one changes the model.
+6. Send a message with the window closed (send, then Esc). **Expect:** the speech bubble is dark with white words.
+7. Right-click the rider and tick **Chat in bubbles**, then click the rider. **Expect:** instead of the window, a small dark typing bubble appears just below the rider with the cursor in it. (If the rider is right at the bottom of the screen with no room below, the bubble goes beside or above it.)
+8. Type a message and press Enter. **Expect:** the typing bubble empties, the rider thinks and then answers in the speech bubble above it. The answer stays up while the typing bubble is open.
+9. Send another message. **Expect:** the new answer replaces the old one, and the rider remembers the earlier message.
+10. Press Esc. **Expect:** the typing bubble goes; the answer fades away a few seconds later.
+11. Click the rider to bring the typing bubble back, then click the small window button in it. **Expect:** the conversation window opens with everything said so far, and **Chat in bubbles** is no longer ticked. Press **Bubbles** in the window. **Expect:** back to the typing bubble.
+12. In bubble mode, click the speech bubble while it shows a reply. **Expect:** the conversation window opens with the whole conversation.
+13. Exit and start Desktop Rider again, then click the rider. **Expect:** the choice of bubbles or window was remembered.
+
+Status: **awaiting the owner's check on Windows 11** (0.6.1 build).

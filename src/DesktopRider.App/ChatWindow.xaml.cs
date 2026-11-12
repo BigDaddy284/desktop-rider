@@ -24,6 +24,9 @@ public partial class ChatWindow : Window
         IsVisibleChanged += OnIsVisibleChanged;
     }
 
+    /// <summary>Raised when the user asks to type in a bubble beside the rider instead of this window.</summary>
+    public event EventHandler? BubblesRequested;
+
     /// <summary>Puts the typing cursor in the message box.</summary>
     public void FocusInput()
     {
@@ -58,9 +61,36 @@ public partial class ChatWindow : Window
 
     private void OnCloseClick(object sender, RoutedEventArgs e) => Hide();
 
+    private void OnBubblesClick(object sender, RoutedEventArgs e) => BubblesRequested?.Invoke(this, EventArgs.Empty);
+
+    // Opens the list of AI models as a menu in the same style as the rider's own menu.
+    private void OnModelClick(object sender, RoutedEventArgs e)
+    {
+        if (_conversation.Models.Count == 0)
+        {
+            // Nothing to choose from yet: look again, which also explains what is wrong if Ollama cannot be reached.
+            _conversation.CheckConnectionCommand.Execute(null);
+            return;
+        }
+
+        var menu = new ContextMenu { PlacementTarget = ModelButton, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        foreach (var model in _conversation.Models)
+        {
+            var item = new MenuItem
+            {
+                Header = model.Replace("_", "__", StringComparison.Ordinal),
+                IsChecked = string.Equals(model, _conversation.SelectedModel, StringComparison.Ordinal),
+            };
+            item.Click += (_, _) => _conversation.SelectedModel = model;
+            menu.Items.Add(item);
+        }
+
+        menu.IsOpen = true;
+    }
+
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && !ModelPicker.IsDropDownOpen)
+        if (e.Key == Key.Escape)
         {
             e.Handled = true;
             Hide();
