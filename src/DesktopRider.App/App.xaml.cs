@@ -5,12 +5,15 @@ using System.Windows.Threading;
 using DesktopRider.Core;
 using DesktopRider.Core.Configuration;
 using DesktopRider.Core.Infrastructure;
+using DesktopRider.Core.Placement;
+using DesktopRider.Core.ViewModels;
+using DesktopRider.Desktop;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace DesktopRider.App;
 
-/// <summary>Application entry point: starts the shared services, opens the main window and shuts everything down cleanly.</summary>
+/// <summary>Application entry point: starts the shared services, shows the character's window and shuts everything down cleanly.</summary>
 [SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable", Justification = "WPF owns the application lifetime; the fields are disposed in OnExit.")]
 public partial class App : Application
 {
@@ -41,8 +44,9 @@ public partial class App : Application
 
             var services = new ServiceCollection();
             services.AddDesktopRiderCore(paths);
-            services.AddSingleton<MainViewModel>();
-            services.AddSingleton<MainWindow>();
+            services.AddSingleton<IScreenProvider, WindowsScreenProvider>();
+            services.AddSingleton<OverlayViewModel>();
+            services.AddSingleton<OverlayWindow>();
             _services = services.BuildServiceProvider();
 
             _logger = _services.GetRequiredService<ILogger<App>>();
@@ -51,11 +55,11 @@ public partial class App : Application
             TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
             Log.Starting(_logger, AppInfo.Version);
 
-            var settings = await _services.GetRequiredService<ISettingsStore>().LoadAsync();
-            var viewModel = _services.GetRequiredService<MainViewModel>();
-            viewModel.ApplySettingsStatus(settings.Status);
+            var settings = _services.GetRequiredService<ISettingsService>();
+            await settings.InitializeAsync();
+            Log.SettingsReady(_logger, settings.LoadStatus);
 
-            var window = _services.GetRequiredService<MainWindow>();
+            var window = _services.GetRequiredService<OverlayWindow>();
             MainWindow = window;
             window.Closed += (_, _) => Shutdown();
             window.Show();
@@ -124,6 +128,9 @@ public partial class App : Application
     {
         [LoggerMessage(Level = LogLevel.Information, Message = "Desktop Rider {Version} is starting.")]
         public static partial void Starting(ILogger logger, string version);
+
+        [LoggerMessage(Level = LogLevel.Information, Message = "Settings are ready ({Status}).")]
+        public static partial void SettingsReady(ILogger logger, SettingsLoadStatus status);
 
         [LoggerMessage(Level = LogLevel.Information, Message = "Desktop Rider is closing with exit code {ExitCode}.")]
         public static partial void Exiting(ILogger logger, int exitCode);

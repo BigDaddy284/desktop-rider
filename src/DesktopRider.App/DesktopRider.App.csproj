@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DesktopRider.Core\DesktopRider.Core.csproj" />
+    <ProjectReference Include="..\DesktopRider.Desktop\DesktopRider.Desktop.csproj" />
   </ItemGroup>
 
 </Project>

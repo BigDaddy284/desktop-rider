@@ -48,6 +48,7 @@ public sealed class AppearanceSettings
     public SavedPosition? Position { get; set; }
 }
 
+/// <summary>Where the character was left, measured in physical screen pixels from the top-left of the main screen.</summary>
 public sealed class SavedPosition
 {
     public double X { get; set; }

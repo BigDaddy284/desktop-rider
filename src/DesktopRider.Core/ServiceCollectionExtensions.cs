@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
             paths,
             provider.GetRequiredService<ILogger<JsonSettingsStore>>(),
             provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<ISettingsService, SettingsService>();
 
         return services;
     }
