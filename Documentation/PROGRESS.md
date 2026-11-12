@@ -4,7 +4,7 @@ Last updated: 12 November 2026
 
 ## Current task
 
-Phase 2, task 6 (system tray controls) is built and unit tested. It is waiting for the owner's manual check M4 on Windows 11.
+Phase 2 is complete apart from the owner trying a second monitor. Next is Phase 5: Ollama integration.
 
 ## Completed tasks
 
@@ -19,7 +19,7 @@ Phase 2, task 6 (system tray controls) is built and unit tested. It is waiting f
 | 2 | Implement always-on-top | Built and unit tested (menu toggle, remembered). Manual check M2 awaiting the owner. |
 | 2 | Implement dragging | Built. Manual check M2 awaiting the owner. |
 | 2 | Implement desktop positioning | Built and unit tested (placement rules). Manual check M2 awaiting the owner. |
-| 2 | Implement system tray controls | Built and unit tested: icon beside the clock with show, hide, always on top, move back to the corner and exit; hiding is remembered. Manual check M4 awaiting the owner. |
+| 2 | Implement system tray controls | Built and unit tested: icon beside the clock with show, hide, always on top, move back to the corner and exit; hiding is remembered. The owner checked the 0.4.0 build on Windows 11 and reported it looks and works well. |
 | 3 | Inspect existing reference photographs | Done. 28 photographs received in three batches; see the visual reference summary. |
 | 3 | Character designs | Done. The owner supplied their own 3D models; colours and graphics were applied to match the photographs and the owner approved them. |
 | 3 | Sprite conventions and rendering | Done. 15 animations rendered in both directions; see SPRITE_SPECIFICATION.md. |
@@ -55,7 +55,6 @@ Phase 2, task 6 (system tray controls) is built and unit tested. It is waiting f
 ## Known issues
 
 - The window has never been run by the developer, because the build machine is Linux. Everything visual depends on manual checks M1 and M2.
-- The icon beside the clock is a shrunken picture of the whole rider and bike. At the smallest size it may be hard to make out; the owner is to judge it in M4.
 
 
 ## Technical decisions
@@ -64,4 +63,4 @@ Recorded in ARCHITECTURE.md.
 
 ## Next task
 
-Phase 5: Ollama integration, once the owner has checked M4.
+Phase 5: Ollama integration.

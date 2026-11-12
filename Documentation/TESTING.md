@@ -95,4 +95,4 @@ Status: the owner ran the 0.3.0 test build on 12 November 2026 and reported that
 11. With Desktop Rider running, double-click `DesktopRider.exe` again. **Expect:** a message that it is already running, which explains how to bring the rider back from the icon.
 12. Untick **Always on top** from the icon's menu. **Expect:** the same effect as from the rider's own menu, and the tick matches in both menus.
 
-Status: **awaiting the owner's check on Windows 11.**
+Status: the owner ran the 0.4.0 build on Windows 11 on 12 November 2026 and reported that it all looks and works well. The steps were not reported one by one.
