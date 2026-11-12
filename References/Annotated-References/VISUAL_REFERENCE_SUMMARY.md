@@ -54,6 +54,7 @@ A **KTM 50 SX, 2013 model**, confirmed by the owner, with these modifications:
 - Full FMF exhaust: chrome expansion pipe and silencer.
 - VHM cylinder head (gold anodised, visible above the cylinder on the left side).
 - RFX footpegs (blue anodised, wide, with steel teeth).
+- Talon hubs, custom painted, with Excel rims.
 
 ### Two states of the bike
 
