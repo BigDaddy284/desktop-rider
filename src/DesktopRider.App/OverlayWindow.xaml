@@ -1,0 +1,53 @@
+<Window x:Class="DesktopRider.App.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:DesktopRider.Core.ViewModels;assembly=DesktopRider.Core"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:OverlayViewModel}"
+        Title="{Binding Title}"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="{Binding AlwaysOnTop, Mode=OneWay}"
+        UseLayoutRounding="True">
+    <!--
+        The window itself is fully transparent, so Windows only gives it mouse clicks where something is drawn.
+        Clicks on the empty area around the character go straight to whatever is behind it.
+    -->
+    <Grid x:Name="CharacterRoot" Margin="14" Opacity="{Binding CharacterOpacity, Mode=OneWay}" Cursor="SizeAll">
+        <Grid.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="Always on top"
+                          IsChecked="{Binding AlwaysOnTop, Mode=OneWay}"
+                          Command="{Binding ToggleAlwaysOnTopCommand}" />
+                <MenuItem Header="Move back to the corner" Command="{Binding ResetPositionCommand}" />
+                <MenuItem x:Name="TricksMenu" Header="Do something" Visibility="Collapsed" />
+                <MenuItem x:Name="TurnAroundItem" Header="Turn around" Visibility="Collapsed" Click="OnTurnAroundClick" />
+                <Separator />
+                <MenuItem Header="Exit Desktop Rider" Command="{Binding ExitCommand}" />
+            </ContextMenu>
+        </Grid.ContextMenu>
+
+        <!-- The rider. Empty parts of each picture are fully transparent, so clicks there pass through to the desktop. -->
+        <Image x:Name="RiderImage" Stretch="Uniform" Visibility="Collapsed" RenderOptions.BitmapScalingMode="HighQuality" />
+
+        <!-- Shown only if the rider's pictures cannot be found. This is NOT character artwork. -->
+        <Border x:Name="StandIn" CornerRadius="18" Background="#F7F7F7F7" BorderBrush="#FF6B7280" BorderThickness="2" Padding="20,14">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.3" />
+            </Border.Effect>
+            <StackPanel>
+                <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="SemiBold" Foreground="#FF1F2937" />
+                <TextBlock Text="The rider's pictures are missing. Reinstalling should fix this." Margin="0,4,0,0" Foreground="#FF4B5563" />
+                <TextBlock Text="Drag to move  •  Right-click for menu" Margin="0,8,0,0" FontSize="11" Foreground="#FF6B7280" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

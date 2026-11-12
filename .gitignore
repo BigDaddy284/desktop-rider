@@ -24,3 +24,9 @@ Desktop.ini
 # Local runtime data
 *.log
 logs/
+
+# The owner's original reference photographs are kept out of this public repository.
+References/Original-Photographs/**
+!References/Original-Photographs/**/
+!References/Original-Photographs/**/.gitkeep
+!References/Original-Photographs/README.md
