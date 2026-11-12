@@ -23,7 +23,9 @@ Every push and pull request is also built and tested on Windows by GitHub Action
 | Logging | `FileLoggerProviderTests` | Line format, exception details, level filtering, a new file each day, old-file clean-up, many threads at once, an unusable folder, use after shutdown. |
 | Character placement | `PlacementCalculatorTests` | Default corner, restoring a saved spot, negative-coordinate monitors, unplugged monitors, resolution changes, nudging back on screen, bad saved numbers. |
 | Settings in use | `SettingsServiceTests` | Changes are applied, saved, kept in range and announced; nothing is announced when a save fails. |
-| Character window logic | `OverlayViewModelTests` | Always-on-top toggle, menu actions, behaviour when a save fails. |
+| Character window logic | `OverlayViewModelTests` | Always-on-top toggle, showing and hiding the rider, menu actions, behaviour when a save fails. |
+| Notification-area icon logic | `TrayViewModelTests` | The menu while the rider is showing and while hidden, show, hide and exit, the tick on Always on top, what a click does, the hover text, and the reminder (once ever on first hide, every time on a hidden start, never twice). |
+| Icon picture layout | `IconLayoutTests` | Finding the drawn part of a frame and fitting it into a square without distortion. |
 | Sprite list | `SpriteManifestTests` | Reading the list, frame positions on a sheet, twelve kinds of broken list, and the real rider list covering every animation DESIGN.md requires. |
 | Animation playback | `AnimationPlayerTests` | Loops, one-shots, returning to the right loop, waiting requests, priorities, lead-in and lead-out animations, speed, long pauses. |
 | Idle animations | `IdleVariationPickerTests` | Timing, switched off, not interrupting other animations. |
@@ -35,7 +37,7 @@ Code coverage has not been measured. The requirement is that all applicable test
 
 - Development happens on a Linux build machine. It compiles the WPF application but cannot run it, so anything involving a real window is verified by GitHub Actions on Windows (build only) and by hand on the owner's Windows 11 PC.
 - Loading the sprite pictures and drawing them (`RiderSprite`) needs a real window, so it is covered by manual procedure M3.
-- There are no automated tests of the WPF window itself. Its decisions (where to sit, what the menu does) are made by tested code in Core; the thin window layer that carries them out (`OverlayWindow`, `WindowPlacementController`) is covered by the manual procedures below.
+- There are no automated tests of the WPF window itself. Its decisions (where to sit, what the menu does) are made by tested code in Core; the thin window layer that carries them out (`OverlayWindow`, `WindowPlacementController`, `TrayIconController`, `TrayIconFactory`) is covered by the manual procedures below.
 
 ## Manual test procedures
 
@@ -77,3 +79,20 @@ Status: **awaiting the owner's check on Windows 11.**
 10. Open Task Manager and watch Desktop Rider for a minute while it rests. **Expect:** processor use stays low (a few percent at most).
 
 Status: the owner ran the 0.3.0 test build on 12 November 2026 and reported that it looks and works well. The steps were not reported one by one, so steps 2, 9 and 10 (click-through, dragging while animating, processor use) are still to be confirmed individually.
+
+### M4. Icon beside the clock (Phase 2: system tray controls)
+
+1. Start Desktop Rider and look beside the clock (click the small arrow if the icon is not in view). **Expect:** a Desktop Rider icon that is a tiny picture of the rider and bike. Resting the mouse on it shows "Desktop Rider".
+2. Right-click the icon. **Expect:** a menu with **Hide the rider**, **Always on top** (ticked), **Move back to the corner** and **Exit Desktop Rider**.
+3. Choose **Hide the rider**. **Expect:** the rider disappears. The first time ever, a short message says the rider is hidden and Desktop Rider is still running.
+4. Rest the mouse on the icon. **Expect:** "Desktop Rider (hidden)". Right-click it. **Expect:** the first item now reads **Show the rider**.
+5. Choose **Show the rider**. **Expect:** the rider comes back in the same place, still animating.
+6. Click the icon once with the left button. **Expect:** the rider hides. Click again. **Expect:** it comes back. No message this time.
+7. Right-click the rider itself and choose **Hide the rider**. **Expect:** it hides, the same as from the icon.
+8. With the rider hidden, open Task Manager and watch Desktop Rider for a minute. **Expect:** processor use at or very near 0%.
+9. With the rider hidden, right-click the icon and choose **Exit Desktop Rider**. **Expect:** the icon disappears straight away and `DesktopRider.exe` is gone from Task Manager.
+10. Start Desktop Rider again. **Expect:** the rider stays hidden as it was left, the icon is there, and the message appears to say it is running. Clicking the message or the icon brings the rider back.
+11. With Desktop Rider running, double-click `DesktopRider.exe` again. **Expect:** a message that it is already running, which explains how to bring the rider back from the icon.
+12. Untick **Always on top** from the icon's menu. **Expect:** the same effect as from the rider's own menu, and the tick matches in both menus.
+
+Status: **awaiting the owner's check on Windows 11.**
