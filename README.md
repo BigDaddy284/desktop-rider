@@ -26,4 +26,5 @@ Installation, Ollama setup and usage instructions will be added here as those fe
 - [CLAUDE.md](CLAUDE.md): how it is being built.
 - [Documentation/ARCHITECTURE.md](Documentation/ARCHITECTURE.md): how the code is organised.
 - [Documentation/TESTING.md](Documentation/TESTING.md): how it is tested.
+- [Documentation/SPRITE_SPECIFICATION.md](Documentation/SPRITE_SPECIFICATION.md): how the animations are stored and played.
 - [Documentation/PROGRESS.md](Documentation/PROGRESS.md): what is done and what is next.

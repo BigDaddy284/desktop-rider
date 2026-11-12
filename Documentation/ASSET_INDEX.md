@@ -2,7 +2,7 @@
 
 Every piece of artwork in the repository, and whether the owner has approved it.
 
-No file in the repository is approved artwork yet. The approved character designs are the owner's painted 3D models described below; sprite frames rendered from them will be listed here when they are added.
+The approved character designs are the owner's painted 3D models described below. The sprite sheets in `Assets/Sprites/Rider/` are rendered from them.
 
 | File | What it is | Source | Status |
 |---|---|---|---|
@@ -17,14 +17,14 @@ The artwork route was settled with the owner on 12 November 2026:
 2. Colours and graphics were applied to those models in Blender to match the reference photographs: the pink, sky blue, white, black and orange scheme, the number 28 and the owner's team logo. The owner approved the result as the default models.
 3. Both models are rigged and animated in Blender. Sprite frames with transparent backgrounds will be rendered from those animations once the owner approves them.
 
-The models, the Blender files, the team logo and the reference photographs stay on the owner's computer and are not in this repository. Only rendered sprite frames will be added here, after approval.
+The models, the Blender files and the reference photographs stay on the owner's computer and are not in this repository.
 
 | Stage | Status |
 |---|---|
 | Painted default models | **Approved by the owner** (12 Nov 2026) |
-| Animations (first pass of all thirteen in DESIGN.md 3.6) | Awaiting the owner's review in Blender |
-| Rendered sprite frames | Not started |
+| Animations (all thirteen in DESIGN.md 3.6, plus sleep start and end) | **Approved by the owner** (12 Nov 2026) |
+| Rendered sprite sheets | Rendered: 15 animations in each direction, 684 frames. See SPRITE_SPECIFICATION.md. |
 
 ## The in-app stand-in
 
-The grey card the application currently shows is drawn in XAML (`OverlayWindow.xaml`). It is a labelled stand-in, not artwork, and has no asset file.
+If the sprite files cannot be found, the application shows a grey card drawn in XAML (`OverlayWindow.xaml`). It is a labelled stand-in, not artwork, and has no asset file.

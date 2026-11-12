@@ -9,9 +9,11 @@ Desktop Rider is a native Windows application written in C# on .NET 10 with WPF,
 | `src/DesktopRider.Core` | `net10.0` | Everything that does not need Windows: settings, file locations, logging, shared service registration. Fully unit tested. |
 | `src/DesktopRider.Desktop` | `net10.0-windows` | Windows desktop integration: the monitor list and moving the character's window in physical pixels. |
 | `src/DesktopRider.App` | `net10.0-windows` | The WPF application: start-up, shutdown, windows and view models. Produces `DesktopRider.exe`. |
+| `src/DesktopRider.Animation` | `net10.0` | The sprite list and the animation player: which frame of which animation shows at any moment. No window, no timer, fully unit tested. |
 | `tests/DesktopRider.Core.Tests` | `net10.0` | xUnit tests for Core. |
+| `tests/DesktopRider.Animation.Tests` | `net10.0` | xUnit tests for Animation. |
 
-The remaining projects named in DESIGN.md (`DesktopRider.AI`, `DesktopRider.Animation` and their tests) are added when their phase begins, so the solution never contains empty projects.
+The remaining projects named in DESIGN.md (`DesktopRider.AI` and its tests) are added when their phase begins, so the solution never contains empty projects.
 
 The rule for where code goes: if it can work without a window, it lives outside the App project so that it can be tested automatically on any machine.
 
@@ -34,6 +36,14 @@ The rule for where code goes: if it can work without a window, it lives outside 
 Positions are measured and saved in physical screen pixels through the Windows API, not in WPF units, so they mean the same thing on monitors with different scaling.
 
 Until the artwork is approved, the window shows a neutral grey stand-in card that says so. It is not character artwork.
+
+## Animation
+
+`AnimationPlayer` (Animation project) is told how much time has passed and answers with the current animation and frame. It knows the rules in SPRITE_SPECIFICATION.md: loops, one-shots, lead-in and lead-out animations, priorities and speed. It never touches the AI, so the rider keeps moving whatever the AI is doing.
+
+`RiderSprite` (App project) is the thin Windows layer around it. It owns one timer that ticks at the sprites' frame rate, cuts the current frame out of its sheet and hands it to the window. The timer stops while the character is hidden. If the sprite files are missing or damaged the window shows a plain stand-in card instead of failing, and the reason is logged.
+
+`IdleVariationPicker` asks for a small idle animation every 8 to 20 seconds while the rider is resting, unless idle animations are switched off in settings.
 
 ## Local data
 

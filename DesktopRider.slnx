@@ -1,10 +1,12 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/DesktopRider.Animation/DesktopRider.Animation.csproj" />
     <Project Path="src/DesktopRider.App/DesktopRider.App.csproj" />
     <Project Path="src/DesktopRider.Core/DesktopRider.Core.csproj" />
     <Project Path="src/DesktopRider.Desktop/DesktopRider.Desktop.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DesktopRider.Animation.Tests/DesktopRider.Animation.Tests.csproj" />
     <Project Path="tests/DesktopRider.Core.Tests/DesktopRider.Core.Tests.csproj" />
   </Folder>
 </Solution>

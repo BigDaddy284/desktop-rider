@@ -24,6 +24,9 @@ Every push and pull request is also built and tested on Windows by GitHub Action
 | Character placement | `PlacementCalculatorTests` | Default corner, restoring a saved spot, negative-coordinate monitors, unplugged monitors, resolution changes, nudging back on screen, bad saved numbers. |
 | Settings in use | `SettingsServiceTests` | Changes are applied, saved, kept in range and announced; nothing is announced when a save fails. |
 | Character window logic | `OverlayViewModelTests` | Always-on-top toggle, menu actions, behaviour when a save fails. |
+| Sprite list | `SpriteManifestTests` | Reading the list, frame positions on a sheet, twelve kinds of broken list, and the real rider list covering every animation DESIGN.md requires. |
+| Animation playback | `AnimationPlayerTests` | Loops, one-shots, returning to the right loop, waiting requests, priorities, lead-in and lead-out animations, speed, long pauses. |
+| Idle animations | `IdleVariationPickerTests` | Timing, switched off, not interrupting other animations. |
 | Wiring | `CompositionTests` | Services resolve and work together; single-instance guard. |
 
 Code coverage has not been measured. The requirement is that all applicable tests pass, and they do.
@@ -31,6 +34,7 @@ Code coverage has not been measured. The requirement is that all applicable test
 ## Known limitations
 
 - Development happens on a Linux build machine. It compiles the WPF application but cannot run it, so anything involving a real window is verified by GitHub Actions on Windows (build only) and by hand on the owner's Windows 11 PC.
+- Loading the sprite pictures and drawing them (`RiderSprite`) needs a real window, so it is covered by manual procedure M3.
 - There are no automated tests of the WPF window itself. Its decisions (where to sit, what the menu does) are made by tested code in Core; the thin window layer that carries them out (`OverlayWindow`, `WindowPlacementController`) is covered by the manual procedures below.
 
 ## Manual test procedures
@@ -56,5 +60,20 @@ Status: **awaiting the owner's check on Windows 11.**
 8. Right-click and choose **Move back to the corner**. **Expect:** it returns to the bottom-right corner of the main screen.
 9. If a second monitor is available: drag the card onto it, exit, restart. **Expect:** it reappears on the second monitor. Then exit, unplug that monitor and restart. **Expect:** it appears in the corner of the main screen.
 10. If the monitors use different scaling: drag the card between them. **Expect:** it stays sharp and a sensible size on both.
+
+Status: **awaiting the owner's check on Windows 11.**
+
+### M3. The animated rider (Phases 3 and 4)
+
+1. Start Desktop Rider. **Expect:** the rider on the bike appears, facing right, gently moving. No grey card, no background rectangle.
+2. Click just above the seat or between the wheels, where there is only desktop showing. **Expect:** the click goes to whatever is behind.
+3. Watch for half a minute. **Expect:** now and then the rider looks around, then settles again.
+4. Right-click the rider, choose **Do something**, then **Wheelie**. **Expect:** the front wheel lifts and comes back down without the picture jumping.
+5. Try **Thinking**, **Celebration**, **Revving** and **Talking**. **Expect:** each plays smoothly; choosing **Idle** stops the looping ones.
+6. Choose **Sleeping**. **Expect:** the rider slumps forward and stays asleep. Choose **Idle**. **Expect:** the rider sits back up before returning to rest.
+7. Choose **Riding loop**. **Expect:** the bike pulls away on the spot with the wheels spinning. Choose **Idle**. **Expect:** it brakes and settles.
+8. Choose **Turn around**. **Expect:** the bike faces left, the number 28 still reads the right way round, and the left side is the pink one.
+9. Drag the rider while it is animating. **Expect:** it moves as before and keeps animating.
+10. Open Task Manager and watch Desktop Rider for a minute while it rests. **Expect:** processor use stays low (a few percent at most).
 
 Status: **awaiting the owner's check on Windows 11.**
