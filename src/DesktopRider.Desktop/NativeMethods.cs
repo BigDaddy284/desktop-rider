@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace DesktopRider.Desktop;
 
-/// <summary>The few Windows functions needed to read and set a window's position in physical pixels.</summary>
+/// <summary>The few Windows functions needed to read and set a window's position in physical pixels and to release icons.</summary>
 internal static partial class NativeMethods
 {
     internal const uint SwpNoSize = 0x0001;
@@ -18,6 +18,11 @@ internal static partial class NativeMethods
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool SetWindowPos(IntPtr window, IntPtr insertAfter, int x, int y, int width, int height, uint flags);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool DestroyIcon(IntPtr icon);
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct NativeRect

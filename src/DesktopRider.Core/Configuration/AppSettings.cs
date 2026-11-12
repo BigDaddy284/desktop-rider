@@ -133,4 +133,7 @@ public sealed class ApplicationSettings
     public bool MinimiseToTray { get; set; } = true;
 
     public bool CheckForUpdates { get; set; }
+
+    /// <summary>Set once the user has been told where to find the rider after hiding it, so they are only told once.</summary>
+    public bool TrayHintShown { get; set; }
 }

@@ -4,7 +4,7 @@ Last updated: 12 November 2026
 
 ## Current task
 
-Phase 2, task 6: system tray controls. (The animated rider is in the application and the owner has seen it working.)
+Phase 2 is complete. Next is Phase 5: Ollama integration.
 
 ## Completed tasks
 
@@ -19,6 +19,7 @@ Phase 2, task 6: system tray controls. (The animated rider is in the application
 | 2 | Implement always-on-top | Built and unit tested (menu toggle, remembered). Manual check M2 awaiting the owner. |
 | 2 | Implement dragging | Built. Manual check M2 awaiting the owner. |
 | 2 | Implement desktop positioning | Built and unit tested (placement rules). Manual check M2 awaiting the owner. |
+| 2 | Implement system tray controls | Built and unit tested: icon beside the clock with show, hide, always on top, move back to the corner and exit; hiding is remembered. The owner checked the 0.4.0 build on Windows 11 and reported it looks and works well. |
 | 3 | Inspect existing reference photographs | Done. 28 photographs received in three batches; see the visual reference summary. |
 | 3 | Character designs | Done. The owner supplied their own 3D models; colours and graphics were applied to match the photographs and the owner approved them. |
 | 3 | Sprite conventions and rendering | Done. 15 animations rendered in both directions; see SPRITE_SPECIFICATION.md. |
@@ -32,14 +33,13 @@ Phase 2, task 6: system tray controls. (The animated rider is in the application
 | Check | Result |
 |---|---|
 | Build (`dotnet build`, warnings as errors) | Succeeded, 0 warnings, 0 errors |
-| Tests (`dotnet test`) | 141 passed, 0 failed, 0 skipped |
+| Tests (`dotnet test`) | 177 passed, 0 failed, 0 skipped |
 | GitHub Actions build and test on Windows | Passed for Phase 1; runs again on each push |
 | Standalone Windows build (`dotnet publish`, win-x64) | Succeeded |
 | Manual checks on Windows 11 | The owner ran the 0.3.0 test build: it starts, shows the animated rider and works. M1 to M3 not yet reported step by step. |
 
 ## Remaining tasks
 
-- **Phase 2 – Desktop overlay:** multiple monitor verification, system tray controls. (Placement rules for multiple monitors are already built and unit tested.)
 - **Phase 4 – Animation system:** connect animations to behaviour (moving around the screen, reacting to the user) as those features arrive.
 - **Phase 5 – Ollama integration.**
 - **Phase 6 – Conversation interface.**
@@ -54,7 +54,9 @@ Phase 2, task 6: system tray controls. (The animated rider is in the application
 ## Known issues
 
 - The window has never been run by the developer, because the build machine is Linux. Everything visual depends on manual checks M1 and M2.
-- With no tray icon yet, the only way to close the application is the right-click menu on the character.
+
+
+- Multiple monitors have not been tried on real hardware. The owner uses a single 49-inch ultrawide monitor and has no second screen, so M2 steps 9 and 10 cannot be done there. The placement rules for several monitors are covered by automated tests only.
 
 ## Technical decisions
 
@@ -62,4 +64,4 @@ Recorded in ARCHITECTURE.md.
 
 ## Next task
 
-Phase 2, task 6: system tray controls (show, hide, exit).
+Phase 5: Ollama integration.

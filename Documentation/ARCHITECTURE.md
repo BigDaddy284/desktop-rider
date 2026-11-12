@@ -7,7 +7,7 @@ Desktop Rider is a native Windows application written in C# on .NET 10 with WPF,
 | Project | Target | Purpose |
 |---|---|---|
 | `src/DesktopRider.Core` | `net10.0` | Everything that does not need Windows: settings, file locations, logging, shared service registration. Fully unit tested. |
-| `src/DesktopRider.Desktop` | `net10.0-windows` | Windows desktop integration: the monitor list and moving the character's window in physical pixels. |
+| `src/DesktopRider.Desktop` | `net10.0-windows` | Windows desktop integration: the monitor list, moving the character's window in physical pixels, and the icon beside the clock. |
 | `src/DesktopRider.App` | `net10.0-windows` | The WPF application: start-up, shutdown, windows and view models. Produces `DesktopRider.exe`. |
 | `src/DesktopRider.Animation` | `net10.0` | The sprite list and the animation player: which frame of which animation shows at any moment. No window, no timer, fully unit tested. |
 | `tests/DesktopRider.Core.Tests` | `net10.0` | xUnit tests for Core. |
@@ -32,6 +32,16 @@ The rule for where code goes: if it can work without a window, it lives outside 
 - `OverlayViewModel` (Core) supplies what the window shows and the right-click menu actions. It has no knowledge of windows, so it is unit tested.
 - `PlacementCalculator` (Core) decides where the character may sit: the default corner, restoring a saved spot, and keeping it fully on one screen. Unit tested with single, multiple and negative-coordinate monitor layouts.
 - `WindowPlacementController` (Desktop) carries those decisions out: it restores the position when the window loads, handles dragging, re-checks the position when Windows reports a display change, and saves the spot after each drag.
+
+## The icon beside the clock
+
+Desktop Rider has no taskbar button, so its icon in the notification area is the way to reach it when the rider is hidden.
+
+- `TrayViewModel` (Core) decides everything: the menu for the current state, what a click does, the hover text and when to show the "rider is hidden" reminder. Unit tested.
+- `TrayIconController` (Desktop) carries it out with the standard Windows notification icon. The menu is rebuilt each time it opens, so nothing updates in the background.
+- `TrayIconFactory` (Desktop) makes the icon picture at start-up by shrinking the drawn part of the rider's resting frame. `IconLayout` (Core) does the arithmetic and is unit tested. If the sprites are missing, the standard Windows application icon is used.
+- Hiding sets `Appearance.CharacterVisible` to false. `OverlayWindow` follows that value by hiding or showing itself, and hiding stops the animation timer, so a hidden rider uses no processor time.
+- `App` creates the icon after the window and removes it in `OnExit`. Exit is also handled by `App` directly so that it works when the rider started hidden and its window was never opened.
 
 Positions are measured and saved in physical screen pixels through the Windows API, not in WPF units, so they mean the same thing on monitors with different scaling.
 
@@ -81,3 +91,8 @@ Nothing is sent anywhere. There is no telemetry.
 | 2026-11-12 | Windows Forms is referenced by the Desktop project for `Screen.AllScreens` (and later the tray icon). | It is part of .NET for Windows, so it avoids a third-party dependency. |
 | 2026-11-12 | View models live in Core and use hand-written `RelayCommand`/`ViewModelBase`. | Keeps them testable off Windows without adding an MVVM library for a few lines of code. |
 | 2026-11-12 | Original reference photographs are not committed. | The repository is public and the photographs are personal. Owner's decision. |
+| 2026-11-12 | The notification-area icon uses the Windows Forms `NotifyIcon` that ships with .NET. | Already available in the Desktop project; avoids a third-party package. |
+| 2026-11-12 | The icon picture is made from the rider's own resting frame when the application starts. | The approved artwork is the only permitted source for the rider's appearance; no separate icon is invented. |
+| 2026-11-12 | Whether the rider is hidden is remembered between sessions, and a hidden start always shows a reminder beside the clock. | Respects the user's choice without leaving them wondering whether the application started. |
+| 2026-11-12 | The reminder on hiding is shown once ever (`Application.TrayHintShown`). | Helpful the first time, an unnecessary pop-up afterwards. |
+| 2026-11-12 | The icon is always present while Desktop Rider runs. The "Minimise to system tray" setting is left for the settings screen in Phase 8. | With no taskbar button, the icon is the only way back to a hidden rider. |

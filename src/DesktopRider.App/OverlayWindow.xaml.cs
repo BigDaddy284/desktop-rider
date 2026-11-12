@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 using DesktopRider.Animation;
 using DesktopRider.Core.Configuration;
 using DesktopRider.Core.Placement;
@@ -19,6 +20,7 @@ public partial class OverlayWindow : Window
     private readonly WindowPlacementController _placement;
     private readonly ISettingsService _settings;
     private readonly RiderSprite? _rider;
+    private bool _closed;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -50,10 +52,34 @@ public partial class OverlayWindow : Window
         _placement.Attach();
         _viewModel.ResetPositionRequested += OnResetPositionRequested;
         _viewModel.ExitRequested += OnExitRequested;
+        _viewModel.PropertyChanged += OnViewModelChanged;
+    }
+
+    /// <summary>The rider's current picture, used to make the notification-area icon. Null while the stand-in is showing.</summary>
+    internal BitmapSource? RiderPicture => _rider?.CurrentFrame as BitmapSource;
+
+    /// <summary>Shows or hides the window to match the user's choice. Hiding also stops the animation timer.</summary>
+    internal void ApplyVisibility()
+    {
+        if (_closed)
+        {
+            return;
+        }
+
+        if (_viewModel.CharacterVisible && !IsVisible)
+        {
+            Show();
+        }
+        else if (!_viewModel.CharacterVisible && IsVisible)
+        {
+            Hide();
+        }
     }
 
     protected override void OnClosed(EventArgs e)
     {
+        _closed = true;
+        _viewModel.PropertyChanged -= OnViewModelChanged;
         _viewModel.ResetPositionRequested -= OnResetPositionRequested;
         _viewModel.ExitRequested -= OnExitRequested;
         _placement.Dispose();
@@ -69,6 +95,9 @@ public partial class OverlayWindow : Window
     }
 
     private async void OnResetPositionRequested(object? sender, EventArgs e) => await _placement.ResetPositionAsync();
+
+    // Settings can change on a background thread, so the window is only touched from its own thread.
+    private void OnViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => Dispatcher.BeginInvoke(ApplyVisibility);
 
     private void OnExitRequested(object? sender, EventArgs e) => Close();
 

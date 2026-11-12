@@ -20,6 +20,7 @@ public partial class App : Application
     private SingleInstanceGuard? _instanceGuard;
     private ServiceProvider? _services;
     private ILogger<App>? _logger;
+    private TrayIconController? _tray;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -29,7 +30,7 @@ public partial class App : Application
         if (!_instanceGuard.IsFirstInstance)
         {
             MessageBox.Show(
-                $"{AppInfo.Name} is already running. Look for the rider on your desktop.",
+                $"{AppInfo.Name} is already running. Look for the rider on your desktop.\n\nIf you cannot see it, click the {AppInfo.Name} icon beside the clock (it may be behind the small arrow) and choose \"{TrayViewModel.ShowText}\".",
                 AppInfo.Name,
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -46,6 +47,7 @@ public partial class App : Application
             services.AddDesktopRiderCore(paths);
             services.AddSingleton<IScreenProvider, WindowsScreenProvider>();
             services.AddSingleton<OverlayViewModel>();
+            services.AddSingleton<TrayViewModel>();
             services.AddSingleton<OverlayWindow>();
             _services = services.BuildServiceProvider();
 
@@ -62,7 +64,19 @@ public partial class App : Application
             var window = _services.GetRequiredService<OverlayWindow>();
             MainWindow = window;
             window.Closed += (_, _) => Shutdown();
-            window.Show();
+
+            // Exit must work from the notification-area icon even when the rider is hidden and its window was never opened.
+            _services.GetRequiredService<OverlayViewModel>().ExitRequested += (_, _) => Shutdown();
+
+            var trayViewModel = _services.GetRequiredService<TrayViewModel>();
+            _tray = new TrayIconController(
+                trayViewModel,
+                TrayIconFactory.TryCreate(window.RiderPicture),
+                _services.GetRequiredService<ILogger<TrayIconController>>());
+            _tray.Show();
+
+            window.ApplyVisibility();
+            trayViewModel.AnnounceIfStartedHidden();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
@@ -90,6 +104,7 @@ public partial class App : Application
         DispatcherUnhandledException -= OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException -= OnDomainUnhandledException;
         TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+        _tray?.Dispose();
         _services?.Dispose();
         _instanceGuard?.Dispose();
         base.OnExit(e);

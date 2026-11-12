@@ -52,6 +52,7 @@ public sealed class JsonSettingsStoreTests : IDisposable
         settings.Memory.Enabled = false;
         settings.Memory.RetentionDays = 7;
         settings.Application.StartWithWindows = true;
+        settings.Application.TrayHintShown = true;
 
         await _store.SaveAsync(settings);
         var result = await _store.LoadAsync();
@@ -77,6 +78,7 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.False(loaded.Memory.Enabled);
         Assert.Equal(7, loaded.Memory.RetentionDays);
         Assert.True(loaded.Application.StartWithWindows);
+        Assert.True(loaded.Application.TrayHintShown);
     }
 
     [Fact]

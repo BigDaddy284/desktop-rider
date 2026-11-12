@@ -31,6 +31,7 @@
                 <MenuItem x:Name="TricksMenu" Header="Do something" Visibility="Collapsed" />
                 <MenuItem x:Name="TurnAroundItem" Header="Turn around" Visibility="Collapsed" Click="OnTurnAroundClick" />
                 <Separator />
+                <MenuItem Header="Hide the rider" Command="{Binding HideCommand}" />
                 <MenuItem Header="Exit Desktop Rider" Command="{Binding ExitCommand}" />
             </ContextMenu>
         </Grid.ContextMenu>
