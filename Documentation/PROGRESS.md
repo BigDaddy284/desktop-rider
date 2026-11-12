@@ -35,7 +35,7 @@ Phase 2, task 5: multiple monitor support verification, then task 6: system tray
 ## Remaining tasks
 
 - **Phase 2 – Desktop overlay:** multiple monitor verification, system tray controls. (Placement rules for multiple monitors are already built and unit tested.)
-- **Phase 3 – Visual asset pipeline:** obtain the missing references, concept artwork, sprite conventions, owner approval, sprite rendering.
+- **Phase 3 – Visual asset pipeline:** references are in (owner has no further photographs). Two hand-drawn bike concepts were rejected; the owner wants the artwork made with an image generator from the reference photographs. **Blocked on an image generator:** none is available in the development environment, so a route must be agreed with the owner. Then concept approval, sprite conventions and sprite rendering.
 - **Phase 4 – Animation system.**
 - **Phase 5 – Ollama integration.**
 - **Phase 6 – Conversation interface.**
