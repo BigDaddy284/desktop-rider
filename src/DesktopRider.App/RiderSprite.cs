@@ -30,6 +30,9 @@ internal sealed partial class RiderSprite : IDisposable
     private readonly Dictionary<string, BitmapSource> _sheets = new(StringComparer.OrdinalIgnoreCase);
     private Facing _facing = Facing.Right;
     private bool _failed;
+    private bool _loading;
+    private string? _stageSheet;
+    private bool _disposed;
 
     private RiderSprite(string folder, SpriteManifest manifest, ILogger logger)
     {
@@ -49,6 +52,15 @@ internal sealed partial class RiderSprite : IDisposable
     public SpriteManifest Manifest { get; }
 
     public ImageSource? CurrentFrame { get; private set; }
+
+    /// <summary>True while the animation showing has frames larger than the rider's window, such as a jump.</summary>
+    public bool OnStage { get; private set; }
+
+    /// <summary>Size of the current frame in sprite pixels.</summary>
+    public (int Width, int Height) FrameSize { get; private set; }
+
+    /// <summary>Where the rider's standard frame sits inside the current frame, in sprite pixels.</summary>
+    public (int X, int Y) FrameOrigin { get; private set; }
 
     public double Speed
     {
@@ -70,7 +82,7 @@ internal sealed partial class RiderSprite : IDisposable
     }
 
     /// <summary>Performs an animation once because it was asked for in conversation. False if the rider has no such animation.</summary>
-    public bool Perform(string animation) => _behaviour.Perform(animation);
+    public bool Perform(string animation) => WhenReady(animation, () => _behaviour.Perform(animation));
 
     public Facing Facing
     {
@@ -108,7 +120,7 @@ internal sealed partial class RiderSprite : IDisposable
         }
     }
 
-    public bool Play(string animation, int priority = 0) => _player.Request(animation, priority);
+    public bool Play(string animation, int priority = 0) => WhenReady(animation, () => _player.Request(animation, priority));
 
     public void Start()
     {
@@ -127,6 +139,7 @@ internal sealed partial class RiderSprite : IDisposable
 
     public void Dispose()
     {
+        _disposed = true;
         Stop();
         _timer.Tick -= OnTick;
         _sheets.Clear();
@@ -165,9 +178,29 @@ internal sealed partial class RiderSprite : IDisposable
             return;
         }
 
-        var frame = new CroppedBitmap(sheet, new Int32Rect(rect.X, rect.Y, rect.Width, rect.Height));
+        BitmapSource frame = new CroppedBitmap(sheet, new Int32Rect(rect.X, rect.Y, rect.Width, rect.Height));
+        if (frame.Format != PixelFormats.Pbgra32)
+        {
+            // Big sheets are kept in the compact form they were saved in; only the frame on screen is expanded.
+            frame = new FormatConvertedBitmap(frame, PixelFormats.Pbgra32, null, 0);
+        }
+
         frame.Freeze();
         CurrentFrame = frame;
+        if (clip.HasOwnFrame)
+        {
+            _stageSheet = clip.SheetFor(_facing);
+        }
+        else if (_stageSheet is not null)
+        {
+            // A jump has just finished: let go of its large sheet straight away.
+            _sheets.Remove(_stageSheet);
+            _stageSheet = null;
+        }
+
+        OnStage = clip.HasOwnFrame;
+        FrameSize = Manifest.FrameSizeFor(clip);
+        FrameOrigin = Manifest.OriginFor(clip, _facing);
         FrameChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -181,29 +214,85 @@ internal sealed partial class RiderSprite : IDisposable
 
         try
         {
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.UriSource = new Uri(Path.GetFullPath(Path.Combine(_folder, relative)));
-            image.EndInit();
-            var converted = new FormatConvertedBitmap(image, PixelFormats.Pbgra32, null, 0);
-            converted.Freeze();
-
-            // Only the sheet being shown and the resting sheet are kept, so memory stays small however many animations exist.
-            var resting = Manifest.Default.SheetFor(_facing);
-            foreach (var key in _sheets.Keys.Where(key => !string.Equals(key, resting, StringComparison.OrdinalIgnoreCase)).ToList())
-            {
-                _sheets.Remove(key);
-            }
-
-            _sheets[relative] = converted;
-            return converted;
+            var sheet = LoadSheet(Path.GetFullPath(Path.Combine(_folder, relative)), expand: !clip.HasOwnFrame);
+            Keep(relative, sheet);
+            return sheet;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException or InvalidOperationException)
+        catch (Exception ex) when (IsLoadFailure(ex))
         {
             Fail(clip, ex);
             return null;
         }
+    }
+
+    private static bool IsLoadFailure(Exception ex) =>
+        ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException or InvalidOperationException;
+
+    /// <summary>Reads a sheet from disk. Safe to call away from the interface thread: the result is frozen.</summary>
+    private static BitmapSource LoadSheet(string path, bool expand)
+    {
+        var image = new BitmapImage();
+        image.BeginInit();
+        image.CacheOption = BitmapCacheOption.OnLoad;
+        image.UriSource = new Uri(path);
+        image.EndInit();
+        BitmapSource sheet = expand ? new FormatConvertedBitmap(image, PixelFormats.Pbgra32, null, 0) : image;
+        sheet.Freeze();
+        return sheet;
+    }
+
+    // Only the sheet being shown and the resting sheet are kept, so memory stays small however many animations exist.
+    private void Keep(string relative, BitmapSource sheet)
+    {
+        var resting = Manifest.Default.SheetFor(_facing);
+        foreach (var key in _sheets.Keys.Where(key => !string.Equals(key, resting, StringComparison.OrdinalIgnoreCase)).ToList())
+        {
+            _sheets.Remove(key);
+        }
+
+        _sheets[relative] = sheet;
+    }
+
+    /// <summary>
+    /// Starts an animation, first reading its pictures in the background if they are large, so the rider never
+    /// freezes while a big sheet is read from disk.
+    /// </summary>
+    private bool WhenReady(string animation, Func<bool> start)
+    {
+        if (_loading || !Manifest.TryGet(animation, out var clip) || !clip.HasOwnFrame || _sheets.ContainsKey(clip.SheetFor(_facing)))
+        {
+            return start();
+        }
+
+        _loading = true;
+        _ = LoadThenStartAsync(clip, clip.SheetFor(_facing), start);
+        return true;
+    }
+
+    private async Task LoadThenStartAsync(AnimationClip clip, string relative, Func<bool> start)
+    {
+        var path = Path.GetFullPath(Path.Combine(_folder, relative));
+        BitmapSource? sheet = null;
+        try
+        {
+            sheet = await Task.Run(() => LoadSheet(path, expand: false));
+        }
+        catch (Exception ex) when (IsLoadFailure(ex))
+        {
+            LogSheetFailed(_logger, ex, clip.Name);
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        if (_disposed || sheet is null)
+        {
+            return;
+        }
+
+        Keep(relative, sheet);
+        start();
     }
 
     private void Fail(AnimationClip clip, Exception ex)

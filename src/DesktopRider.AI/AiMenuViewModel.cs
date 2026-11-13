@@ -13,7 +13,7 @@ public sealed class AiMessageEventArgs(string title, string message) : EventArgs
 }
 
 /// <summary>
-/// The AI lines of the notification-area menu: talk to the rider, check the connection and choose a model.
+/// The AI lines of the notification-area menu: talk to the rider, check the connection, choose a model and open the rider's settings.
 /// Nothing is sent to the AI until the user picks one of these.
 /// Every choice is answered straight away with a message, then with its result, so a click never appears to do nothing.
 /// </summary>
@@ -23,6 +23,7 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor
     public const string CheckingText = "Checking the AI connection…";
     public const string ChooseModelText = "Choose an AI model";
     public const string TalkText = "Talk to the rider";
+    public const string SettingsText = "Rider settings";
 
     /// <summary>Keeps a runaway reply from filling the screen.</summary>
     public const int MaxMessageLength = 1200;
@@ -51,6 +52,9 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor
     /// <summary>Raised when the user chooses to talk to the rider.</summary>
     public event EventHandler? TalkRequested;
 
+    /// <summary>Raised when the user chooses to open the rider's settings.</summary>
+    public event EventHandler? SettingsRequested;
+
     public IReadOnlyList<TrayMenuEntry> BuildEntries()
     {
         lock (_gate)
@@ -71,6 +75,8 @@ public sealed partial class AiMenuViewModel : ITrayMenuContributor
                     .ToList();
                 entries.Add(new TrayMenuEntry(ChooseModelText, null, Children: choices));
             }
+
+            entries.Add(new TrayMenuEntry(SettingsText, new RelayCommand(() => SettingsRequested?.Invoke(this, EventArgs.Empty))));
 
             return entries;
         }

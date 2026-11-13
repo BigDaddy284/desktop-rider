@@ -103,6 +103,8 @@ public sealed class AiSettings
     public const double MaxTemperature = 2.0;
     public const int MinTimeoutSeconds = 5;
     public const int MaxTimeoutSeconds = 600;
+    public const int MaxUserNameLength = 40;
+    public const int MaxSystemPromptLength = 2000;
 
     public string Provider { get; set; } = OllamaProvider;
 
@@ -111,12 +113,43 @@ public sealed class AiSettings
     /// <summary>The model the user picked. Null until they choose one; no model name is ever assumed.</summary>
     public string? Model { get; set; }
 
-    /// <summary>Custom personality instructions. Null means the built-in rider personality is used.</summary>
+    /// <summary>The user's own description of the rider. Null means the built-in rider personality is used.</summary>
     public string? SystemPrompt { get; set; }
+
+    /// <summary>How the built-in personality talks. Not used when the user has written their own description.</summary>
+    public RiderTone Tone { get; set; } = RiderTone.Cheeky;
+
+    public ReplyLength ReplyLength { get; set; } = ReplyLength.Brief;
+
+    /// <summary>What the rider calls the user. Null until the user gives a name; none is ever assumed.</summary>
+    public string? UserName { get; set; }
 
     public double Temperature { get; set; } = 0.8;
 
     public int RequestTimeoutSeconds { get; set; } = 120;
+}
+
+/// <summary>How the rider's built-in personality talks.</summary>
+public enum RiderTone
+{
+    /// <summary>Friendly and slightly cheeky, with the occasional joke. The standard rider.</summary>
+    Cheeky,
+
+    /// <summary>Warm and encouraging, without the cheek.</summary>
+    Friendly,
+
+    /// <summary>Calm and to the point, without jokes.</summary>
+    Serious,
+}
+
+/// <summary>How much the rider says in each reply.</summary>
+public enum ReplyLength
+{
+    /// <summary>A sentence or two, to fit the speech bubble.</summary>
+    Brief,
+
+    /// <summary>Fuller answers with explanation.</summary>
+    Detailed,
 }
 
 public sealed class MemorySettings

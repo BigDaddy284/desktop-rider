@@ -1,0 +1,21 @@
+<Window x:Class="DesktopRider.App.StageWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Desktop Rider"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Focusable="False"
+        IsHitTestVisible="False"
+        UseLayoutRounding="True">
+    <!--
+        Room for the big animations: jumps, tricks and whoops need more space than the rider's own small window.
+        This window appears only while one of them plays. It is see-through and clicks pass straight through it.
+    -->
+    <Image x:Name="StageImage" Stretch="Fill" RenderOptions.BitmapScalingMode="HighQuality" />
+</Window>

@@ -13,6 +13,12 @@ public sealed class AppPaths
 
     public string SettingsFile => Path.Combine(DataDirectory, "settings.json");
 
+    /// <summary>The conversation with the rider, kept between sessions when the user allows it.</summary>
+    public string ConversationFile => Path.Combine(DataDirectory, "conversation.json");
+
+    /// <summary>The things the user has asked the rider to remember.</summary>
+    public string MemoryFile => Path.Combine(DataDirectory, "memory.json");
+
     public string LogDirectory => Path.Combine(DataDirectory, "Logs");
 
     /// <summary>The standard per-user location: %LOCALAPPDATA%\DesktopRider.</summary>

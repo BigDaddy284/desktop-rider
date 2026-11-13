@@ -87,7 +87,7 @@
                     <Button DockPanel.Dock="Right" Style="{StaticResource QuietButton}" FontFamily="{StaticResource GlyphFont}" Content="&#xE711;" Click="OnCloseClick"
                             ToolTip="Close (Esc). The rider carries on in a speech bubble." />
                     <Button DockPanel.Dock="Right" Style="{StaticResource QuietButton}" Content="Clear" Command="{Binding ClearCommand}"
-                            ToolTip="Start a fresh conversation" />
+                            ToolTip="Start a fresh conversation. The saved copy of this one is deleted too." />
                     <Button DockPanel.Dock="Right" Style="{StaticResource QuietButton}" Content="Bubbles" Click="OnBubblesClick"
                             ToolTip="Switch to typing in a small bubble below the rider" />
                     <TextBlock Text="Talk to the rider" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource Ink}" VerticalAlignment="Center" />

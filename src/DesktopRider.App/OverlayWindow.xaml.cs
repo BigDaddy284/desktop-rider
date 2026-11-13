@@ -20,6 +20,10 @@ public partial class OverlayWindow : Window
     private readonly WindowPlacementController _placement;
     private readonly ISettingsService _settings;
     private readonly RiderSprite? _rider;
+    private StageWindow? _stage;
+    private bool _onStage;
+    private bool _leavingStage;
+    private double _size = RiderSprite.DisplayFactor;
     private bool _closed;
 
     public OverlayWindow(
@@ -42,6 +46,7 @@ public partial class OverlayWindow : Window
             TurnAroundItem.Visibility = Visibility.Visible;
             BuildTricksMenu(_rider);
             _rider.FrameChanged += OnRiderFrameChanged;
+            LocationChanged += OnLocationChanged;
             _settings.Changed += OnSettingsChanged;
             IsVisibleChanged += OnIsVisibleChanged;
             ApplySettings();
@@ -58,6 +63,18 @@ public partial class OverlayWindow : Window
 
     /// <summary>Raised when the user clicks the rider or chooses "Talk to the rider" from its menu.</summary>
     internal event EventHandler? TalkRequested;
+
+    /// <summary>Raised when the user chooses "Rider settings" from the rider's menu.</summary>
+    internal event EventHandler? SettingsRequested;
+
+    /// <summary>Raised when the user chooses to hush the rider, or to let it speak again, from the rider's menu.</summary>
+    internal event EventHandler? QuietToggleRequested;
+
+    /// <summary>
+    /// Supplies the words for the "keep quiet" line of the rider's menu each time the menu opens.
+    /// Null words leave the line out, which is right while the rider never speaks first anyway.
+    /// </summary>
+    internal Func<string?>? QuietChoice { get; set; }
 
     /// <summary>What the rider is doing in the conversation, so that its animation can follow.</summary>
     internal CharacterState CharacterState
@@ -108,7 +125,9 @@ public partial class OverlayWindow : Window
             _settings.Changed -= OnSettingsChanged;
             IsVisibleChanged -= OnIsVisibleChanged;
             _rider.FrameChanged -= OnRiderFrameChanged;
+            LocationChanged -= OnLocationChanged;
             _rider.Dispose();
+            _stage?.Close();
         }
 
         base.OnClosed(e);
@@ -148,6 +167,17 @@ public partial class OverlayWindow : Window
 
     private void OnCharacterClicked(object? sender, EventArgs e) => TalkRequested?.Invoke(this, EventArgs.Empty);
 
+    private void OnMenuOpened(object sender, RoutedEventArgs e)
+    {
+        var words = QuietChoice?.Invoke();
+        QuietItem.Header = words ?? string.Empty;
+        QuietItem.Visibility = words is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void OnQuietClick(object sender, RoutedEventArgs e) => QuietToggleRequested?.Invoke(this, EventArgs.Empty);
+
+    private void OnSettingsClick(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke(this, EventArgs.Empty);
+
     private void OnTalkClick(object sender, RoutedEventArgs e) => TalkRequested?.Invoke(this, EventArgs.Empty);
 
     private void OnTurnAroundClick(object sender, RoutedEventArgs e)
@@ -158,7 +188,61 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private void OnRiderFrameChanged(object? sender, EventArgs e) => RiderImage.Source = _rider?.CurrentFrame;
+    private void OnRiderFrameChanged(object? sender, EventArgs e)
+    {
+        if (_rider?.CurrentFrame is not { } frame)
+        {
+            return;
+        }
+
+        if (_rider.OnStage)
+        {
+            // A jump or another big animation: it is drawn in a larger see-through window laid exactly over the rider.
+            // The rider's own picture is hidden from the second frame on, so there is never a moment with neither showing.
+            _stage ??= new StageWindow { Owner = this };
+            _stage.Topmost = Topmost;
+            var (width, height) = _rider.FrameSize;
+            _stage.Present(frame, new Size(width * _size, height * _size), StageCorner(), CharacterRoot.Opacity);
+            if (_onStage)
+            {
+                RiderImage.Opacity = 0;
+            }
+
+            _onStage = true;
+            _leavingStage = false;
+            return;
+        }
+
+        RiderImage.Source = frame;
+        if (_onStage)
+        {
+            // Back in the rider's own window. The big window is put away one frame later, for the same reason.
+            RiderImage.Opacity = 1;
+            _onStage = false;
+            _leavingStage = true;
+        }
+        else if (_leavingStage)
+        {
+            _leavingStage = false;
+            _stage?.Hide();
+        }
+    }
+
+    /// <summary>Where the big window's top-left corner must be for its rider to sit exactly on top of the usual one.</summary>
+    private Point StageCorner()
+    {
+        var rider = RiderImage.TranslatePoint(default, this);
+        var (x, y) = _rider!.FrameOrigin;
+        return new Point(Left + rider.X - (x * _size), Top + rider.Y - (y * _size));
+    }
+
+    private void OnLocationChanged(object? sender, EventArgs e)
+    {
+        if (_stage is { IsVisible: true } && _rider is { OnStage: true })
+        {
+            _stage.MoveTo(StageCorner());
+        }
+    }
 
     private void OnSettingsChanged(object? sender, EventArgs e) => Dispatcher.Invoke(ApplySettings);
 
@@ -171,6 +255,7 @@ public partial class OverlayWindow : Window
         else
         {
             _rider?.Stop();
+            _stage?.Hide();
         }
     }
 
@@ -183,6 +268,7 @@ public partial class OverlayWindow : Window
 
         var appearance = _settings.Current.Appearance;
         var size = RiderSprite.DisplayFactor * Math.Clamp(appearance.Scale, AppearanceSettings.MinScale, AppearanceSettings.MaxScale);
+        _size = size;
         RiderImage.Width = _rider.Manifest.FrameWidth * size;
         RiderImage.Height = _rider.Manifest.FrameHeight * size;
         _rider.Speed = Math.Clamp(appearance.AnimationSpeed, AppearanceSettings.MinAnimationSpeed, AppearanceSettings.MaxAnimationSpeed);

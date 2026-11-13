@@ -1,5 +1,6 @@
 using DesktopRider.AI.Ollama;
 using DesktopRider.Core.Configuration;
+using DesktopRider.Core.Infrastructure;
 using DesktopRider.Core.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -10,7 +11,8 @@ public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the AI services. Requires <c>AddDesktopRiderCore</c>. Creating these services makes no request;
-    /// Ollama is only contacted when the user asks for something.
+    /// Ollama is only contacted when the user asks for something, or, if the user has switched it on, when the
+    /// rider starts a conversation itself.
     /// </summary>
     public static IServiceCollection AddDesktopRiderAi(this IServiceCollection services)
     {
@@ -25,11 +27,39 @@ public static class ServiceCollectionExtensions
             return new OllamaProvider(http, () => ConnectionFrom(settings.Current.Ai), provider.GetRequiredService<ILogger<OllamaProvider>>());
         });
         services.AddSingleton<AiProviderRegistry>();
+        services.AddSingleton<IMemoryStore>(provider => new JsonMemoryStore(
+            provider.GetRequiredService<AppPaths>(),
+            provider.GetRequiredService<ILogger<JsonMemoryStore>>(),
+            provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<RiderMemory>();
         services.AddSingleton<IAiChatService, AiChatService>();
         services.AddSingleton<AiMenuViewModel>();
-        services.AddSingleton<ConversationViewModel>();
+        services.AddSingleton<IConversationStore>(provider => new JsonConversationStore(
+            provider.GetRequiredService<AppPaths>(),
+            provider.GetRequiredService<ILogger<JsonConversationStore>>(),
+            provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton(provider => new ConversationViewModel(
+            provider.GetRequiredService<IAiChatService>(),
+            provider.GetRequiredService<ISettingsService>(),
+            provider.GetRequiredService<ILogger<ConversationViewModel>>(),
+            provider.GetRequiredService<IConversationStore>(),
+            provider.GetRequiredService<TimeProvider>(),
+            provider.GetRequiredService<RiderMemory>()));
         services.AddSingleton<SpeechBubbleViewModel>();
+        services.AddSingleton<RiderSettingsViewModel>();
+        services.AddSingleton(provider =>
+        {
+            // Made on the interface thread at start-up, which is where the rider's own remarks must be made.
+            var interfaceThread = SynchronizationContext.Current;
+            return new ProactiveComments(
+                provider.GetRequiredService<ConversationViewModel>(),
+                provider.GetRequiredService<ISettingsService>(),
+                provider.GetRequiredService<TimeProvider>(),
+                provider.GetRequiredService<ILogger<ProactiveComments>>(),
+                interfaceThread is null ? null : work => interfaceThread.Post(_ => work(), null));
+        });
         services.AddSingleton<ITrayMenuContributor>(provider => provider.GetRequiredService<AiMenuViewModel>());
+        services.AddSingleton<ITrayMenuContributor>(provider => provider.GetRequiredService<ProactiveComments>());
         return services;
     }
 

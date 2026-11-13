@@ -25,6 +25,7 @@ public partial class App : Application
     private AiMenuViewModel? _aiMenu;
     private MessageWindow? _messageWindow;
     private ConversationPresenter? _conversation;
+    private SettingsWindow? _settingsWindow;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -84,6 +85,10 @@ public partial class App : Application
             _aiMenu.ProgressChanged += OnAiMessage;
             _aiMenu.MessageRequested += OnAiMessage;
 
+            // Brings back what the rider remembers and the conversation kept from last time. Nothing is sent anywhere.
+            await _services.GetRequiredService<RiderMemory>().LoadAsync();
+            await _services.GetRequiredService<ConversationViewModel>().RestoreAsync();
+
             _conversation = new ConversationPresenter(
                 window,
                 _services.GetRequiredService<OverlayViewModel>(),
@@ -91,6 +96,14 @@ public partial class App : Application
                 _services.GetRequiredService<SpeechBubbleViewModel>(),
                 _services.GetRequiredService<IScreenProvider>());
             _aiMenu.TalkRequested += OnTalkRequested;
+            _aiMenu.SettingsRequested += OnSettingsRequested;
+            window.SettingsRequested += OnSettingsRequested;
+
+            // The rider only ever speaks first if the user has switched that on; until then this sets no timer.
+            var comments = _services.GetRequiredService<ProactiveComments>();
+            window.QuietChoice = () => comments.MuteChoiceText;
+            window.QuietToggleRequested += (_, _) => comments.ToggleMute();
+            comments.Start();
 
             window.ApplyVisibility();
             trayViewModel.AnnounceIfStartedHidden();
@@ -126,6 +139,13 @@ public partial class App : Application
             _aiMenu.ProgressChanged -= OnAiMessage;
             _aiMenu.MessageRequested -= OnAiMessage;
             _aiMenu.TalkRequested -= OnTalkRequested;
+            _aiMenu.SettingsRequested -= OnSettingsRequested;
+        }
+
+        if (_settingsWindow is not null)
+        {
+            _settingsWindow.ClosingForGood = true;
+            _settingsWindow.Close();
         }
 
         _conversation?.Dispose();
@@ -149,6 +169,18 @@ public partial class App : Application
     });
 
     private void OnTalkRequested(object? sender, EventArgs e) => Dispatcher.BeginInvoke(() => _conversation?.OpenConversation());
+
+    // The settings window is made the first time it is asked for, then kept so it opens at once.
+    private void OnSettingsRequested(object? sender, EventArgs e) => Dispatcher.BeginInvoke(() =>
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        _settingsWindow ??= new SettingsWindow(_services.GetRequiredService<RiderSettingsViewModel>());
+        _settingsWindow.Open();
+    });
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {

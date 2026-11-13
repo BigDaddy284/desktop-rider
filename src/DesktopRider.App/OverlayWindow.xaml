@@ -23,12 +23,14 @@
     -->
     <Grid x:Name="CharacterRoot" Margin="14" Opacity="{Binding CharacterOpacity, Mode=OneWay}" Cursor="SizeAll">
         <Grid.ContextMenu>
-            <ContextMenu>
+            <ContextMenu Opened="OnMenuOpened">
                 <MenuItem Header="Talk to the rider" Icon="&#xE8BD;" Click="OnTalkClick" />
                 <MenuItem Header="Chat in bubbles" Icon="&#xE8F2;"
                           IsChecked="{Binding ChatInBubbles, Mode=OneWay}"
                           Command="{Binding ToggleChatInBubblesCommand}"
                           ToolTip="Type in a small bubble below the rider instead of the conversation window" />
+                <MenuItem x:Name="QuietItem" Icon="&#xE74F;" Visibility="Collapsed" Click="OnQuietClick"
+                          ToolTip="Stops the rider starting conversations for a while. It still answers when you talk to it." />
                 <Separator />
                 <MenuItem x:Name="TricksMenu" Header="Do something" Icon="&#xE768;" Visibility="Collapsed" />
                 <MenuItem x:Name="TurnAroundItem" Header="Turn around" Icon="&#xE8AB;" Visibility="Collapsed" Click="OnTurnAroundClick" />
@@ -37,6 +39,7 @@
                           IsChecked="{Binding AlwaysOnTop, Mode=OneWay}"
                           Command="{Binding ToggleAlwaysOnTopCommand}" />
                 <MenuItem Header="Move back to the corner" Icon="&#xE80F;" Command="{Binding ResetPositionCommand}" />
+                <MenuItem Header="Rider settings" Icon="&#xE713;" Click="OnSettingsClick" />
                 <Separator />
                 <MenuItem Header="Hide the rider" Icon="&#xED1A;" Command="{Binding HideCommand}" />
                 <MenuItem Header="Exit Desktop Rider" Icon="&#xE7E8;" Command="{Binding ExitCommand}" />

@@ -34,6 +34,26 @@ public class CompositionTests
                 Assert.Same(conversation, provider.GetRequiredService<ConversationViewModel>());
                 Assert.False(provider.GetRequiredService<SpeechBubbleViewModel>().IsVisible);
                 Assert.Equal(TrayViewModel.ExitText, menu[^1].Text);
+
+                // Personality and memory: the settings, the saved conversation and what the rider remembers.
+                Assert.Contains(menu, entry => entry.Text == AiMenuViewModel.SettingsText);
+                Assert.IsType<JsonConversationStore>(provider.GetRequiredService<IConversationStore>());
+                Assert.IsType<JsonMemoryStore>(provider.GetRequiredService<IMemoryStore>());
+                Assert.Same(provider.GetRequiredService<RiderMemory>(), provider.GetRequiredService<RiderMemory>());
+                Assert.True(provider.GetRequiredService<RiderSettingsViewModel>().KeepConversations);
+
+                // The rider speaking first is offered on the menu, switched off, and sets no timer until switched on.
+                var comments = provider.GetRequiredService<ProactiveComments>();
+                Assert.Contains(menu, entry => entry.Text == ProactiveComments.EnableText && !entry.IsChecked);
+                comments.Start();
+                Assert.False(comments.Enabled);
+                Assert.Null(comments.NextDue);
+
+                // A conversation is kept in the data folder and is there again after a restart.
+                await provider.GetRequiredService<RiderMemory>().RememberAsync("My bike is a 250");
+                await provider.GetRequiredService<IConversationStore>().SaveAsync([new SavedLine(Speaker.User, "Hello", DateTimeOffset.UnixEpoch.AddYears(60))]);
+                Assert.True(File.Exists(Path.Combine(folder, "memory.json")));
+                Assert.True(File.Exists(Path.Combine(folder, "conversation.json")));
             }
         }
         finally

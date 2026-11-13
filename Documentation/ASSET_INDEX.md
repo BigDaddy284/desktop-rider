@@ -24,6 +24,23 @@ The models, the Blender files and the reference photographs stay on the owner's 
 | Painted default models | **Approved by the owner** (12 Nov 2026) |
 | Animations (all thirteen in DESIGN.md 3.6, plus sleep start and end) | **Approved by the owner** (12 Nov 2026) |
 | Rendered sprite sheets | Rendered: 15 animations in each direction, 684 frames. See SPRITE_SPECIFICATION.md. |
+| Jump, trick and whoop animations (18, listed in SPRITE_SPECIFICATION.md) | Rendered on 13 November 2026 in each direction, 1,080 frames a side. **Awaiting the owner's approval.** Built overnight at the owner's request without a concept review first. |
+| Ramps, landing mounds and whoops shown in those animations | **Awaiting the owner's approval.** See "Props" below. |
+
+## Props
+
+The jump and whoop animations show things for the bike to ride over. They are new artwork, made in Blender by the developer, and are not based on any reference photograph:
+
+| Prop | What it is |
+|---|---|
+| Freestyle take-off ramp | A curved black deck on a plain silver tube frame, with no markings or logos. |
+| Dirt take-off, landing mound, whoops | Plain brown dirt shapes with a darker packed surface. |
+
+Their colours and shapes were the developer's choice so that the animations could be built. The owner has not seen them. If the owner has reference photographs of a real ramp or track, or wants different colours, the props can be changed in `Tools/Blender/trick_core.py` and the animations rendered again. Nothing on the rider or the bike was changed or added.
+
+## How the jump and trick sheets are made
+
+`Tools/Blender/trick_animations.py` opens the owner's animated Blender file (which stays on the owner's computer; a copy is in the project's shared files), keys the bike and rider, and renders each frame side-on with a transparent background. `Tools/Blender/pack_sprites.py` packs the frames into sheets. The owner's models are only posed; their shapes, colours and graphics are untouched.
 
 ## The in-app stand-in
 
