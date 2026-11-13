@@ -45,3 +45,15 @@ Their colours and shapes were the developer's choice so that the animations coul
 ## The in-app stand-in
 
 If the sprite files cannot be found, the application shows a grey card drawn in XAML (`OverlayWindow.xaml`). It is a labelled stand-in, not artwork, and has no asset file.
+
+## Version 2.0: 3D models for Unity
+
+Version 2.0 uses the owner's 3D bike and rider directly in Unity. The models, textures and renders stay on the owner's PC and are not in this repository. Their layout, clips and conventions are in MODEL_SPECIFICATION.md.
+
+| Asset | Source | Status |
+|---|---|---|
+| `DesktopRider.fbx`: bike and rider meshes, both rigs, 15 clips | The owner's models, with UV maps added. The rider's helmet was reshaped by the owner in Blender. | **Approved by the owner** (13 Nov 2026, after 9-angle renders). Verified: 19 of 19 checks pass. |
+| `DesktopRider_Bike.png` | The owner's kit `Harvey28_v2.pdf` fitted to the plastics, with the JS Financial Solutions strips on the swingarm. The rider's name is off the side panels. | **Approved by the owner** (13 Nov 2026) |
+| `DesktopRider_Rider.png` | The earlier painted look, plus sky blue and pink gloves, the striped helmet top and a pink peak edge, taken from the correct-kit riding photographs | **Approved by the owner** (13 Nov 2026). The helmet's right side is still the earlier look. An update from the photographs of the same helmet model is being prepared for the owner's approval. |
+| `Props/DR_Prop_*.fbx` (9) | Rebuilt from the version 1 props as clean single meshes, with the same outlines and colours | Developer-made, as in version 1. Not yet seen by the owner. |
+| `DesktopRider_Tricks.fbx` | The 18 jump, trick and whoop animations | In progress |

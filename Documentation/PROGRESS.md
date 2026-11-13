@@ -149,3 +149,33 @@ None.
 
 Run the EditMode tests in Unity once the code is copied into the project, then build the conversation and
 settings windows on top of `RiderServices`.
+
+### 3D bike and rider for Unity, with the race-kit graphics
+
+**Status: bike, rider, 15 clips and 9 props exported to the Unity project and approved by the owner. The 18 trick clips and the helmet's right side are still in progress.**
+
+#### Completed (13 November 2026)
+
+- UV maps added to the owner's bike and rider. Neither model had any before; their graphics were projected photographs, which Unity cannot use. The earlier painted look was baked into one 4096 texture per model. Before and after renders matched, with no seams.
+- The owner's vector kit `Harvey28_v2.pdf` was fitted to the bike's plastics. The JS Financial Solutions strips go on the swingarm, pink on the left and blue on the right, as the owner asked. The rider's name was taken off the side panels and the 28 enlarged, at the owner's request. Details are in MODEL_SPECIFICATION.md.
+- The helmet was reshaped with the owner in Blender, using temporary handles, and its joins were made flush. Gloves, helmet top and peak edge were changed to match the correct-kit riding photographs.
+- The owner approved the 9-angle renders. The scene was saved as its own working file, and the master Blender file was never changed.
+- `DesktopRider.fbx` (meshes, both rigs, 15 clips with IK baked) and the textures were exported to `Assets/DesktopRider/Models/`.
+- The nine ramp, landing and whoops props were rebuilt as clean meshes for real-time use and exported with `props_layout.json`.
+- `Tools/Blender/build_unity_props.py` and `Tools/Blender/verify_models.py` added.
+
+#### Test results
+
+- `verify_models.py` on the owner's PC: 19 PASS, 0 FAIL (see TESTING.md, "3D model checks").
+- No C# changed in this part.
+
+#### Technical decisions
+
+- Models, textures and renders are kept out of the repository (owner's decision). `.gitignore` excludes `unity/Assets/DesktopRider/Models/`, `kit-fit-work/` and `.blend` files.
+- In the FBX the rider rig sits beside the bike rig and follows the `chassis` bone through keys, instead of being nested under it. Blender cannot write a readable nested armature. The Unity side moves both under one parent.
+- Helmet shape changes were kept as adjustable modifiers in the working Blender file and baked only into the exported mesh.
+
+#### Next
+
+- `DesktopRider_Tricks.fbx` with the 18 trick clips, checked the same way.
+- The helmet's right side from the photographs of the same helmet model, for the owner's approval. This is a texture change only.
