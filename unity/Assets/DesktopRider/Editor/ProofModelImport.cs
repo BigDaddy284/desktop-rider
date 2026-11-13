@@ -20,7 +20,7 @@ namespace DesktopRider.EditorTools
         };
 
         /// <summary>Raise this when the rules change so Unity imports the models again.</summary>
-        public override uint GetVersion() => 2;
+        public override uint GetVersion() => 3;
 
         void OnPreprocessAnimation()
         {
@@ -69,6 +69,22 @@ namespace DesktopRider.EditorTools
         {
             foreach (var c in Clips) if (c.name == clip) return c.loop;
             return false;   // tricks and anything new play once
+        }
+
+        /// <summary>
+        /// Blender writes each material's old flat colour into the FBX as well as the kit texture, and Unity multiplies
+        /// the two, which turns the light blue and pink kit dark red and blue. Where a texture is present it alone gives the colour.
+        /// </summary>
+        void OnPostprocessMaterial(Material material)
+        {
+            if (!IsRiderModel(assetPath)) return;
+            foreach (string texture in new[] { "_BaseMap", "_MainTex" })
+            {
+                if (!material.HasProperty(texture) || material.GetTexture(texture) == null) continue;
+                foreach (string colour in new[] { "_BaseColor", "_Color" })
+                    if (material.HasProperty(colour)) material.SetColor(colour, Color.white);
+                return;
+            }
         }
 
         void OnPreprocessModel()

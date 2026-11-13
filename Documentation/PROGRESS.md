@@ -183,6 +183,11 @@ settings windows on top of `RiderServices`.
 - `ProofModelImport` imports it as legacy animation, names each clip after its take and sets which clips loop.
 - The bike and rider rigs are separate roots under one model object, so moving the object moves both and every clip
   plays on both together.
+- Fixed wrong kit colours (dark red jersey, blue plastics): the FBX carries each material's old flat colour as
+  well as the texture and Unity multiplied them. The importer now sets the colour to white wherever a texture is
+  present, so the kit matches Blender (light blue, pink and white).
+- The 18 trick clips in `DesktopRider_Tricks.fbx` (rigs only) import as play-once legacy takes; using them, with the
+  forward travel from `props_layout.json`, is part of the tricks phase.
 - Checked with the new `snapshot` bridge command: 38 materials, all URP Lit and all textured (atlases imported at
   2048 pixels), nose facing forward, 0.88 x 1.55 x 1.90 m.
 - Per Boss, no models, textures or renders go to GitHub: `Models/` stays on the PC only, and the proof model was taken
