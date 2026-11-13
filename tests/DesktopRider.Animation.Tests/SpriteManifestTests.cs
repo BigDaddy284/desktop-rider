@@ -13,7 +13,7 @@ public class SpriteManifestTests
         Assert.Equal(80, manifest.FrameHeight);
         Assert.Equal(10, manifest.FramesPerSecond);
         Assert.Equal(76, manifest.GroundY);
-        Assert.Equal(7, manifest.Animations.Count);
+        Assert.Equal(8, manifest.Animations.Count);
         Assert.Equal("Idle", manifest.Default.Name);
         Assert.True(manifest["Idle"].Loop);
         Assert.False(manifest["Wave"].Loop);
@@ -74,6 +74,10 @@ public class SpriteManifestTests
     [InlineData("""{ "frameWidth": 10, "frameHeight": 80, "framesPerSecond": 10, "animations": [ { "name": "Idle", "loop": false, "frameCount": 1, "columns": 1, "right": "a", "left": "b" } ] }""")]
     [InlineData("""{ "frameWidth": 10, "frameHeight": 80, "framesPerSecond": 10, "animations": [ { "name": "Idle", "loop": true, "frameCount": 1, "columns": 1, "right": "a", "left": "b" }, { "name": "Nap", "loop": true, "frameCount": 1, "columns": 1, "right": "a", "left": "b", "enter": "Missing" } ] }""")]
     [InlineData("""{ "frameWidth": 10, "frameHeight": 80, "framesPerSecond": 10, "animations": [ { "name": "Idle", "loop": true, "frameCount": 1, "columns": 1, "right": "a", "left": "b" }, { "name": "Nap", "loop": true, "frameCount": 1, "columns": 1, "right": "a", "left": "b", "exit": "Idle" } ] }""")]
+    [InlineData("""{ "frameWidth": 10, "frameHeight": 80, "framesPerSecond": 10, "animations": [ { "name": "Idle", "loop": true, "frameCount": 1, "columns": 1, "right": "a", "left": "b" }, { "name": "Jump", "loop": false, "frameCount": 1, "columns": 1, "right": "a", "left": "b", "frameWidth": 8, "frameHeight": 200 } ] }""")]
+    [InlineData("""{ "frameWidth": 10, "frameHeight": 80, "framesPerSecond": 10, "animations": [ { "name": "Idle", "loop": true, "frameCount": 1, "columns": 1, "right": "a", "left": "b" }, { "name": "Jump", "loop": false, "frameCount": 1, "columns": 1, "right": "a", "left": "b", "frameWidth": 30, "frameHeight": 200, "originX": 25 } ] }""")]
+    [InlineData("""{ "frameWidth": 10, "frameHeight": 80, "framesPerSecond": 10, "animations": [ { "name": "Idle", "loop": true, "frameCount": 1, "columns": 1, "right": "a", "left": "b" }, { "name": "Jump", "loop": false, "frameCount": 1, "columns": 1, "right": "a", "left": "b", "frameWidth": 30, "frameHeight": 200, "originY": -1 } ] }""")]
+    [InlineData("""{ "frameWidth": 10, "frameHeight": 80, "framesPerSecond": 10, "animations": [ { "name": "Idle", "loop": true, "frameCount": 1, "columns": 1, "right": "a", "left": "b", "originX": 2 } ] }""")]
     public void Parse_ExplainsWhatIsWrongWithABadManifest(string json)
     {
         var error = Assert.Throws<InvalidDataException>(() => SpriteManifest.Parse(json));
@@ -102,5 +106,42 @@ public class SpriteManifestTests
         Assert.Equal("SleepEnd", manifest["Sleeping"].Exit);
         Assert.Equal("RideOff", manifest["RidingLoop"].Enter);
         Assert.Equal("RideOn", manifest["RidingLoop"].Exit);
+    }
+
+    [Fact]
+    public void OrdinaryAnimations_UseTheStandardFrameAndNeedNoStage()
+    {
+        var manifest = TestManifests.Create();
+        var wave = manifest["Wave"];
+
+        Assert.False(wave.HasOwnFrame);
+        Assert.Equal((100, 80), manifest.FrameSizeFor(wave));
+        Assert.Equal((0, 0), manifest.OriginFor(wave, Facing.Right));
+        Assert.Equal((0, 0), manifest.OriginFor(wave, Facing.Left));
+    }
+
+    [Fact]
+    public void AJump_HasItsOwnLargerFrame()
+    {
+        var manifest = TestManifests.Create();
+        var jump = manifest["Jump"];
+
+        Assert.True(jump.HasOwnFrame);
+        Assert.Equal((180, 200), manifest.FrameSizeFor(jump));
+        Assert.Equal(new FrameRect(0, 0, 180, 200), manifest.FrameRectFor(jump, 0));
+        Assert.Equal(new FrameRect(540, 0, 180, 200), manifest.FrameRectFor(jump, 3));
+        Assert.Equal(new FrameRect(180, 200, 180, 200), manifest.FrameRectFor(jump, 5));
+    }
+
+    [Fact]
+    public void AJump_KeepsTheCharacterInPlaceWhicheverWayItFaces()
+    {
+        var manifest = TestManifests.Create();
+        var jump = manifest["Jump"];
+
+        // Facing right the standard frame starts 30 pixels in. The left-facing sheet is a mirror image,
+        // so the 50 pixels of room that were on the right are now on the left.
+        Assert.Equal((30, 120), manifest.OriginFor(jump, Facing.Right));
+        Assert.Equal((50, 120), manifest.OriginFor(jump, Facing.Left));
     }
 }

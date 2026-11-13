@@ -38,6 +38,25 @@ public sealed class AnimationClip
     /// <summary>A one-shot animation that must play when this one is left, such as waking up.</summary>
     public string? Exit { get; init; }
 
+    /// <summary>
+    /// Width of this animation's frames in pixels, when it needs more room than the standard frame, such as a jump.
+    /// Left out for ordinary animations.
+    /// </summary>
+    public int? FrameWidth { get; init; }
+
+    /// <summary>Height of this animation's frames in pixels, when it needs more room than the standard frame.</summary>
+    public int? FrameHeight { get; init; }
+
+    /// <summary>How far the standard frame sits from the left edge of this animation's larger frame, with the bike facing right.</summary>
+    public int OriginX { get; init; }
+
+    /// <summary>How far the standard frame sits from the top edge of this animation's larger frame.</summary>
+    public int OriginY { get; init; }
+
+    /// <summary>True when the animation has frames larger than the standard one, so it needs room around the character.</summary>
+    [JsonIgnore]
+    public bool HasOwnFrame => FrameWidth is not null || FrameHeight is not null;
+
     public string SheetFor(Facing facing) => facing == Facing.Right ? Right : Left;
 }
 
@@ -76,13 +95,33 @@ public sealed class SpriteManifest
 
     public bool TryGet(string name, out AnimationClip clip) => _byName.TryGetValue(name, out clip!);
 
+    /// <summary>The size of one frame of an animation in pixels.</summary>
+    public (int Width, int Height) FrameSizeFor(AnimationClip clip)
+    {
+        ArgumentNullException.ThrowIfNull(clip);
+        return (clip.FrameWidth ?? FrameWidth, clip.FrameHeight ?? FrameHeight);
+    }
+
+    /// <summary>
+    /// Where the standard frame sits inside an animation's own frame, in pixels from its top-left corner.
+    /// Drawing the animation's frame this far up and to the left of the standard one keeps the character exactly in place.
+    /// The left-facing sheets are mirror images, so the distance is measured from the other edge.
+    /// </summary>
+    public (int X, int Y) OriginFor(AnimationClip clip, Facing facing)
+    {
+        ArgumentNullException.ThrowIfNull(clip);
+        var x = facing == Facing.Right ? clip.OriginX : FrameSizeFor(clip).Width - FrameWidth - clip.OriginX;
+        return (x, clip.OriginY);
+    }
+
     /// <summary>Works out where a frame sits on its sheet.</summary>
     public FrameRect FrameRectFor(AnimationClip clip, int frameIndex)
     {
         ArgumentNullException.ThrowIfNull(clip);
         ArgumentOutOfRangeException.ThrowIfNegative(frameIndex);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(frameIndex, clip.FrameCount);
-        return new FrameRect(frameIndex % clip.Columns * FrameWidth, frameIndex / clip.Columns * FrameHeight, FrameWidth, FrameHeight);
+        var (width, height) = FrameSizeFor(clip);
+        return new FrameRect(frameIndex % clip.Columns * width, frameIndex / clip.Columns * height, width, height);
     }
 
     /// <summary>Reads and checks a manifest. Throws <see cref="InvalidDataException"/> with a plain explanation if it is not usable.</summary>
@@ -140,6 +179,12 @@ public sealed class SpriteManifest
             if (string.IsNullOrWhiteSpace(clip.Right) || string.IsNullOrWhiteSpace(clip.Left))
             {
                 throw new InvalidDataException($"Animation '{clip.Name}' needs a sheet for each direction.");
+            }
+
+            var (width, height) = FrameSizeFor(clip);
+            if (clip.OriginX < 0 || clip.OriginY < 0 || clip.OriginX + FrameWidth > width || clip.OriginY + FrameHeight > height)
+            {
+                throw new InvalidDataException($"Animation '{clip.Name}' has a frame that does not contain the standard frame at the place it gives.");
             }
 
             if (!byName.TryAdd(clip.Name, clip))
