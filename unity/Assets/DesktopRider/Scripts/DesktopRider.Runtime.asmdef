@@ -1,0 +1,6 @@
+{
+  "name": "DesktopRider.Runtime",
+  "rootNamespace": "DesktopRider",
+  "references": ["Unity.InputSystem"],
+  "autoReferenced": true
+}

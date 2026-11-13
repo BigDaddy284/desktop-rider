@@ -372,3 +372,19 @@ ends the abandoned read. The visible behaviour (a silence time limit, immediate 
 - **Free riding** – `AppSettings.Behaviour.FreeRiding` (`"freeRiding"` in `settings.json`), **off by default**,
   exposed to a settings screen as `RiderSettingsViewModel.FreeRiding`. A version 1 settings file has no such
   line and loads with it off. The logic only stores the choice; the riding itself is Unity's job.
+
+## The see-through window (Unity)
+
+Unity draws into one window that covers the main screen. `OverlayWindow` (Scripts/Overlay) turns it into a borderless,
+always-on-top layered window with its frame extended over the whole area, so pixels the camera clears to transparent
+show the desktop through. Windows' "transparent to the mouse" flag is switched on and off each frame: off while the
+mouse is over the rider (a ray from the camera hits the rider's collider), on everywhere else, so clicks reach the
+windows behind. The mouse is read from Windows directly, because a click-through window receives no mouse messages.
+The swap chain uses the older blit model (`useFlipModelSwapchain` off) and Direct3D 11, which a see-through window needs.
+All of this is skipped inside the editor.
+
+The camera is orthographic, looking down at 45 degrees, with its size set from the screen height so the rider is the
+same number of pixels per metre on any screen. The desktop is the ground plane at height zero.
+
+`FreeRider` (Scripts/Riding) moves the rider on that plane. Its arithmetic is in `RiderSteering`, which has no scene
+or clock and is unit tested. The model sits under a `Lean` object that rolls into turns.

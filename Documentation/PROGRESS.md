@@ -149,3 +149,18 @@ None.
 
 Run the EditMode tests in Unity once the code is copied into the project, then build the conversation and
 settings windows on top of `RiderServices`.
+
+## Phase 1: overlay proof (in progress, 13 November 2026)
+
+- The Unity project's source is in `unity/` (Unity 6000.6.6f1, URP 17.6).
+- `OverlayWindow` makes the Unity window a see-through, click-through, always-on-top layer over the main screen.
+  Clicks are kept only while the mouse is over the rider.
+- `FreeRider` and `RiderSteering` make the bike wander the screen by itself, slowing to stop on each target,
+  leaning into turns and dragging with the mouse. Frame rate drops to 15 a second while it rests.
+- The current Blender model is in as a rough, untextured stand-in (`Models/Proof`), with its 15 clips cut at the
+  ranges recorded in the Blender file. The textured model comes from the graphics workstream.
+- Unity tests: 650 passed, 0 failed. Build: succeeded, 0 errors, 0 warnings.
+- First measurements while riding: 15 to 25 % of one processor core at 60 frames a second, Direct3D 11.
+  Memory was not recorded (fixed; reads from Windows now). Too high for all-day use; to be reduced in this phase.
+- Known issue: frame rate sometimes reads 27 a second against a target of 60. Not yet explained.
+- Waiting on: a look at the running proof on the PC (see TESTING.md section 8).

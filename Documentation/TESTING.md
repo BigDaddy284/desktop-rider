@@ -344,12 +344,13 @@ One thing to know: version 1 does not know about free riding, so if version 1 sa
 
 ### 5. Known limitations
 
-- **The tests have not yet been run inside the Unity editor.** They compile against .NET Standard 2.1 and pass
-  on .NET 10. Running them in the Test Runner is still needed to confirm two things that cannot be checked
-  outside Unity: that the assembly definitions resolve `Newtonsoft.Json.dll` and `nunit.framework.dll`, and
-  that Unity's test runner accepts the eight parameterised test methods that are also `async`.
-- Unity runs the logic on Mono rather than .NET 10. No test relies on behaviour known to differ, but the Unity
-  run above is what confirms it.
+- **Run inside Unity 6000.6.6f1 on 13 November 2026: 650 passed, 0 failed** (the 634 logic tests plus 16 riding tests).
+  The assembly definitions resolve `Newtonsoft.Json.dll` and `nunit.framework.dll`, and the runner accepts the
+  `async` parameterised tests.
+- **Mono differs from .NET 10 in one way that mattered.** The first Unity run failed 3 animation tests that pass on
+  .NET 10: Mono computes `TimeSpan.TotalSeconds` as ticks × 1e-7, so 0.2 s became 0.19999… and the player showed the
+  previous frame at exact frame boundaries. `AnimationPlayer` now divides ticks by `TimeSpan.TicksPerSecond`. The three
+  existing tests are the regression tests; they only catch it when run in Unity, so always run the Unity suite.
 - `OllamaProvider` is tested against a stand-in for the network, never a real Ollama. A manual check with
   Ollama running is needed once there is a conversation window in Unity.
 - A handful of tests wait on real time (tens of milliseconds) for time limits and cancellation.
@@ -360,3 +361,36 @@ Unity identifies each file by an id in a `.meta` file beside it. `logic-tests/to
 writes those for the logic and its tests, working each id out from the file's path so it is always the same.
 Run it after adding, moving or deleting a file there. It never changes an existing id. The shared folders
 above them (`Assets/DesktopRider`, `Scripts`, `Tests`) are left for Unity to create.
+
+### 7. Running the Unity tests and the proof build
+
+The Unity project is `unity/` in the repository (Assets, Packages, ProjectSettings) and lives on the development PC at
+`D:\AI\Claude\Dektop Rider 3D\Desktop Rider 3D`. `EditorBridge` (Assets/DesktopRider/Editor) lets the editor be
+driven without clicking: write one line `<id> <command> [argument]` to `Bridge/command.txt` at the project's top
+level and the answer appears in `Bridge/result-<id>.txt`. Compiler results are appended to `Bridge/compile.txt`.
+
+| Command | What it does |
+|---|---|
+| `t1 test` | Runs every EditMode test; the result file gives passed, failed and each failure |
+| `r1 refresh` | Makes Unity pick up changed files |
+| `s1 setup` | Sets up the open scene and player settings for the overlay proof |
+| `b1 build` | Builds `Builds/Proof/DesktopRider3D.exe` |
+| `u1 run` / `x1 stop` | Starts the proof, or asks it to close |
+
+The same steps are on the editor's **Desktop Rider** menu. In the Test Runner window (Window, General, Test Runner)
+the EditMode tab runs them by hand.
+
+**Riding tests** (`Tests/Riding`, 16 tests): headings, shortest turn, turn limit, braking so the bike stops on its
+target, and lean angle limits for `RiderSteering`.
+
+### 8. Overlay proof: manual check
+
+Automated tests cannot see the desktop. With the proof running:
+
+1. The bike rides about the main screen by itself with the desktop and windows visible behind it.
+2. Clicks anywhere except on the bike reach the windows behind.
+3. The bike can be picked up and dragged.
+4. Ctrl+Shift+Q closes it. `Builds/Proof/proof-stats.txt` records frame rate, memory and processor use every 5 s.
+
+Status on 13 November 2026: built and started, Windows reports the window as see-through and on top. Steps 1 to 3
+are waiting for a look on the PC.

@@ -1,0 +1,11 @@
+# Unity generates these; they are rebuilt from Assets, Packages and ProjectSettings.
+/Library/
+/Temp/
+/Logs/
+/UserSettings/
+/obj/
+/Builds/
+/Bridge/
+*.csproj
+*.sln
+*.slnx

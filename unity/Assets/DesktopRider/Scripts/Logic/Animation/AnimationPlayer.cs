@@ -77,7 +77,9 @@ namespace DesktopRider.Animation
             }
 
             var before = (Current, FrameIndex);
-            _secondsInClip += elapsed.TotalSeconds * _speed;
+            // Ticks divided by ticks-per-second, not TotalSeconds: Unity's Mono runtime computes TotalSeconds as ticks * 1e-7,
+            // which lands a hair under exact frame boundaries (0.2 s becomes 0.19999...) and so shows the previous frame.
+            _secondsInClip += elapsed.Ticks / (double)TimeSpan.TicksPerSecond * _speed;
             var fps = _manifest.FramesPerSecond;
 
             // Each pass either settles on a frame or moves to the next animation; the cap only guards against a broken manifest.
