@@ -49,6 +49,49 @@ Every push and pull request is also built and tested on Windows by GitHub Action
 
 Code coverage has not been measured. The requirement is that all applicable tests pass, and they do.
 
+## 3D model checks (version 2.0)
+
+The Unity models stay on the owner's PC, so these checks run there, in Blender, not on GitHub Actions:
+
+```
+blender --background --factory-startup --python Tools/Blender/verify_models.py -- <Unity project>/Assets/DesktopRider/Models <working .blend> <master .blend> <output folder> [bike_changed_vertices.json]
+```
+
+The script re-imports `DesktopRider.fbx` and the nine prop files into an empty Blender. It compares them against the working and master Blender files and prints one PASS or FAIL line per check:
+
+- mesh vertex and face counts
+- a UV map on each mesh, with no face that has area but no UV area
+- bone names and parents
+- the bike's shape identical to the master except the fork and chain vertices listed in the optional fifth argument, and only the listed vertices and faces removed and added, and the rider's identical except the helmet
+- all 15 clips present, with the right lengths
+- bone positions and rotations, and every deformed vertex of both meshes, within 1 mm and 0.5° of the Blender scene at 5 frames per clip
+- the textures found
+- each prop's size, triangles, UV map and materials
+
+It exits with status 1 if any check fails.
+
+Last run, 13 November 2026, on the owner's PC: **19 PASS, 0 FAIL**. The worst bone difference was 0.0009 mm, the worst deformed vertex difference 0.002 mm, and the worst rest-shape difference 0.0005 mm (rounding in the FBX format).
+
+Known: 24 sliver faces on the rider's boot straps, each under 0.01 mm², have no UV area. They cannot be seen.
+
+### Trick clips
+
+```
+blender --background --factory-startup --python Tools/Blender/verify_tricks.py -- <rigs-only DesktopRider_Tricks.fbx> <same export with meshes> <working .blend> Tools/Blender Right <output folder>
+```
+
+The rigs-only file has no meshes to compare, so the same export is also made with meshes into a scratch folder. The script keys the 18 tricks fresh in memory and samples every 4th frame of every clip (556 frames). For both files it checks the objects, bone names and hierarchy, all 18 clips and their lengths, and bone positions and rotations within 1 mm and 0.5°. For the file with meshes it also checks every skinned vertex within 1 mm. Last, it checks that both files carry the same animation curves. It exits with status 1 if any check fails.
+
+Last run, 13 November 2026, on the owner's PC: **17 PASS, 0 FAIL**. Worst bone position 0.0026 mm, worst vertex 0.0032 mm, rotations 0.0000° (rotations up to 179° were in the samples, including the backflip).
+
+After the fork tubes were extended (13 November, 22:21) `DesktopRider.fbx` was exported again and `verify_models.py` gave **19 PASS, 0 FAIL**: 64 bike vertices differ from the master, none outside the listed ones. `DesktopRider_Tricks.fbx` holds rigs only and no bone changed, so it was not exported again.
+
+After the guard backs were deleted (22:49) the export was checked again: **19 PASS, 0 FAIL**, 8,520 vertices and 4,728 faces as expected, 212 vertices differ from the master, none outside the listed ones.
+
+After the fork legs were remodelled and the chain closed (13 November, 22:41) `DesktopRider.fbx` was exported again: **19 PASS, 0 FAIL**. 232 bike vertices differ from the master, none outside the listed ones, with 112 vertices and 208 faces added as listed.
+
+The wheel and brake-disc change of 13 November was a texture change only. The FBX files were not exported again, and `verify_models.py` was run again after the texture was replaced.
+
 ## Known limitations
 
 - Development happens on a Linux build machine. It compiles the WPF application but cannot run it, so anything involving a real window is verified by GitHub Actions on Windows (build only) and by hand on the owner's Windows 11 PC.

@@ -149,3 +149,46 @@ None.
 
 Run the EditMode tests in Unity once the code is copied into the project, then build the conversation and
 settings windows on top of `RiderServices`.
+
+### 3D bike and rider for Unity, with the race-kit graphics
+
+**Status: complete. Bike, rider, 15 clips, 18 trick clips and 9 props are in the Unity project and approved by the owner (13 Nov 2026). A final approved copy is kept on the owner's PC.**
+
+#### Completed (13 November 2026)
+
+- UV maps added to the owner's bike and rider. Neither model had any before; their graphics were projected photographs, which Unity cannot use. The earlier painted look was baked into one 4096 texture per model. Before and after renders matched, with no seams.
+- The owner's vector kit `Harvey28_v2.pdf` was fitted to the bike's plastics. The JS Financial Solutions strips go on the swingarm, pink on the left and blue on the right, as the owner asked. The rider's name was taken off the side panels and the 28 enlarged, at the owner's request. Details are in MODEL_SPECIFICATION.md.
+- The helmet was reshaped with the owner in Blender, using temporary handles, and its joins were made flush. Gloves, helmet top and peak edge were changed to match the correct-kit riding photographs.
+- The owner approved the 9-angle renders. The scene was saved as its own working file, and the master Blender file was never changed.
+- `DesktopRider.fbx` (meshes, both rigs, 15 clips with IK baked) and the textures were exported to `Assets/DesktopRider/Models/`.
+- The nine ramp, landing and whoops props were rebuilt as clean meshes for real-time use and exported with `props_layout.json`.
+- `Tools/Blender/build_unity_props.py` and `Tools/Blender/verify_models.py` added.
+- `DesktopRider_Tricks.fbx` exported with the 18 trick clips on copies of the two rigs, keyed for the right side. `Tools/Blender/export_models.py` and `Tools/Blender/verify_tricks.py` added.
+- At the owner's request the wheel hubs were made the kit's pink and the rims the kit's blue. The owner pointed out that the discs on the hub ends are brake discs, so they were painted as steel brake discs from the owner's reference photo. Texture change only; approved by the owner.
+- At the owner's request the swingarm was made black (the JS strips kept) and the rear shock spring steel grey. Texture change only; `verify_models.py` still 19 PASS, 0 FAIL.
+- At the owner's request the side-panel 28 was moved 4 cm forward and the swingarm strips were straightened onto the arm's centre line. Texture change only.
+- At the owner's request the upper fork tubes were extended to meet the fork lowers (64 vertices). `DesktopRider.fbx` exported again; `verify_models.py` 19 PASS, 0 FAIL, with the check now allowing only the listed fork vertices to differ from the master.
+- At the owner's request the fork lowers were made grey down to the axle, with the pink kept only on the front of each guard. Texture change only; 19 PASS, 0 FAIL.
+- At the owner's request the fork was remodelled into full-length tubes with front-only guards, and the chain was closed round both sprockets with its top run straightened. `DesktopRider.fbx` exported again; 19 PASS, 0 FAIL.
+- At the owner's request the grey back of each fork guard was deleted so the fork tube shows. `DesktopRider.fbx` exported again; 19 PASS, 0 FAIL.
+- The helmet's right side was painted from the owner's photos of the same Fox V1 helmet and approved (23:48). Texture change only; 19 PASS, 0 FAIL.
+- The slim tube was then centred, and the fat tube's bottom ring straightened so the gap is an even 6.1 mm all round. The owner approved the bike as it now stands (13 Nov 2026, 23:22). An approved copy of the Blender file, models and textures is kept on the owner's PC.
+- At the owner's request the fork steps down to a slimmer lower tube (80% of the upper) from just above the guards. `DesktopRider.fbx` exported again; 19 PASS, 0 FAIL.
+
+#### Test results
+
+- `verify_models.py` on the owner's PC: 19 PASS, 0 FAIL (see TESTING.md, "3D model checks").
+- `verify_tricks.py` on the owner's PC: 17 PASS, 0 FAIL.
+- No C# changed in this part.
+
+#### Technical decisions
+
+- Models, textures and renders are kept out of the repository (owner's decision). `.gitignore` excludes `unity/Assets/DesktopRider/Models/`, `kit-fit-work/` and `.blend` files.
+- In the FBX the rider rig sits beside the bike rig and follows the `chassis` bone through keys, instead of being nested under it. Blender cannot write a readable nested armature. The Unity side moves both under one parent.
+- Helmet shape changes were kept as adjustable modifiers in the working Blender file and baked only into the exported mesh.
+- The trick clips keep the bike in place and the ground moving, as in version 1. The forward travel per frame is in `Props/props_layout.json`, not in the bones.
+- The brake discs are round in the mesh, so their wavy edge and cut-outs are painted on. The models are not reshaped without the owner asking.
+
+#### Next
+
+- Optional, if the owner asks: repaint the peak's right side to the black-with-stripes look of the real helmet.
