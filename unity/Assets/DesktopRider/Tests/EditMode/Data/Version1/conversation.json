@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "lines": [
+    {
+      "from": "user",
+      "text": "Hello \u0022rider\u0022 \uD83D\uDC4B",
+      "at": "2026-06-01T12:00:00+01:00"
+    },
+    {
+      "from": "rider",
+      "text": "Braaap! What\u0027s up?",
+      "at": "2026-06-01T12:00:03+01:00"
+    }
+  ]
+}

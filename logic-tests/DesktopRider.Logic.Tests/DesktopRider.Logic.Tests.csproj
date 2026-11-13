@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Runs the same test files Unity runs, without the Unity editor: "dotnet test" from this folder.
+    net10.0 runs them. The netstandard2.1 build runs nothing; it only proves the tests themselves
+    compile against the class library Unity uses.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;netstandard2.1</TargetFrameworks>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyName>DesktopRider.Logic.Tests</AssemblyName>
+    <RootNamespace>DesktopRider</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject Condition="'$(TargetFramework)' != 'net10.0'">false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\unity\Assets\DesktopRider\Tests\EditMode\**\*.cs" LinkBase="Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DesktopRider.Logic\DesktopRider.Logic.csproj" />
+    <!-- NUnit 3, the same major version Unity Test Framework ships. -->
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+</Project>
