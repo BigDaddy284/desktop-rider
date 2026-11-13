@@ -11,7 +11,7 @@ public class AiMenuViewModelTests
 
         var menu = context.Menu.BuildEntries();
 
-        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText], menu.Select(entry => entry.Text));
+        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText, AiMenuViewModel.SettingsText], menu.Select(entry => entry.Text));
         Assert.Equal(0, context.Provider.ListCalls);
         Assert.Empty(context.Provider.Requests);
     }
@@ -29,7 +29,7 @@ public class AiMenuViewModelTests
         Assert.Contains("Found 2 AI models", hint.Message, StringComparison.Ordinal);
         Assert.Contains(AiMenuViewModel.ChooseModelText, hint.Message, StringComparison.Ordinal);
         var menu = context.Menu.BuildEntries();
-        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText, AiMenuViewModel.ChooseModelText], menu.Select(entry => entry.Text));
+        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText, AiMenuViewModel.ChooseModelText, AiMenuViewModel.SettingsText], menu.Select(entry => entry.Text));
         Assert.False(menu[2].IsSeparator);
         Assert.Equal(["alpha (7B, Q4)", "beta"], menu[2].Children!.Select(entry => entry.Text));
         Assert.DoesNotContain(menu[2].Children!, entry => entry.IsChecked);
@@ -50,7 +50,7 @@ public class AiMenuViewModelTests
         Assert.Contains("beta", hint, StringComparison.Ordinal);
         Assert.Contains(AiMenuViewModel.TalkText, hint, StringComparison.Ordinal);
         var menu = context.Menu.BuildEntries();
-        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText, AiMenuViewModel.ChooseModelText], menu.Select(entry => entry.Text));
+        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText, AiMenuViewModel.ChooseModelText, AiMenuViewModel.SettingsText], menu.Select(entry => entry.Text));
         Assert.Equal([false, true], menu[2].Children!.Select(entry => entry.IsChecked));
     }
 
@@ -96,7 +96,7 @@ public class AiMenuViewModelTests
         await context.Menu.CheckConnectionAsync();
 
         Assert.Contains("no AI models yet", context.Hints[0].Message, StringComparison.Ordinal);
-        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText], context.Menu.BuildEntries().Select(entry => entry.Text));
+        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText, AiMenuViewModel.SettingsText], context.Menu.BuildEntries().Select(entry => entry.Text));
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class AiMenuViewModelTests
 
         Assert.Equal("The AI is not connected", context.Hints[0].Title);
         Assert.Equal("Desktop Rider cannot reach Ollama.", context.Hints[0].Message);
-        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText], context.Menu.BuildEntries().Select(entry => entry.Text));
+        Assert.Equal([AiMenuViewModel.TalkText, AiMenuViewModel.CheckText, AiMenuViewModel.SettingsText], context.Menu.BuildEntries().Select(entry => entry.Text));
 
         context.Provider.Problem = null;
         context.Provider.Models.Add(new("alpha"));
@@ -137,6 +137,20 @@ public class AiMenuViewModelTests
         context.Menu.TalkRequested += (_, _) => asked++;
 
         context.Menu.BuildEntries().Single(entry => entry.Text == AiMenuViewModel.TalkText).Command!.Execute(null);
+
+        Assert.Equal(1, asked);
+        Assert.Equal(0, context.Provider.ListCalls);
+        Assert.Empty(context.Provider.Requests);
+    }
+
+    [Fact]
+    public void RiderSettings_AsksForTheSettingsWindow_WithoutContactingTheAi()
+    {
+        using var context = new Context(model: null);
+        var asked = 0;
+        context.Menu.SettingsRequested += (_, _) => asked++;
+
+        context.Menu.BuildEntries().Single(entry => entry.Text == AiMenuViewModel.SettingsText).Command!.Execute(null);
 
         Assert.Equal(1, asked);
         Assert.Equal(0, context.Provider.ListCalls);

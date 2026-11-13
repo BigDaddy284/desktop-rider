@@ -4,7 +4,7 @@ Last updated: 13 November 2026
 
 ## Current task
 
-Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: built, tested automatically, and confirmed by the owner on Windows 11 with the 0.6.2 build, including the dark style, chat in bubbles and tricks on request. Next is Phase 7: personality and memory.
+Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: built, tested automatically, and confirmed by the owner on Windows 11 with the 0.6.2 build, including the dark style, chat in bubbles and tricks on request. Phase 7 (personality and memory) is built and tested automatically in 0.7.0 and awaits the owner's check on Windows (M8). Next is Phase 8: settings and polish.
 
 ## Completed tasks
 
@@ -37,7 +37,11 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 | 6 | Connect character animation states to conversation events | Built and unit tested (`CharacterBehaviour`): thinking, talking, back to rest. Awaits manual check M6. |
 | 6 | Interface style and bubble chat (owner's request after trying 0.6.0) | Built: dark Windows 11 style for the rider's menu, the icon's menu, the conversation window and bubbles; a **Chat in bubbles** switch with a typing bubble below the rider. Logic unit tested; the look awaits the owner's check (M6, M7). |
 | 6 | Tricks on request (owner's request) | Built and unit tested: asking the rider in conversation for a wheelie, a rev, a celebration, a nap, a ride or a look left or right plays that animation. Awaits the owner's check (M7 steps 14 to 16). |
-| 4 | Jumps, freestyle tricks, whoops and a stoppie (owner's request) | Built in 0.6.3: 18 new animations rendered from the owner's own models in both directions (jump, whip, scrub, backflip, superman, superman seat grab, no hander, no footer, nothing, heel clicker, can-can, nac-nac, lazy boy, one hander, indian air, rock solid, whoops, stoppie), larger frames with their own window so ramps and height fit, and all of them available on request and to the AI. Manifest, frame rules and requests are unit tested. How they look on Windows awaits the owner's check (M8), and the ramps, mounds and whoops are new artwork awaiting approval. |
+| 7 | Implement configurable personality | Built and unit tested (`RiderPersonality`, `RiderSettingsViewModel`): a **Rider settings** window with how the rider talks (cheeky, friendly, serious), short or detailed replies, what the rider calls you, and an optional description in your own words. The window itself awaits manual check M8. |
+| 7 | Implement local conversation history | Built and unit tested (`JsonConversationStore`, `ConversationViewModel`): the conversation is kept in `conversation.json` on this computer and is back next time; it can be switched off, kept for a week to a year, and deleted. The owner has not yet tried it (M8). |
+| 7 | Implement optional memory | Built and unit tested (`RiderMemory`, `JsonMemoryStore`): the rider remembers short notes the user asks it to ("remember that…" in conversation, or typed in Rider settings), kept in `memory.json` on this computer. It can be switched off, and notes can be forgotten one at a time or all at once. The owner has not yet tried it (M8). |
+| 7 | Implement proactive behaviour controls | Built and unit tested (`ProactiveComments`, `QuietHours`): off by default with no timer and no AI request; when switched on, a remark after the chosen time, quiet hours, a one-hour mute on the rider's menu, and silence after three unanswered remarks. The owner has not yet tried it (M8). |
+| 4 | Jumps, freestyle tricks, whoops and a stoppie (owner's request) | Built in 0.6.3 and combined with Phase 7 in 0.7.1: 18 new animations rendered from the owner's own models in both directions (jump, whip, scrub, backflip, superman, superman seat grab, no hander, no footer, nothing, heel clicker, can-can, nac-nac, lazy boy, one hander, indian air, rock solid, whoops, stoppie), larger frames with their own window so ramps and height fit, and all of them available on request and to the AI. Manifest, frame rules and requests are unit tested. How they look on Windows awaits the owner's check (M9), and the ramps, mounds and whoops are new artwork awaiting approval. |
 | 3 | Organise all supplied references | Done. Stored privately by the owner; folder structure and written summary are in `References/`. |
 
 ## Latest results
@@ -45,7 +49,7 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 | Check | Result |
 |---|---|
 | Build (`dotnet build`, warnings as errors) | Succeeded, 0 warnings, 0 errors |
-| Tests (`dotnet test`) | 390 passed, 0 failed, 0 skipped (Core 142, Animation 76, AI 172) |
+| Tests (`dotnet test`) | 541 passed, 0 failed, 0 skipped (Core 153, Animation 76, AI 312) |
 | GitHub Actions build and test on Windows | Passed for Phase 1; runs again on each push |
 | Standalone Windows build (`dotnet publish`, win-x64) | Succeeded |
 | Manual checks on Windows 11 | The owner ran the 0.3.0 test build: it starts, shows the animated rider and works. M1 to M3 not yet reported step by step. |
@@ -53,7 +57,6 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 ## Remaining tasks
 
 - **Phase 4 – Animation system:** connect animations to behaviour (moving around the screen, reacting to the user) as those features arrive.
-- **Phase 7 – Personality and memory.**
 - **Phase 8 – Settings and polish.**
 - **Phase 9 – Final validation.**
 
@@ -63,17 +66,20 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 
 ## Known issues
 
-- The window that shows jumps and tricks larger than the rider's usual frame, and loading those large sheets in the background, have never been run by the developer (Linux build machine). They compile and the frame and origin rules are tested, but how they look on Windows depends on manual check M8.
+- On 13 November 2026 the owner tried the 0.7.0 build (Phase 7) and the 0.6.3 build (jumps and tricks) separately and reported that both work great. The steps of M8 and M9 were not reported one by one. 0.7.1 is the first build with both together and has not yet been tried by the owner.
+- The window that shows jumps and tricks larger than the rider's usual frame, and loading those large sheets in the background, have never been run by the developer (Linux build machine). They compile and the frame and origin rules are tested, but how they look on Windows depends on manual check M9.
 - The new jumps and tricks were animated from descriptions of the techniques and simple flight physics, not traced frame by frame from film, and use a gentler gravity so a jump fits on a desktop. Timing and body positions may need adjusting after the owner has watched them.
 - The conversation window, the speech bubble and click-versus-drag on the rider have never been run by the developer (Linux build machine). They compile and their logic is tested, but how they look and behave on Windows depends on manual check M6.
 - The owner tried 0.6.0 and reported the conversation working, then asked for the dark Windows 11 style and a bubble chat mode before moving on; these are in 0.6.1. The dark style has never been seen by the developer, so its look is unconfirmed until the owner tries it.
 - The owner tried 0.6.1 and reported it looks OK, but in bubble mode clicking the rider hid only the typing bubble and left the rider's answer up. 0.6.2 puts a finished answer away with the typing bubble (regression test in `SpeechBubbleViewModelTests`).
 - Whether the AI itself chooses to do a trick unprompted depends on the model following an instruction, which small models may not. Plain requests such as "do a wheelie" do not depend on that.
 - In the default corner the typing bubble only just fits below the rider. With Windows display scaling above 100% it will not fit there and appears beside or above the rider instead; dragging the rider up a little puts it below.
-- The conversation is forgotten when Desktop Rider closes. Saving it is Phase 7.
+- The Rider settings window (0.7.0) has never been seen by the developer. It compiles and everything it decides is tested, but its look and layout are unconfirmed until the owner tries it (M8).
+- What the rider says when it starts a conversation, and how well it uses a remembered fact or the chosen way of talking, depends on the AI model. Small models may follow those instructions loosely.
+- "Remember that…" is recognised from a fixed set of wordings. Something phrased very differently is not stored; the settings window's **Add** box always works.
 - The owner tried the 0.5.0 build: choosing **Check the AI connection** appeared to do nothing. Results were shown as Windows notifications, which Windows can hide. 0.5.1 shows them in Desktop Rider's own small window instead, starting the moment the menu item is clicked. The owner confirmed 0.5.1 works.
 - The developer can only run the AI code against a stand-in for Ollama. The owner has confirmed discovery, model choice and a streamed reply against a real Ollama; the failure and stop cases have only been tested automatically.
-- The address, personality, temperature and waiting time have no settings screen yet (Phase 8); they can only be changed in the settings file.
+- The Ollama address, temperature and waiting time have no settings screen yet (Phase 8); they can only be changed in the settings file.
 - The window has never been run by the developer, because the build machine is Linux. Everything visual depends on manual checks M1 and M2.
 
 
@@ -85,4 +91,4 @@ Recorded in ARCHITECTURE.md.
 
 ## Next task
 
-Phase 7: Personality and memory (configurable personality, local conversation history, optional memory, proactive behaviour controls). 
+Phase 8: Settings and polish (complete the settings interface, start-up options, transitions and visual polish, packaging). 

@@ -38,7 +38,13 @@ Every push and pull request is also built and tested on Windows by GitHub Action
 | Conversation | `ConversationViewModelTests` (AI) | Nothing contacted until asked, sending and the reply growing in place, thinking then talking then idle, empty and over-long messages, earlier lines carried into later messages, problems explained but never sent to the AI, no model chosen, model gone, a reply with no words, stopping, clearing mid-reply, shutdown mid-reply, the limits on lines sent and kept, the connection check and its advice, choosing a model and a failed save. |
 | Speech bubble | `SpeechBubbleViewModelTests` (AI) | Hidden at first, thinking then the growing reply then left to be read, staying away while the conversation window is open, taking over when the window closes mid-reply, problems, dismissing, clearing, long replies shortened, reading time, the wait restarting for each new message. |
 | Tricks on request | `RiderActionsTests` (AI), `ConversationViewModelTests` (AI), `CharacterBehaviourTests` | Plain requests recognised and questions ignored, tags however written, tags split across pieces removed and other brackets kept, each action done once per message, nothing done when the AI cannot answer, the AI being told what it can do, a trick during thinking and talking, looping tricks ending properly, refusing unusable animations, and the real sprites having every animation that can be asked for. Each of the eighteen jumps, tricks and whoops by name, a longer name winning over a shorter one inside it ("nose wheelie" is a stoppie), everyday phrases that are not requests ("whoops, sorry"), "do a trick" picking one at random, and every tag being short enough to be hidden from the user. |
-| AI wiring | `CompositionTests` (AI) | AI services resolve with Core, the menu gains the AI lines, the conversation and its bubble resolve, the connection follows settings. |
+| Personality | `RiderPersonalityTests` (AI), `AppSettingsTests` | The standard rider when no choices are made, each way of talking, short and detailed replies, the user's name, the user's own description replacing the built-in one, remembered things listed only when there are some, the rider always being told it cannot see the screen, and out-of-range choices being repaired. |
+| Rider settings | `RiderSettingsViewModelTests` (AI) | Every choice in the settings window: what it shows at first, saving each choice once, radio buttons, names and descriptions, going back to the built-in rider, keeping conversations and for how long, deleting the conversation, adding and forgetting remembered things, switching memory off, the rider speaking first and how often, quiet hours and times typed in different ways, a failed save, and changes made elsewhere. |
+| Local files | `LocalJsonFileTests` | Missing file, round trip, creating the folder, three kinds of damaged file and their backups, deleting, many writes at once. |
+| Saved conversation | `ConversationHistoryTests` (AI) | Both sides of an exchange kept with their times, the user's message kept before the answer arrives, explanations never kept, last time's conversation coming back and being sent to the AI, lines older than the chosen time left out and dropped, nothing saved or read when switched off, clearing and switching off removing the saved copy, a failed save reported once, a stopped reply kept, and the real file: round trip, delete, damaged file, hand-edited file. |
+| The rider's memory | `RiderMemoryTests` (AI) | Recognising "remember that…" in nine wordings and ignoring thirteen things that are not requests, keeping and saving a note, refusing empty, duplicate and too many notes, shortening long ones, memory switched off, loading, forgetting one and all, failed saves, the confirmation written into the conversation (and never sent to the AI or the speech bubble), the notes reaching the AI only while memory is on, and the real file. |
+| The rider speaking first | `ProactiveCommentsTests` (AI) | Off by default with no timer and no request over two days, speaking only after the chosen time, no "thinking" shown, the remark in the speech bubble, stopping after three unanswered remarks until the user speaks, the wait restarting when the user speaks, mute and un-mute, quiet hours (including past midnight), a hidden rider, no model chosen, the AI unreachable (nothing shown), an empty remark, not interrupting an answer, the user's message taking precedence, switching on and off, how often, the menu lines, a failed save, the interface thread, and shutdown. |
+| AI wiring | `CompositionTests` (AI) | AI services resolve with Core, the menu gains the AI lines, the conversation and its bubble resolve, the connection follows settings, the settings, saved conversation and memory resolve and write into the data folder, and the rider speaking first is off with no timer. |
 
 Code coverage has not been measured. The requirement is that all applicable tests pass, and they do.
 
@@ -49,8 +55,10 @@ Code coverage has not been measured. The requirement is that all applicable test
 - The automated AI tests use a stand-in for Ollama (scripted answers, and one small local web server). They prove Desktop Rider handles everything Ollama can send, but only manual procedure M5 proves it against a real Ollama and a real model.
 - `MessageWindow`, which shows AI progress and results, needs a real window, so it is covered by M5.
 - The conversation window, the bubbles, the dark style and the code that puts them beside the rider (`ChatWindow`, `SpeechBubbleWindow`, `InputBubbleWindow`, `Themes/Dark.xaml`, `DarkMenuRenderer`, `ConversationPresenter`, `CompanionWindowPlacer`) need real windows, so they are covered by M6 and M7. Telling a click on the rider from a drag also needs a real mouse and is covered by M6. Everything they decide (what is said, when the bubble shows, where things go, which animation plays) is made by tested code.
-- The window that shows jumps and tricks (`StageWindow`), the swap between it and the rider's own picture, and reading large sheets in the background (`RiderSprite`) need real windows and are covered by M8. They have been compiled but never run by the developer.
-- The jump, trick and whoop animations themselves were checked by eye from rendered frames by the developer. Whether they look right is the owner's judgement (M8).
+- The settings window (`SettingsWindow`) and the **Keep the rider quiet** line of the rider's menu need a real window, so they are covered by M8. Everything they decide is made by tested code (`RiderSettingsViewModel`, `ProactiveComments`).
+- What the rider actually says when it speaks first, and whether it uses a remembered fact well, depends on the AI model. The tests prove what is sent to the AI and when; only M8 shows what a real model makes of it.
+- The window that shows jumps and tricks (`StageWindow`), the swap between it and the rider's own picture, and reading large sheets in the background (`RiderSprite`) need real windows and are covered by M9. They have been compiled but never run by the developer.
+- The jump, trick and whoop animations themselves were checked by eye from rendered frames by the developer. Whether they look right is the owner's judgement (M9).
 - There are no automated tests of the WPF window itself. Its decisions (where to sit, what the menu does) are made by tested code in Core; the thin window layer that carries them out (`OverlayWindow`, `WindowPlacementController`, `TrayIconController`, `TrayIconFactory`) is covered by the manual procedures below.
 
 - Multiple monitors (M2 steps 9 and 10) cannot be checked by hand: the owner has one ultrawide monitor. `PlacementCalculatorTests` covers those rules automatically.
@@ -170,7 +178,33 @@ Status: the owner ran the 0.6.0 build on 12 November 2026 and reported that it w
 
 Status: the owner ran the 0.6.1 build on 13 November 2026 and reported that it looks OK, with one problem: in bubble mode, clicking the rider hid the typing bubble but left the rider's answer showing. Fixed in 0.6.2 (step 10). The owner ran the 0.6.2 build on 13 November 2026 and reported that it is working well, including the fix and tricks on request. The steps were not reported one by one.
 
-### M8. Jumps, tricks and whoops (0.6.3)
+### M8. Personality and memory (Phase 7, 0.7.0)
+
+Needs Ollama running with a model chosen (M5).
+
+1. Right-click the rider and choose **Rider settings**. **Expect:** a dark window titled "Rider settings" with three boxed sections: Personality, Memory, and Comments from the rider. It can be dragged by its heading and closed with the ✕ or Esc. The same window opens from **Rider settings** in the menu of the icon beside the clock.
+2. Choose **Serious**, then ask the rider something. **Expect:** a plain answer with no jokes. Choose **Cheeky** again.
+3. Choose **Longer, more detailed replies** and ask "how do I clean an air filter?". **Expect:** a noticeably longer answer than before. Choose short replies again.
+4. Type your name under **What should the rider call you?**, click somewhere else, then say hello to the rider. **Expect:** the rider uses your name, at least some of the time.
+5. Type "You are a grumpy old race mechanic with a heart of gold." in the description box and click somewhere else. **Expect:** the three "how should the rider talk" choices go grey, a **Go back to the built-in rider** button appears, and the rider's next answers are in that character. Press the button. **Expect:** the box empties and the choices come back.
+6. Have a short conversation, exit Desktop Rider, start it again and click the rider. **Expect:** the conversation is still there, and the rider can answer a question about something said before the restart.
+7. Press **Clear** in the conversation window, exit and start again. **Expect:** the conversation is empty.
+8. In Rider settings, untick **Keep our conversation for next time**. Have a short conversation, exit and start again. **Expect:** the conversation is empty, and there is no `conversation.json` in `%LOCALAPPDATA%\DesktopRider`. Tick it again.
+9. Say "remember that my bike is a 250 two-stroke" to the rider. **Expect:** a line from Desktop Rider in the conversation saying the rider will remember that, then the rider's answer. In Rider settings, "my bike is a 250 two-stroke" is listed under **What the rider remembers**.
+10. Press **Clear**, then ask "what bike do I ride?". **Expect:** the rider knows.
+11. Type something into the box under the list and press **Add** (or Enter). **Expect:** it joins the list and the box empties. Press **Forget** beside it. **Expect:** it goes.
+12. Untick **Let the rider remember things about me** and ask "what bike do I ride?" in a fresh conversation. **Expect:** the rider does not know, and the list is still there. Tick it again.
+13. Press **Forget everything**. **Expect:** the list empties and "The rider has forgotten everything." appears.
+14. Leave Desktop Rider alone for an hour without touching **Let the rider start conversations**. **Expect:** the rider never speaks first.
+15. Tick **Let the rider start conversations**, choose **About every 15 minutes**, close the conversation window and wait. **Expect:** after about 15 minutes a speech bubble appears with a short remark, with no "Thinking…" first, and the rider's mouth moves. It goes away by itself.
+16. Do not answer. **Expect:** two more remarks at about 15-minute intervals, then silence until you next talk to the rider.
+17. Right-click the rider and choose **Keep the rider quiet for an hour**. **Expect:** no remarks for an hour. The menu line now reads **Let the rider speak again**; choosing it lets the remarks resume.
+18. Tick **Quiet hours**, set them to cover the present time, and wait past the next turn. **Expect:** no remark. Type "late" into one of the time boxes and click elsewhere. **Expect:** the box goes back to the time it had and a hint says what to type.
+19. With **Let the rider start conversations** ticked, close Ollama and wait past the next turn. **Expect:** nothing appears at all: no remark and no error message.
+
+Status: the owner ran the 0.7.0 build on 13 November 2026 and reported that it works great. The steps were not reported one by one. Built on Linux, so the settings window has never been seen by the developer.
+
+### M9. Jumps, tricks and whoops (0.6.3, combined with Phase 7 in 0.7.1)
 
 1. Right-click the rider, choose **Do something**, then **Jump**. **Expect:** after a short pause at most, the rider pulls away on the spot, a dirt jump rolls in from the front, the bike rides up it, flies, lands on a dirt slope and brakes to a stop as the slope rolls away behind. The rider ends exactly where it started.
 2. Watch the start and the end closely. **Expect:** no flicker, and the rider does not shift even slightly when the jump begins or ends.
@@ -185,4 +219,4 @@ Status: the owner ran the 0.6.1 build on 13 November 2026 and reported that it l
 11. In the conversation, type "do a backflip". **Expect:** the rider does one as it answers. Type "do a trick". **Expect:** the rider picks a jump or trick itself.
 12. Watch Task Manager while playing several tricks one after another. **Expect:** memory rises during a trick, comes back down afterwards and does not keep climbing from one trick to the next.
 
-Status: **awaiting the owner's check on Windows 11.** Never run by the developer (Linux build machine).
+Status: the owner ran the 0.6.3 build on 13 November 2026 and reported that it works great. The steps were not reported one by one. Never run by the developer (Linux build machine).

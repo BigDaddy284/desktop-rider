@@ -31,11 +31,14 @@ public enum Speaker
 }
 
 /// <summary>One line shown in the conversation. A reply's text grows while it arrives.</summary>
-public sealed class ConversationLine(Speaker speaker, string text) : ViewModelBase
+public sealed class ConversationLine(Speaker speaker, string text, DateTimeOffset saidAt = default) : ViewModelBase
 {
     private string _text = text;
 
     public Speaker Speaker { get; } = speaker;
+
+    /// <summary>When it was said, used to forget old conversations after the time the user chose.</summary>
+    public DateTimeOffset SaidAt { get; } = saidAt;
 
     public string Text
     {
@@ -67,6 +70,7 @@ public sealed class ConversationNoticeEventArgs(string message) : EventArgs
 /// The conversation with the rider: the lines said so far, what the user is typing, sending and stopping,
 /// which AI model is in use and whether the AI can be reached. It has no window, so it is unit tested.
 /// Nothing is sent to the AI until the user sends a message or opens the conversation.
+/// While the user allows it, the conversation is also kept on this computer between sessions.
 /// </summary>
 /// <remarks>
 /// Work continues on the thread that started it (no <c>ConfigureAwait(false)</c>) on purpose: the conversation
@@ -88,6 +92,12 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
     public const string SaveFailedAdvice = "Desktop Rider could not save your choice of AI model. Please try again.";
     public const string ThinkingText = "The rider is thinking…";
     public const string TalkingText = "The rider is answering…";
+    public const string RememberedNotice = "The rider will remember that. You can see or delete what it remembers in Rider settings.";
+    public const string AlreadyRememberedNotice = "The rider already remembers that.";
+    public const string MemoryOffNotice = "The rider's memory is switched off, so it will not remember that next time. You can switch it on in Rider settings.";
+    public const string MemoryFullNotice = "The rider's memory is full. Delete something it remembers in Rider settings to make room.";
+    public const string MemoryNotSavedNotice = "The rider will remember that until Desktop Rider closes, but it could not be saved for next time.";
+    public const string HistoryNotSavedNotice = "Desktop Rider could not save this conversation, so it will be forgotten when Desktop Rider closes.";
 
     /// <summary>The most lines sent to the AI with each message, so a long chat does not slow every reply down.</summary>
     public const int MaxLinesSent = 30;
@@ -101,7 +111,11 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
     private readonly IAiChatService _chat;
     private readonly ISettingsService _settings;
     private readonly ILogger<ConversationViewModel> _logger;
+    private readonly IConversationStore? _store;
+    private readonly TimeProvider _time;
+    private readonly RiderMemory? _memory;
     private CancellationTokenSource? _reply;
+    private bool _saveProblemTold;
     private ConversationState _state;
     private string _draft = string.Empty;
     private string _connectionText = NotCheckedText;
@@ -111,11 +125,20 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
     private bool _checking;
     private bool _disposed;
 
-    public ConversationViewModel(IAiChatService chat, ISettingsService settings, ILogger<ConversationViewModel>? logger = null)
+    public ConversationViewModel(
+        IAiChatService chat,
+        ISettingsService settings,
+        ILogger<ConversationViewModel>? logger = null,
+        IConversationStore? store = null,
+        TimeProvider? timeProvider = null,
+        RiderMemory? memory = null)
     {
+        _memory = memory;
         _chat = chat ?? throw new ArgumentNullException(nameof(chat));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _logger = logger ?? NullLogger<ConversationViewModel>.Instance;
+        _store = store;
+        _time = timeProvider ?? TimeProvider.System;
         _settings.Changed += OnSettingsChanged;
 
         SendCommand = new RelayCommand(() => _ = SendAsync());
@@ -275,25 +298,73 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
             return;
         }
 
+        // The rider was about to say something of its own but has not started: the user's message comes first.
+        if (_reply is { } unprompted)
+        {
+            _reply = null;
+            unprompted.Cancel();
+        }
+
         if (text.Length > MaxMessageLength)
         {
             text = text[..MaxMessageLength];
         }
 
         Draft = string.Empty;
-        Add(new ConversationLine(Speaker.User, text));
+        Add(new ConversationLine(Speaker.User, text, _time.GetUtcNow()));
         var history = BuildHistory();
 
+        // Kept straight away, so the message survives even if Desktop Rider is closed before the answer ends.
+        var saved = SaveHistoryAsync();
+        await ReplyAsync(history, text, saved);
+    }
+
+    /// <summary>
+    /// The rider says something of its own, without being asked. Only ever called while the user has switched
+    /// that on. Nothing shows until the first words arrive, and if the AI cannot be reached nothing shows at all:
+    /// a remark nobody asked for is not worth an error message. Returns true if the rider said something.
+    /// </summary>
+    public Task<bool> CommentAsync()
+    {
+        if (IsBusy || _reply is not null || _disposed)
+        {
+            return Task.FromResult(false);
+        }
+
+        var history = BuildHistory();
+        history.Add(new ChatMessage(ChatRole.User, RiderPersonality.OwnCommentRequest));
+        return ReplyAsync(history, null, Task.CompletedTask);
+    }
+
+    // Shows the rider's reply as it arrives. With no message from the user this is the rider speaking of its own
+    // accord, which stays out of sight until there are words to show and never reports a problem.
+    private async Task<bool> ReplyAsync(List<ChatMessage> history, string? message, Task saved)
+    {
+        var unprompted = message is null;
         var stop = new CancellationTokenSource();
         _reply = stop;
-        CurrentReply = string.Empty;
-        State = ConversationState.Thinking;
+        if (!unprompted)
+        {
+            CurrentReply = string.Empty;
+            State = ConversationState.Thinking;
+        }
+
         ConversationLine? answer = null;
         var tags = new ActionTagFilter();
         var done = new HashSet<RiderAction>();
-        var asked = RiderActions.FromRequest(text);
+        var asked = message is null ? [] : RiderActions.FromRequest(message);
         try
         {
+            if (message is not null)
+            {
+                // "Remember that…" is kept before the message goes to the AI, so the rider's answer already knows it.
+                await RememberIfAskedAsync(message);
+                if (!ReferenceEquals(_reply, stop))
+                {
+                    return false;
+                }
+            }
+
             await foreach (var piece in _chat.StreamReplyAsync(history, stop.Token))
             {
                 if (!ReferenceEquals(_reply, stop))
@@ -317,7 +388,7 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
 
                 if (answer is null)
                 {
-                    answer = new ConversationLine(Speaker.Rider, addition);
+                    answer = new ConversationLine(Speaker.Rider, addition, _time.GetUtcNow());
                     Add(answer);
 
                     // The words are in place before the state changes, so nothing ever shows an empty reply.
@@ -340,7 +411,7 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
 
             if (!ReferenceEquals(_reply, stop))
             {
-                return;
+                return false;
             }
 
             // Brackets still held back at the end were not a tag, so they belong to the reply.
@@ -354,7 +425,10 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
             ConnectionText = ConnectedText;
             if (answer is null)
             {
-                Notify(EmptyReplyNotice);
+                if (!unprompted)
+                {
+                    Notify(EmptyReplyNotice);
+                }
             }
             else
             {
@@ -368,12 +442,15 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
             {
                 LogReplyFailed(_logger, problem.Kind);
                 ApplyProblem(problem);
-                Notify(problem.Message);
+                if (!unprompted)
+                {
+                    Notify(problem.Message);
+                }
             }
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
         {
-            if (ReferenceEquals(_reply, stop))
+            if (ReferenceEquals(_reply, stop) && !unprompted)
             {
                 Notify(StoppedNotice);
             }
@@ -388,21 +465,35 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
         }
         finally
         {
-            if (ReferenceEquals(_reply, stop))
+            var current = ReferenceEquals(_reply, stop);
+            if (current)
             {
                 _reply = null;
                 State = ConversationState.Idle;
             }
 
             stop.Dispose();
+            if (current && !_disposed && (answer is not null || !unprompted))
+            {
+                await saved;
+                await SaveHistoryAsync();
+            }
         }
+
+        return answer is not null;
     }
 
     /// <summary>Stops a reply that is still arriving. What has arrived so far is kept.</summary>
     public void Stop() => _reply?.Cancel();
 
-    /// <summary>Empties the conversation, stopping any reply that is still arriving.</summary>
-    public void Clear()
+    /// <summary>
+    /// Empties the conversation, stopping any reply that is still arriving, and removes the saved copy from
+    /// this computer so that it does not come back next time.
+    /// </summary>
+    public void Clear() => _ = ClearAsync();
+
+    /// <summary>As <see cref="Clear"/>, finishing once the saved copy has gone.</summary>
+    public async Task ClearAsync()
     {
         var reply = _reply;
         _reply = null;
@@ -410,7 +501,41 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
         Lines.Clear();
         State = ConversationState.Idle;
         CurrentReply = string.Empty;
+        await ForgetHistoryAsync();
     }
+
+    /// <summary>
+    /// Brings back the conversation kept from last time. Call once at start-up, after the settings are ready.
+    /// Lines older than the time the user chose to keep them are left out. Contacts nothing.
+    /// </summary>
+    public async Task RestoreAsync()
+    {
+        if (_store is null || !_settings.Current.Memory.KeepConversationHistory || _disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            var kept = await _store.LoadAsync();
+            var oldest = OldestKept();
+            foreach (var line in kept.Where(line => line.At >= oldest).TakeLast(MaxLinesKept))
+            {
+                Lines.Add(new ConversationLine(line.From, line.Text, line.At));
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OperationCanceledException or ObjectDisposedException)
+        {
+            LogHistoryNotLoaded(_logger, ex);
+        }
+    }
+
+    /// <summary>
+    /// Carries out the user's choice of whether conversations are kept, after they change it: switching it on
+    /// keeps the conversation so far, switching it off removes the saved copy from this computer.
+    /// </summary>
+    public Task ApplyHistoryChoiceAsync() =>
+        _settings.Current.Memory.KeepConversationHistory ? SaveHistoryAsync() : ForgetHistoryAsync();
 
     /// <summary>
     /// Finds out whether the AI can be reached and which models it has. Called when the user opens the conversation
@@ -504,6 +629,86 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
             .Select(line => new ChatMessage(line.Speaker == Speaker.User ? ChatRole.User : ChatRole.Assistant, line.Text))
             .ToList();
 
+    private DateTimeOffset OldestKept() => _time.GetUtcNow().AddDays(-_settings.Current.Memory.RetentionDays);
+
+    // Explanations from Desktop Rider are not part of the conversation, so they are not kept either.
+    private async Task SaveHistoryAsync()
+    {
+        if (_store is null || !_settings.Current.Memory.KeepConversationHistory)
+        {
+            return;
+        }
+
+        var oldest = OldestKept();
+        var lines = Lines
+            .Where(line => line.Speaker != Speaker.Notice && line.Text.Length > 0 && line.SaidAt >= oldest)
+            .Select(line => new SavedLine(line.Speaker, line.Text, line.SaidAt))
+            .ToList();
+        try
+        {
+            await _store.SaveAsync(lines);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            LogHistoryNotSaved(_logger, ex);
+            if (!_saveProblemTold && !_disposed)
+            {
+                // Said once, not after every message.
+                _saveProblemTold = true;
+                Notify(HistoryNotSavedNotice);
+            }
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
+        {
+            // Desktop Rider is closing.
+        }
+    }
+
+    private async Task ForgetHistoryAsync()
+    {
+        if (_store is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _store.DeleteAsync();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            LogHistoryNotSaved(_logger, ex);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
+        {
+            // Desktop Rider is closing.
+        }
+    }
+
+    // The outcome is written into the conversation by Desktop Rider itself, so the user can trust that it happened
+    // (or did not) whatever the AI goes on to say. It is not shown in the speech bubble, which is for the rider's answer.
+    private async Task RememberIfAskedAsync(string message)
+    {
+        if (_memory is null || RiderMemory.FactToRemember(message) is not { } fact)
+        {
+            return;
+        }
+
+        var notice = await _memory.RememberAsync(fact) switch
+        {
+            RememberResult.Remembered => RememberedNotice,
+            RememberResult.AlreadyRemembered => AlreadyRememberedNotice,
+            RememberResult.SwitchedOff => MemoryOffNotice,
+            RememberResult.Full => MemoryFullNotice,
+            RememberResult.NotSaved => MemoryNotSavedNotice,
+            _ => null,
+        };
+        if (notice is not null)
+        {
+            Add(new ConversationLine(Speaker.Notice, notice, _time.GetUtcNow()));
+        }
+    }
+
     private void Add(ConversationLine line)
     {
         Lines.Add(line);
@@ -523,7 +728,7 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
 
     private void Notify(string message)
     {
-        Add(new ConversationLine(Speaker.Notice, message));
+        Add(new ConversationLine(Speaker.Notice, message, _time.GetUtcNow()));
         NoticeAdded?.Invoke(this, new ConversationNoticeEventArgs(message));
     }
 
@@ -571,6 +776,12 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
     // The words of the conversation are never logged, only what kind of problem stopped a reply.
     [LoggerMessage(Level = LogLevel.Information, Message = "The rider could not answer: {Kind}.")]
     private static partial void LogReplyFailed(ILogger logger, AiErrorKind kind);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The conversation could not be saved on this computer.")]
+    private static partial void LogHistoryNotSaved(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The saved conversation could not be read. The rider starts afresh.")]
+    private static partial void LogHistoryNotLoaded(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The choice of AI model could not be saved.")]
     private static partial void LogSaveFailed(ILogger logger, Exception exception);

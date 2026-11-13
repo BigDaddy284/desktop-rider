@@ -1,3 +1,5 @@
+using DesktopRider.Core.Configuration;
+
 namespace DesktopRider.AI.Tests;
 
 public class ConversationViewModelTests
@@ -123,7 +125,7 @@ public class ConversationViewModelTests
 
         var sent = context.Provider.Requests[1].Messages;
         Assert.Equal(
-            [(ChatRole.System, RiderPersonality.Compose(null)), (ChatRole.User, "First question"), (ChatRole.Assistant, "First answer"), (ChatRole.User, "Second question")],
+            [(ChatRole.System, RiderPersonality.Compose(new AiSettings())), (ChatRole.User, "First question"), (ChatRole.Assistant, "First answer"), (ChatRole.User, "Second question")],
             sent.Select(message => (message.Role, message.Content)));
     }
 
@@ -524,9 +526,18 @@ public class ConversationViewModelTests
         public Context(string? model = "picked-model")
         {
             Settings.Current.Ai.Model = model;
-            Service = new AiChatService(new AiProviderRegistry([Provider]), Settings);
-            Chat = new ConversationViewModel(Service, Settings);
+            Memory = new RiderMemory(MemoryStore, Settings, Clock);
+            Service = new AiChatService(new AiProviderRegistry([Provider]), Settings, Memory);
+            Chat = new ConversationViewModel(Service, Settings, store: Store, timeProvider: Clock, memory: Memory);
         }
+
+        public FakeMemoryStore MemoryStore { get; } = new();
+
+        public RiderMemory Memory { get; }
+
+        public FakeConversationStore Store { get; } = new();
+
+        public ManualClock Clock { get; } = new();
 
         public FakeSettingsService Settings { get; } = new();
 
