@@ -57,7 +57,8 @@ The kit is the owner's vector design, `Harvey28_v2.pdf`. It is fitted to the pla
 | Radiator shrouds | Pink on the left, blue on the right, fitted to height and aligned at the front. |
 | Front number plate | Name across the top, 28 in the middle, team logo at the bottom. Fitted to width, with white above and below. |
 | Front mudguard | The rhino logo on top, pointing forward. |
-| Swingarm | The JS Financial Solutions strips: pink on the left, blue on the right. |
+| Swingarm | Black, with the JS Financial Solutions strips: pink on the left, blue on the right. |
+| Rear shock spring | Steel grey. |
 | Wheels | Hubs in the kit's pink (237, 26, 121), rims in the kit's blue (39, 170, 225). |
 | Brake discs | Brushed steel, painted from the owner's disc photo: a darker carrier with 6 black bolts, cut-out windows, slots and a wavy edge. Front disc on the left, rear on the right. The mesh discs are round, so the wave and the cut-outs are painted, not cut. |
 | Tank cover | No kit piece, so it keeps the earlier painted look. |

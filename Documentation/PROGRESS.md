@@ -165,6 +165,7 @@ settings windows on top of `RiderServices`.
 - `Tools/Blender/build_unity_props.py` and `Tools/Blender/verify_models.py` added.
 - `DesktopRider_Tricks.fbx` exported with the 18 trick clips on copies of the two rigs, keyed for the right side. `Tools/Blender/export_models.py` and `Tools/Blender/verify_tricks.py` added.
 - At the owner's request the wheel hubs were made the kit's pink and the rims the kit's blue. The owner pointed out that the discs on the hub ends are brake discs, so they were painted as steel brake discs from the owner's reference photo. Texture change only; approved by the owner.
+- At the owner's request the swingarm was made black (the JS strips kept) and the rear shock spring steel grey. Texture change only; `verify_models.py` still 19 PASS, 0 FAIL.
 
 #### Test results
 
