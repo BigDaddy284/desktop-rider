@@ -79,6 +79,7 @@ The list of moved vertices is `kit-fit-work\export\bike_changed_vertices.json` o
 - Gloves are sky blue and pink, with black palms and a darker blue cuff.
 - Helmet top has stripes radiating back from the peak in sky blue, yellow, pink and grey, with thin black lines. The peak's edge is pink.
 - No chest protector.
+- Helmet right side (approved 23:48): the pattern of the owner's photos of the same Fox V1 helmet, in the kit's bright colours rather than the photos' faded ones. A large black Fox head with a cream outline on the lower rear (the goggle strap crosses its top), V1 in black on a magenta panel by the visor screw, magenta, black, yellow and blue shards above, fine pink and yellow rays on the chin bar. The left side and the top are unchanged.
 
 ## Building and checking
 
