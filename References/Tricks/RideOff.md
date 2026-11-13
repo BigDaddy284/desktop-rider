@@ -45,6 +45,13 @@ v1 never puts a foot down, so there is no foot-up moment. For 3D decide whether 
 
 Side-on shows the squat and the lean forward. Front three-quarter shows the elbows and the foot coming up.
 
+## This rider's own style
+
+From the owner's start-gate video (see [RIDER_STYLE.md](RIDER_STYLE.md)). These take priority over the general technique above.
+
+- Waiting: seated forward, both feet on the ground, elbows very high and wide.
+- Launch: blue two-stroke smoke and dirt from the rear wheel. Feet stay down, skimming the ground, for about 0.6 s, and are on the pegs by about 1 s.
+
 ## Reference links
 
 | Type | Link |
