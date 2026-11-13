@@ -71,6 +71,9 @@ public partial class OverlayWindow : Window
         }
     }
 
+    /// <summary>Makes the rider perform an animation once, such as a wheelie asked for in conversation.</summary>
+    internal void Perform(string animation) => _rider?.Perform(animation);
+
     /// <summary>The rider's current picture, used to make the notification-area icon. Null while the stand-in is showing.</summary>
     internal BitmapSource? RiderPicture => _rider?.CurrentFrame as BitmapSource;
 

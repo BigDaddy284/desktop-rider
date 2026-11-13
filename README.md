@@ -33,6 +33,8 @@ Desktop Rider looks for Ollama at `http://localhost:11434`, which is where Ollam
 - Close the window with Esc, the ✕, or another click on the rider. If the rider is still answering, the rest appears in a speech bubble above it; click the bubble to open the conversation again.
 - If something goes wrong (for example Ollama is not running), the rider says so in plain words and carries on.
 
+**Ask for a trick.** Ask the rider to do a wheelie, rev the engine, celebrate, have a nap, go for a ride or look left or right, and it does it while it answers.
+
 **Chat in bubbles.** If you would rather not have a window, right-click the rider and tick **Chat in bubbles** (or press **Bubbles** in the conversation window). A click on the rider then opens a small typing bubble below it, like the message box in a messaging app, and the rider answers in its speech bubble. The small window button in the typing bubble switches back, and clicking the speech bubble opens the conversation window with everything said so far.
 
 The conversation is kept only while Desktop Rider is running. Remembering conversations between sessions comes in a later version.

@@ -51,6 +51,12 @@ public sealed class ConversationLine(Speaker speaker, string text) : ViewModelBa
     }
 }
 
+/// <summary>Something the rider should do, asked for in conversation.</summary>
+public sealed class RiderActionEventArgs(RiderAction action) : EventArgs
+{
+    public RiderAction Action { get; } = action;
+}
+
 /// <summary>Something Desktop Rider needs to tell the user during a conversation.</summary>
 public sealed class ConversationNoticeEventArgs(string message) : EventArgs
 {
@@ -120,6 +126,12 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
 
     /// <summary>Raised when Desktop Rider adds an explanation to the conversation, such as why the rider could not answer.</summary>
     public event EventHandler<ConversationNoticeEventArgs>? NoticeAdded;
+
+    /// <summary>
+    /// Raised when the rider should do something, such as a wheelie: the AI asked for it with a tag in its reply,
+    /// or the user's message asked for it in plain words. Raised at most once per action for each message sent.
+    /// </summary>
+    public event EventHandler<RiderActionEventArgs>? ActionRequested;
 
     /// <summary>Everything said so far, oldest first.</summary>
     public ObservableCollection<ConversationLine> Lines { get; } = [];
@@ -277,6 +289,9 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
         CurrentReply = string.Empty;
         State = ConversationState.Thinking;
         ConversationLine? answer = null;
+        var tags = new ActionTagFilter();
+        var done = new HashSet<RiderAction>();
+        var asked = RiderActions.FromRequest(text);
         try
         {
             await foreach (var piece in _chat.StreamReplyAsync(history, stop.Token))
@@ -287,7 +302,14 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
                     break;
                 }
 
-                var addition = answer is null ? piece.TrimStart() : piece;
+                // Tags such as [wheelie] make the rider move and are never shown.
+                var (words, actions) = tags.Add(piece);
+                foreach (var action in actions)
+                {
+                    Perform(action, done);
+                }
+
+                var addition = answer is null ? words.TrimStart() : words;
                 if (addition.Length == 0)
                 {
                     continue;
@@ -301,6 +323,12 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
                     // The words are in place before the state changes, so nothing ever shows an empty reply.
                     CurrentReply = answer.Text;
                     State = ConversationState.Talking;
+
+                    // Small models often forget the tag, so what the user plainly asked for is done as the answer starts.
+                    foreach (var action in asked)
+                    {
+                        Perform(action, done);
+                    }
                 }
                 else
                 {
@@ -313,6 +341,13 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
             if (!ReferenceEquals(_reply, stop))
             {
                 return;
+            }
+
+            // Brackets still held back at the end were not a tag, so they belong to the reply.
+            var rest = tags.Finish();
+            if (answer is not null && rest.Length > 0)
+            {
+                answer.Text += rest;
             }
 
             IsConnected = true;
@@ -475,6 +510,14 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
         while (Lines.Count > MaxLinesKept)
         {
             Lines.RemoveAt(0);
+        }
+    }
+
+    private void Perform(RiderAction action, HashSet<RiderAction> done)
+    {
+        if (done.Add(action))
+        {
+            ActionRequested?.Invoke(this, new RiderActionEventArgs(action));
         }
     }
 

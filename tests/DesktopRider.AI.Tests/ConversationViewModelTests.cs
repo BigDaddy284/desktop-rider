@@ -123,7 +123,7 @@ public class ConversationViewModelTests
 
         var sent = context.Provider.Requests[1].Messages;
         Assert.Equal(
-            [(ChatRole.System, RiderPersonality.DefaultSystemPrompt), (ChatRole.User, "First question"), (ChatRole.Assistant, "First answer"), (ChatRole.User, "Second question")],
+            [(ChatRole.System, RiderPersonality.Compose(null)), (ChatRole.User, "First question"), (ChatRole.Assistant, "First answer"), (ChatRole.User, "Second question")],
             sent.Select(message => (message.Role, message.Content)));
     }
 
@@ -418,6 +418,95 @@ public class ConversationViewModelTests
 
         Assert.Equal(ConversationViewModel.MaxLinesKept, context.Chat.Lines.Count);
         Assert.Equal("ok", context.Chat.Lines[^1].Text);
+    }
+
+    [Fact]
+    public async Task ATagFromTheAi_MakesTheRiderDoIt_AndIsNeverShown()
+    {
+        using var context = new Context();
+        context.Provider.Reply.AddRange(["[whee", "lie] Hold ", "tight!"]);
+        var actions = Actions(context);
+        context.Chat.Draft = "Show me something cool";
+
+        await context.Chat.SendAsync();
+
+        Assert.Equal(["Wheelie"], actions);
+        Assert.Equal("Hold tight!", context.Chat.Lines[^1].Text);
+        Assert.Equal("Hold tight!", context.Chat.CurrentReply);
+    }
+
+    [Fact]
+    public async Task APlainRequest_MakesTheRiderDoIt_EvenWhenTheAiForgetsTheTag()
+    {
+        using var context = new Context();
+        context.Provider.Reply.Add("Sure thing, watch this!");
+        var actions = Actions(context);
+        context.Chat.Draft = "Can you do a wheelie?";
+
+        await context.Chat.SendAsync();
+
+        Assert.Equal(["Wheelie"], actions);
+    }
+
+    [Fact]
+    public async Task ARequestAndATagForTheSameThing_AreDoneOnce()
+    {
+        using var context = new Context();
+        context.Provider.Reply.AddRange(["[wheelie] Here ", "it comes! [wheelie]"]);
+        var actions = Actions(context);
+        context.Chat.Draft = "Do a wheelie";
+
+        await context.Chat.SendAsync();
+
+        Assert.Equal(["Wheelie"], actions);
+        Assert.Equal("Here it comes!", context.Chat.Lines[^1].Text);
+    }
+
+    [Fact]
+    public async Task ARequestThatCannotBeAnswered_DoesNothing()
+    {
+        using var context = new Context();
+        context.Provider.Problem = new AiProviderException(AiErrorKind.NotRunning, "Desktop Rider cannot reach Ollama.");
+        var actions = Actions(context);
+        context.Chat.Draft = "Do a wheelie";
+
+        await context.Chat.SendAsync();
+
+        Assert.Empty(actions);
+    }
+
+    [Fact]
+    public async Task OrdinaryBrackets_StayInTheReply()
+    {
+        using var context = new Context();
+        context.Provider.Reply.AddRange(["Use a list [1, 2] or ", "an [unfinished"]);
+        var actions = Actions(context);
+        context.Chat.Draft = "Tell me about lists";
+
+        await context.Chat.SendAsync();
+
+        Assert.Empty(actions);
+        Assert.Equal("Use a list [1, 2] or an [unfinished", context.Chat.Lines[^1].Text);
+    }
+
+    [Fact]
+    public async Task TheAiIsToldWhatTheRiderCanDo()
+    {
+        using var context = new Context();
+        context.Provider.Reply.Add("ok");
+        context.Chat.Draft = "Hello";
+
+        await context.Chat.SendAsync();
+
+        var instructions = context.Provider.Requests[0].Messages[0].Content;
+        Assert.All(RiderActions.All, action => Assert.Contains($"[{action.Tag}]", instructions, StringComparison.Ordinal));
+    }
+
+    private static List<string> Actions(Context context)
+    {
+        var actions = new List<string>();
+        context.Chat.ActionRequested += (_, e) => actions.Add(e.Action.Animation);
+        return actions;
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition)

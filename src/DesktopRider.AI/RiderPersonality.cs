@@ -11,4 +11,12 @@ public static class RiderPersonality
         + "Talk like a person, not a robot, and keep replies short enough to fit in a speech bubble unless the user asks for detail. "
         + "Never be rude or offensive. "
         + "You cannot see the user's screen, files or other programs, so never pretend to know what is happening on their computer.";
+
+    /// <summary>
+    /// The full instructions sent to the AI: the user's own personality text if they wrote one, otherwise the built-in
+    /// one, followed by how to make the rider move. The second part is always included so that asking for a wheelie
+    /// works whatever personality is chosen.
+    /// </summary>
+    public static string Compose(string? custom) =>
+        (string.IsNullOrWhiteSpace(custom) ? DefaultSystemPrompt : custom.Trim()) + " " + RiderActions.Instructions;
 }

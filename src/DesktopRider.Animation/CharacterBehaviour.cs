@@ -32,7 +32,12 @@ public sealed class CharacterBehaviour
     private readonly AnimationClip? _talking;
     private CharacterState _state;
     private bool _talkOwed;
+    private bool _talkStarted;
     private TimeSpan _talkedFor;
+    private AnimationClip? _trick;
+    private bool _trickAsked;
+    private bool _trickStarted;
+    private TimeSpan _trickLoopedFor;
 
     public CharacterBehaviour(AnimationPlayer player, SpriteManifest manifest)
     {
@@ -49,6 +54,34 @@ public sealed class CharacterBehaviour
     /// so that a very quick reply is still seen being spoken.
     /// </summary>
     public TimeSpan MinimumTalking { get; set; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>How long a looping animation such as revving is kept up when it is performed as a trick.</summary>
+    public TimeSpan TrickLoopTime { get; set; } = TimeSpan.FromSeconds(4);
+
+    /// <summary>True while a trick asked for with <see cref="Perform"/> is waiting to start or is playing.</summary>
+    public bool IsPerforming => _trick is not null;
+
+    /// <summary>
+    /// Asks the character to perform an animation once, such as a wheelie asked for in conversation. It takes
+    /// precedence over thinking and talking, which carry on afterwards. A looping animation is kept up for
+    /// <see cref="TrickLoopTime"/> and then ended properly.
+    /// </summary>
+    /// <returns>False if the character has no such animation, or it is only a lead-in or lead-out of another.</returns>
+    public bool Perform(string animation)
+    {
+        if (!_manifest.TryGet(animation, out var clip)
+            || clip == _manifest.Default
+            || _manifest.Animations.Any(other => IsNamed(other.Enter, clip) || IsNamed(other.Exit, clip)))
+        {
+            return false;
+        }
+
+        _trick = clip;
+        _trickAsked = false;
+        _trickStarted = false;
+        _trickLoopedFor = TimeSpan.Zero;
+        return true;
+    }
 
     /// <summary>What the character is doing. Setting it takes effect on the next <see cref="Advance"/>.</summary>
     public CharacterState State
@@ -88,6 +121,11 @@ public sealed class CharacterBehaviour
             _talkOwed = _talkedFor < MinimumTalking;
         }
 
+        if (_trick is not null && ContinueTrick(elapsed))
+        {
+            return before != (_player.Current, _player.FrameIndex);
+        }
+
         switch (_state)
         {
             case CharacterState.Thinking:
@@ -112,6 +150,56 @@ public sealed class CharacterBehaviour
         return before != (_player.Current, _player.FrameIndex);
     }
 
+    private static bool IsNamed(string? name, AnimationClip clip) => string.Equals(name, clip.Name, StringComparison.OrdinalIgnoreCase);
+
+    /// <returns>True while the trick still has the character's attention.</returns>
+    private bool ContinueTrick(TimeSpan elapsed)
+    {
+        var trick = _trick!;
+        if (_player.Current == trick)
+        {
+            _trickStarted = true;
+            if (!trick.Loop)
+            {
+                return true;
+            }
+
+            _trickLoopedFor += elapsed;
+            if (_trickLoopedFor < TrickLoopTime)
+            {
+                return true;
+            }
+
+            // Long enough: come out of the loop properly, through its finishing animation if it has one.
+            _trick = null;
+            _player.Request(_manifest.Default.Name, Priority);
+            return true;
+        }
+
+        if (_trickStarted)
+        {
+            // A single movement that has now finished.
+            _trick = null;
+            return false;
+        }
+
+        if (!_trickAsked)
+        {
+            // Asked for once only: asking again during a lead-in would restart it.
+            _trickAsked = _player.Request(trick.Name, Priority);
+            return true;
+        }
+
+        if (_player.Current.Loop)
+        {
+            // Something else took its place before it could start, such as a trick chosen from the menu.
+            _trick = null;
+            return false;
+        }
+
+        return true;
+    }
+
     // The thinking gesture is a single movement, so it is asked for again each time the character settles.
     private void Think()
     {
@@ -128,10 +216,19 @@ public sealed class CharacterBehaviour
         {
             _player.Request(_talking.Name, Priority);
         }
+
+        _talkStarted = true;
     }
 
+    // Only talking that the conversation started is ended here. Talking chosen from the rider's menu is left alone.
     private void Rest()
     {
+        if (!_talkStarted)
+        {
+            return;
+        }
+
+        _talkStarted = false;
         if (_talking is not null && _player.Current == _talking)
         {
             _player.Request(_manifest.Default.Name, Priority);

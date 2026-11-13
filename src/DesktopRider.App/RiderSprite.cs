@@ -69,6 +69,9 @@ internal sealed partial class RiderSprite : IDisposable
         set => _behaviour.State = value;
     }
 
+    /// <summary>Performs an animation once because it was asked for in conversation. False if the rider has no such animation.</summary>
+    public bool Perform(string animation) => _behaviour.Perform(animation);
+
     public Facing Facing
     {
         get => _facing;

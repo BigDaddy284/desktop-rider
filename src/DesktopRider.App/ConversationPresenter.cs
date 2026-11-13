@@ -60,6 +60,7 @@ internal sealed class ConversationPresenter : IDisposable
         _overlayViewModel.ExitRequested += OnExiting;
         _overlayViewModel.PropertyChanged += OnOverlayViewModelChanged;
         _conversation.PropertyChanged += OnConversationChanged;
+        _conversation.ActionRequested += OnActionRequested;
         _bubble.PropertyChanged += OnBubbleChanged;
     }
 
@@ -110,6 +111,7 @@ internal sealed class ConversationPresenter : IDisposable
         _overlayViewModel.ExitRequested -= OnExiting;
         _overlayViewModel.PropertyChanged -= OnOverlayViewModelChanged;
         _conversation.PropertyChanged -= OnConversationChanged;
+        _conversation.ActionRequested -= OnActionRequested;
         _bubble.PropertyChanged -= OnBubbleChanged;
         _chatPlacer?.Dispose();
         _inputPlacer?.Dispose();
@@ -281,6 +283,9 @@ internal sealed class ConversationPresenter : IDisposable
             });
         }
     }
+
+    // "Do a wheelie": the conversation asks, the rider performs.
+    private void OnActionRequested(object? sender, RiderActionEventArgs e) => OnInterfaceThread(() => _overlay.Perform(e.Action.Animation));
 
     private void OnBubbleChanged(object? sender, PropertyChangedEventArgs e) => OnInterfaceThread(() =>
     {

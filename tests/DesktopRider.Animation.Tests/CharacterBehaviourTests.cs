@@ -167,6 +167,92 @@ public class CharacterBehaviourTests
     }
 
     [Fact]
+    public void ATrickAskedForInConversation_PlaysOnce_ThenTalkingCarriesOn()
+    {
+        var (player, behaviour) = Create();
+        behaviour.State = CharacterState.Talking;
+        behaviour.Advance(Frames(1));
+
+        Assert.True(behaviour.Perform("Wheelie"));
+        Assert.True(behaviour.IsPerforming);
+
+        Assert.Equal(["Talking", "Wheelie", "Talking"], Trace(player, behaviour, 12));
+        Assert.False(behaviour.IsPerforming);
+    }
+
+    [Fact]
+    public void ATrickAskedForWhileThinking_WaitsForTheGesture_AndIsNotLostWhenTalkingStarts()
+    {
+        var (player, behaviour) = Create();
+        behaviour.State = CharacterState.Thinking;
+        behaviour.Advance(Frames(2));
+
+        behaviour.Perform("Wheelie");
+        behaviour.State = CharacterState.Talking;
+        var shown = Trace(player, behaviour, 20);
+        behaviour.State = CharacterState.Idle;
+
+        Assert.Equal(["Thinking", "Wheelie", "Talking"], shown);
+        Assert.Equal(["Talking", "Idle"], Trace(player, behaviour, 10));
+    }
+
+    [Fact]
+    public void ALoopingTrick_IsKeptUpForAWhile_ThenEndedProperly()
+    {
+        var (player, behaviour) = Create();
+        behaviour.TrickLoopTime = Frames(6);
+
+        Assert.True(behaviour.Perform("Sleeping"));
+
+        // In through the lead-in once, asleep for the set time, out through the lead-out, then resting.
+        Assert.Equal(["Idle", "SleepStart", "Sleeping", "SleepEnd", "Idle"], Trace(player, behaviour, 20));
+        Assert.False(behaviour.IsPerforming);
+        Assert.True(player.IsResting);
+    }
+
+    [Fact]
+    public void Perform_RefusesAnimationsThatCannotBeTricks()
+    {
+        var (player, behaviour) = Create();
+
+        Assert.False(behaviour.Perform("Backflip"));
+        Assert.False(behaviour.Perform("Idle"));
+        Assert.False(behaviour.Perform("SleepStart"));
+        Assert.False(behaviour.IsPerforming);
+        Assert.Equal(["Idle"], Trace(player, behaviour, 5));
+    }
+
+    [Fact]
+    public void ATrickFromTheMenu_ReplacesOneStillWaiting()
+    {
+        var (player, behaviour) = Create();
+        behaviour.State = CharacterState.Thinking;
+        behaviour.Advance(Frames(1));
+        behaviour.Perform("Sleeping");
+        behaviour.Advance(Frames(1));
+        behaviour.State = CharacterState.Idle;
+
+        // The user picks Talking from the menu before the thinking gesture ends.
+        player.Request("Talking", priority: 1);
+
+        Assert.Equal(["Thinking", "Talking"], Trace(player, behaviour, 10));
+        Assert.False(behaviour.IsPerforming);
+    }
+
+    [Fact]
+    public void TheRealSprites_HaveEveryAnimationTheConversationCanAskFor()
+    {
+        var manifest = RealManifest();
+        var player = new AnimationPlayer(manifest);
+        var behaviour = new CharacterBehaviour(player, manifest);
+
+        // Kept in step by hand with RiderActions in the AI project, which this project does not refer to.
+        string[] asked = ["Wheelie", "Celebration", "Revving", "Sleeping", "RidingLoop", "LookLeft", "LookRight"];
+
+        Assert.All(asked, animation => Assert.True(behaviour.Perform(animation), animation));
+    }
+
+    [Fact]
     public void Advance_ReportsWhetherThePictureChanged()
     {
         var (_, behaviour) = Create();
@@ -206,6 +292,15 @@ public class CharacterBehaviourTests
     [Fact]
     public void TheRealSprites_HaveTheAnimationsTheConversationUses()
     {
+        var manifest = RealManifest();
+
+        Assert.True(manifest.TryGet(CharacterBehaviour.ThinkingAnimation, out _));
+        Assert.True(manifest.TryGet(CharacterBehaviour.TalkingAnimation, out var talking));
+        Assert.True(talking.Loop);
+    }
+
+    private static SpriteManifest RealManifest()
+    {
         var folder = AppContext.BaseDirectory;
         string? path = null;
         while (folder is not null && path is null)
@@ -216,10 +311,6 @@ public class CharacterBehaviourTests
         }
 
         Assert.NotNull(path);
-        var manifest = SpriteManifest.Parse(File.ReadAllText(path));
-
-        Assert.True(manifest.TryGet(CharacterBehaviour.ThinkingAnimation, out _));
-        Assert.True(manifest.TryGet(CharacterBehaviour.TalkingAnimation, out var talking));
-        Assert.True(talking.Loop);
+        return SpriteManifest.Parse(File.ReadAllText(path));
     }
 }
