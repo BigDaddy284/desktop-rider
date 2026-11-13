@@ -128,14 +128,128 @@ public class RiderSettingsViewModelTests
         Assert.Equal(1, announced);
     }
 
+    [Fact]
+    public void AtFirst_ConversationsAreKeptForAMonth()
+    {
+        using var context = new Context();
+
+        Assert.True(context.View.KeepConversations);
+        Assert.True(context.View.KeepOneMonth);
+        Assert.False(context.View.KeepOneWeek);
+        Assert.False(context.View.KeepThreeMonths);
+        Assert.False(context.View.KeepOneYear);
+        Assert.Equal(string.Empty, context.View.ConversationMessage);
+    }
+
+    [Fact]
+    public async Task SwitchingOffKeepingConversations_SavesTheChoice_AndRemovesTheSavedCopy()
+    {
+        using var context = new Context();
+        context.Provider.Reply.Add("Hi");
+        context.Chat.Draft = "Hello";
+        await context.Chat.SendAsync();
+        Assert.NotEmpty(context.Store.Saved);
+
+        context.View.KeepConversations = false;
+
+        Assert.False(context.Settings.Current.Memory.KeepConversationHistory);
+        Assert.Empty(context.Store.Saved);
+        Assert.Equal(2, context.Chat.Lines.Count);
+
+        context.View.KeepConversations = true;
+
+        Assert.Equal(2, context.Store.Saved.Count);
+    }
+
+    [Theory]
+    [InlineData(7)]
+    [InlineData(90)]
+    [InlineData(365)]
+    public void ChoosingHowLongToKeepConversations_SavesIt(int days)
+    {
+        using var context = new Context();
+
+        switch (days)
+        {
+            case 7:
+                context.View.KeepOneWeek = true;
+                break;
+            case 90:
+                context.View.KeepThreeMonths = true;
+                break;
+            default:
+                context.View.KeepOneYear = true;
+                break;
+        }
+
+        context.View.KeepOneMonth = false;
+
+        Assert.Equal(days, context.Settings.Current.Memory.RetentionDays);
+        Assert.Equal(days == 7, context.View.KeepOneWeek);
+        Assert.Equal(days == 90, context.View.KeepThreeMonths);
+        Assert.Equal(days == 365, context.View.KeepOneYear);
+        Assert.False(context.View.KeepOneMonth);
+    }
+
+    [Fact]
+    public async Task ShorteningHowLongConversationsAreKept_TrimsTheSavedCopyAtOnce()
+    {
+        using var context = new Context();
+        context.Provider.Reply.Add("old answer");
+        context.Chat.Draft = "old";
+        await context.Chat.SendAsync();
+        context.Clock.Advance(TimeSpan.FromDays(10));
+        Assert.Equal(2, context.Store.Saved.Count);
+
+        context.View.KeepOneWeek = true;
+
+        Assert.Empty(context.Store.Saved);
+    }
+
+    [Fact]
+    public async Task DeleteTheConversation_ClearsItEverywhere_AndSaysSo()
+    {
+        using var context = new Context();
+        context.Provider.Reply.Add("Hi");
+        context.Chat.Draft = "Hello";
+        await context.Chat.SendAsync();
+
+        context.View.DeleteConversationCommand.Execute(null);
+
+        Assert.Empty(context.Chat.Lines);
+        Assert.Empty(context.Store.Saved);
+        Assert.Equal(RiderSettingsViewModel.ConversationDeletedText, context.View.ConversationMessage);
+    }
+
     private sealed class Context : IDisposable
     {
-        public Context() => View = new RiderSettingsViewModel(Settings);
+        public Context()
+        {
+            Settings.Current.Ai.Model = "picked-model";
+            Service = new AiChatService(new AiProviderRegistry([Provider]), Settings);
+            Chat = new ConversationViewModel(Service, Settings, store: Store, timeProvider: Clock);
+            View = new RiderSettingsViewModel(Settings, Chat);
+        }
 
         public FakeSettingsService Settings { get; } = new();
 
+        public FakeProvider Provider { get; } = new();
+
+        public FakeConversationStore Store { get; } = new();
+
+        public ManualClock Clock { get; } = new();
+
+        public AiChatService Service { get; }
+
+        public ConversationViewModel Chat { get; }
+
         public RiderSettingsViewModel View { get; }
 
-        public void Dispose() => View.Dispose();
+        public void Dispose()
+        {
+            View.Dispose();
+            Chat.Dispose();
+            Service.Dispose();
+        }
     }
 }

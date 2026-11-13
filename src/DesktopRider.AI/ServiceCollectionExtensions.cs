@@ -1,5 +1,6 @@
 using DesktopRider.AI.Ollama;
 using DesktopRider.Core.Configuration;
+using DesktopRider.Core.Infrastructure;
 using DesktopRider.Core.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -27,7 +28,16 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AiProviderRegistry>();
         services.AddSingleton<IAiChatService, AiChatService>();
         services.AddSingleton<AiMenuViewModel>();
-        services.AddSingleton<ConversationViewModel>();
+        services.AddSingleton<IConversationStore>(provider => new JsonConversationStore(
+            provider.GetRequiredService<AppPaths>(),
+            provider.GetRequiredService<ILogger<JsonConversationStore>>(),
+            provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton(provider => new ConversationViewModel(
+            provider.GetRequiredService<IAiChatService>(),
+            provider.GetRequiredService<ISettingsService>(),
+            provider.GetRequiredService<ILogger<ConversationViewModel>>(),
+            provider.GetRequiredService<IConversationStore>(),
+            provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton<SpeechBubbleViewModel>();
         services.AddSingleton<RiderSettingsViewModel>();
         services.AddSingleton<ITrayMenuContributor>(provider => provider.GetRequiredService<AiMenuViewModel>());

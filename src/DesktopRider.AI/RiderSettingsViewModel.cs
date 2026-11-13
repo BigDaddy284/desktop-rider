@@ -7,24 +7,30 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace DesktopRider.AI;
 
 /// <summary>
-/// The rider's settings: its personality. Every choice takes effect and is saved the moment it is made, so there
+/// The rider's settings: its personality and what it keeps between sessions. Every choice takes effect and is saved the moment it is made, so there
 /// is no Save button to forget. It has no window, so it is unit tested.
 /// </summary>
 public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
 {
     public const string SaveFailedText = "Desktop Rider could not save that change. It applies until Desktop Rider is closed.";
 
+    public const string ConversationDeletedText = "The conversation has been deleted.";
+
     private readonly ISettingsService _settings;
+    private readonly ConversationViewModel _conversation;
     private readonly ILogger<RiderSettingsViewModel> _logger;
     private string _problem = string.Empty;
+    private string _conversationMessage = string.Empty;
 
-    public RiderSettingsViewModel(ISettingsService settings, ILogger<RiderSettingsViewModel>? logger = null)
+    public RiderSettingsViewModel(ISettingsService settings, ConversationViewModel conversation, ILogger<RiderSettingsViewModel>? logger = null)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _conversation = conversation ?? throw new ArgumentNullException(nameof(conversation));
         _logger = logger ?? NullLogger<RiderSettingsViewModel>.Instance;
         _settings.Changed += OnSettingsChanged;
 
         UseBuiltInPersonalityCommand = new RelayCommand(() => OwnPersonality = string.Empty);
+        DeleteConversationCommand = new RelayCommand(() => _ = DeleteConversationAsync());
     }
 
     /// <summary>Puts the built-in rider back by removing the user's own description.</summary>
@@ -92,6 +98,67 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
     /// <summary>The opposite of <see cref="UsingOwnPersonality"/>, for switching the built-in choices on and off.</summary>
     public bool UsingBuiltInPersonality => !UsingOwnPersonality;
 
+    /// <summary>Removes the conversation from the screen and from this computer.</summary>
+    public ICommand DeleteConversationCommand { get; }
+
+    /// <summary>Whether the conversation is kept on this computer between sessions.</summary>
+    public bool KeepConversations
+    {
+        get => Memory.KeepConversationHistory;
+        set
+        {
+            if (value != Memory.KeepConversationHistory)
+            {
+                _ = ChangeHistoryAsync(s => s.Memory.KeepConversationHistory = value);
+            }
+        }
+    }
+
+    public bool KeepOneWeek
+    {
+        get => Memory.RetentionDays == 7;
+        set => ChooseRetention(value, 7);
+    }
+
+    public bool KeepOneMonth
+    {
+        get => Memory.RetentionDays == 30;
+        set => ChooseRetention(value, 30);
+    }
+
+    public bool KeepThreeMonths
+    {
+        get => Memory.RetentionDays == 90;
+        set => ChooseRetention(value, 90);
+    }
+
+    public bool KeepOneYear
+    {
+        get => Memory.RetentionDays == 365;
+        set => ChooseRetention(value, 365);
+    }
+
+    /// <summary>Confirms that the conversation was deleted. Empty until the user deletes it.</summary>
+    public string ConversationMessage
+    {
+        get => _conversationMessage;
+        private set
+        {
+            if (_conversationMessage != value)
+            {
+                _conversationMessage = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Removes the conversation from the screen and from this computer.</summary>
+    public async Task DeleteConversationAsync()
+    {
+        await _conversation.ClearAsync();
+        ConversationMessage = ConversationDeletedText;
+    }
+
     /// <summary>Words explaining that a change could not be saved. Empty when all is well.</summary>
     public string Problem
     {
@@ -111,6 +178,8 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
 
     private AiSettings Ai => _settings.Current.Ai;
 
+    private MemorySettings Memory => _settings.Current.Memory;
+
     public void Dispose() => _settings.Changed -= OnSettingsChanged;
 
     // A radio button reports both the one switched on and the one switched off; only the first is a choice.
@@ -128,6 +197,22 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
         {
             _ = ChangeAsync(s => s.Ai.ReplyLength = length);
         }
+    }
+
+    private void ChooseRetention(bool selected, int days)
+    {
+        if (selected && Memory.RetentionDays != days)
+        {
+            _ = ChangeHistoryAsync(s => s.Memory.RetentionDays = days);
+        }
+    }
+
+    // The saved conversation follows the choice at once: kept, trimmed to the new length of time, or removed.
+    private async Task ChangeHistoryAsync(Action<AppSettings> change)
+    {
+        await ChangeAsync(change);
+        ConversationMessage = string.Empty;
+        await _conversation.ApplyHistoryChoiceAsync();
     }
 
     private async Task ChangeAsync(Action<AppSettings> change)

@@ -527,8 +527,12 @@ public class ConversationViewModelTests
         {
             Settings.Current.Ai.Model = model;
             Service = new AiChatService(new AiProviderRegistry([Provider]), Settings);
-            Chat = new ConversationViewModel(Service, Settings);
+            Chat = new ConversationViewModel(Service, Settings, store: Store, timeProvider: Clock);
         }
+
+        public FakeConversationStore Store { get; } = new();
+
+        public ManualClock Clock { get; } = new();
 
         public FakeSettingsService Settings { get; } = new();
 

@@ -38,6 +38,7 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 | 6 | Interface style and bubble chat (owner's request after trying 0.6.0) | Built: dark Windows 11 style for the rider's menu, the icon's menu, the conversation window and bubbles; a **Chat in bubbles** switch with a typing bubble below the rider. Logic unit tested; the look awaits the owner's check (M6, M7). |
 | 6 | Tricks on request (owner's request) | Built and unit tested: asking the rider in conversation for a wheelie, a rev, a celebration, a nap, a ride or a look left or right plays that animation. Awaits the owner's check (M7 steps 14 to 16). |
 | 7 | Implement configurable personality | Built and unit tested (`RiderPersonality`, `RiderSettingsViewModel`): a **Rider settings** window with how the rider talks (cheeky, friendly, serious), short or detailed replies, what the rider calls you, and an optional description in your own words. The window itself awaits manual check M8. |
+| 7 | Implement local conversation history | Built and unit tested (`JsonConversationStore`, `ConversationViewModel`): the conversation is kept in `conversation.json` on this computer and is back next time; it can be switched off, kept for a week to a year, and deleted. The owner has not yet tried it (M8). |
 | 3 | Organise all supplied references | Done. Stored privately by the owner; folder structure and written summary are in `References/`. |
 
 ## Latest results
