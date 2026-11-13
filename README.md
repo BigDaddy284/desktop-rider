@@ -35,7 +35,7 @@ Desktop Rider looks for Ollama at `http://localhost:11434`, which is where Ollam
 
 **Ask for a trick.** Ask the rider to do a wheelie, rev the engine, celebrate, have a nap, go for a ride or look left or right, and it does it while it answers.
 
-**Jumps and freestyle tricks.** The rider can also hit a jump, throw a whip, do a backflip, superman, superman seat grab, no-hander, no-footer, nothing, heel clicker, can-can, nac-nac, lazy boy, one-hander, indian air or rock solid, scrub a jump, blitz a supercross whoop section, or do a stoppie. Ask for one by name ("do a backflip"), say "do a trick" to let it choose, or pick one from **Do something** on the rider's right-click menu. A ramp rolls in, the rider does the trick and lands, and everything clears away again. The AI can also choose one of these by itself when it suits the conversation.
+**Jumps and freestyle tricks.** The rider can also hit a jump, throw a whip, do a backflip, superman, superman seat grab, no-hander, no-footer, nothing, heel clicker, can-can, nac-nac, lazy boy, one-hander, indian air or rock solid, scrub a jump, blitz a supercross whoop section, or do a stoppie. Ask for one by name ("do a backflip"), say "do a trick" to let it choose one, say "do some tricks" for three or four different ones in a row, or pick one from **Do something** on the rider's right-click menu. A ramp rolls in, the rider does the trick and lands, and everything clears away again. The AI can also choose one of these by itself when it suits the conversation. The speech bubble steps out of the way while a trick is on screen and comes back afterwards if there is something to read. When you ask for tricks you only ever get tricks, and if the rider says which trick it is about to do, that is the one it does.
 
 **Chat in bubbles.** If you would rather not have a window, right-click the rider and tick **Chat in bubbles** (or press **Bubbles** in the conversation window). A click on the rider then opens a small typing bubble below it, like the message box in a messaging app, and the rider answers in its speech bubble. The small window button in the typing bubble switches back, and clicking the speech bubble opens the conversation window with everything said so far.
 
@@ -61,9 +61,9 @@ Right-click the rider, or the icon beside the clock, and choose **Rider settings
 
 **Comments from the rider**
 
-- **Let the rider start conversations.** Off unless you turn it on. When on, the rider says something of its own now and then when you have not been talking: a remark about bikes, a tip, or an offer of help. It uses your AI model to think of it.
+- **Let the rider start conversations.** Off unless you turn it on. When on, the rider says something of its own now and then when you have not been talking: a remark about bikes, a tip, or an offer of help. It uses your AI model to think of it. While this is on the rider also does a trick or a small movement by itself every few minutes, without using the AI.
 - Choose how often (about every 15 minutes, 30 minutes, hour or two hours) and, if you like, **quiet hours** when it never speaks first.
-- To hush it for a while, right-click the rider and choose **Keep the rider quiet for an hour**.
+- To hush it for a while, right-click the rider and choose **Keep the rider quiet for an hour**. That also stops it doing tricks by itself.
 - If you do not answer three remarks in a row, the rider stops until you next talk to it.
 
 ## Privacy

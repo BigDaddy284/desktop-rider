@@ -115,6 +115,155 @@ public class RiderActionsTests
         Assert.DoesNotContain("LookLeft", names);
     }
 
+    [Theory]
+    [InlineData("do some tricks")]
+    [InlineData("Can you do some tricks for me?")]
+    [InlineData("show me a few of your best tricks")]
+    [InlineData("do a couple of stunts")]
+    [InlineData("more tricks!")]
+    [InlineData("go on, put on a show")]
+    [InlineData("I want to see some tricks")]
+    [InlineData("show me what ya got")]
+    public void FromRequest_PicksAFewDifferentTricks_WhenAskedForSome(string message)
+    {
+        Assert.Equal(TrickRequest.Several, RiderActions.TricksWanted(message));
+        for (var seed = 0; seed < 50; seed++)
+        {
+            var picked = RiderActions.FromRequest(message, new Random(seed));
+
+            Assert.InRange(picked.Count, RiderActions.FewestInARow, RiderActions.MostInARow);
+            Assert.Equal(picked.Count, picked.Distinct().Count());
+            Assert.All(picked, action => Assert.Equal(RiderActionKind.Trick, action.Kind));
+        }
+    }
+
+    [Theory]
+    [InlineData("what tricks do you know?")]
+    [InlineData("do you know any tricks?")]
+    [InlineData("I learned some tricks in Excel today")]
+    [InlineData("that was a trick question")]
+    [InlineData("hello there")]
+    public void TricksWanted_IgnoresTalkAboutTricks(string message)
+    {
+        Assert.Equal(TrickRequest.None, RiderActions.TricksWanted(message));
+        Assert.Empty(RiderActions.FromRequest(message));
+    }
+
+    [Fact]
+    public void RandomTricks_AreOnlyEverTricks_AndLeaveOutTheOnesAlreadyDone()
+    {
+        var done = RiderActions.Tricks.Take(17).ToList();
+
+        var picked = RiderActions.RandomTricks(5, new Random(3), done);
+
+        Assert.Equal(RiderActions.Tricks.Skip(17).OrderBy(action => action.Tag), picked.OrderBy(action => action.Tag));
+        Assert.Empty(RiderActions.RandomTricks(0, new Random(3)));
+        Assert.Empty(RiderActions.RandomTricks(-2, new Random(3)));
+    }
+
+    [Fact]
+    public void EveryActionHasAKind_AndThinkingAndTalkingAreNotActionsAtAll()
+    {
+        Assert.Equal(["Revving", "RidingLoop"], RiderActions.All.Where(action => action.Kind == RiderActionKind.Bike).Select(action => action.Animation));
+        Assert.Equal(
+            ["Celebration", "Sleeping", "LookLeft", "LookRight"],
+            RiderActions.All.Where(action => action.Kind == RiderActionKind.Gesture).Select(action => action.Animation));
+        Assert.Equal(RiderActions.Tricks, RiderActions.All.Where(action => action.Kind == RiderActionKind.Trick));
+        Assert.DoesNotContain(RiderActions.All, action => action.Animation is "Thinking" or "Talking" or "Idle" or "IdleVariation");
+    }
+
+    [Theory]
+    [InlineData("Ok, how about a no hander!", new[] { "NoHander" })]
+    [InlineData("First a backflip, then a whip, and a no-hander to finish.", new[] { "Backflip", "Whip", "NoHander" })]
+    [InlineData("A nose wheelie coming up", new[] { "Stoppie" })]
+    [InlineData("Let me rev it and have a nap first", new string[0])]
+    [InlineData("Sure thing!", new string[0])]
+    public void Mentioned_FindsTheTricksTheRiderNamed_InTheOrderSaid_AndOnlyTricks(string reply, string[] animations)
+    {
+        Assert.Equal(animations, RiderActions.Mentioned(reply).Select(action => action.Animation));
+    }
+
+    [Theory]
+    [InlineData("[tricks]")]
+    [InlineData("[ Tricks ]")]
+    [InlineData("[stunts]")]
+    public void FromTag_UnderstandsAFewTricksOfAnyKind(string tag)
+    {
+        Assert.Same(RiderActions.SomeTricks, RiderActions.FromTag(tag));
+    }
+
+    [Theory]
+    [InlineData("[trick]")]
+    [InlineData("[stunt]")]
+    public void FromTag_UnderstandsOneTrickOfAnyKind(string tag)
+    {
+        Assert.Same(RiderActions.AnyTrick, RiderActions.FromTag(tag));
+    }
+
+    [Fact]
+    public void TheAiIsToldWhichThingsAreTricks_AndThatItOnlyMovesWithATag()
+    {
+        var text = RiderActions.Instructions;
+        var tricks = text.IndexOf("Tricks, jumps and stunts:", StringComparison.Ordinal);
+        var bike = text.IndexOf("Ordinary things on the bike, which are not tricks:", StringComparison.Ordinal);
+        var gestures = text.IndexOf("Gestures, which are not tricks:", StringComparison.Ordinal);
+
+        Assert.True(tricks >= 0 && bike > tricks && gestures > bike);
+        Assert.All(RiderActions.All, action =>
+        {
+            var at = text.IndexOf($"[{action.Tag}] to ", StringComparison.Ordinal);
+            var expected = at < bike ? RiderActionKind.Trick : at < gestures ? RiderActionKind.Bike : RiderActionKind.Gesture;
+            Assert.Equal(expected, action.Kind);
+        });
+        Assert.Contains("[tricks] to do a few different tricks in a row", text, StringComparison.Ordinal);
+        Assert.Contains("You only move when you write a tag", text, StringComparison.Ordinal);
+        Assert.Contains("thinking and talking movements happen by themselves and are not tricks", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Filter_HandsBackSeveralTagsInARow()
+    {
+        var filter = new ActionTagFilter();
+
+        var (text, actions) = filter.Add("[backflip] [whip][tricks] Watch this!");
+
+        Assert.Equal(["backflip", "whip", "tricks"], actions.Select(action => action.Tag));
+        Assert.Equal("  Watch this!", text);
+    }
+
+    [Theory]
+    [InlineData("Okay! Fancy a [backflip]?", "Okay! Fancy a backflip?")]
+    [InlineData("Let's go for a [tricks]!", "Let's go for a few tricks!")]
+    [InlineData("How about a [seat-grab], then a [trick]?", "How about a seat grab, then a trick?")]
+    [InlineData("First, [whip] and away", "First, whip and away")]
+    [InlineData("[backflip] Sure, watch this!", " Sure, watch this!")]
+    [InlineData("Here it comes! [wheelie]", "Here it comes! ")]
+    [InlineData("Time to [sleep] now", "Time to  now")]
+    public void Filter_PutsATricksNameWhereItsTagWas_WhenTheTagIsInTheMiddleOfASentence(string reply, string shown)
+    {
+        var filter = new ActionTagFilter();
+
+        Assert.Equal(shown, filter.Add(reply).Text);
+        Assert.True(filter.SeenTag);
+    }
+
+    [Fact]
+    public void Filter_KnowsATagIsMidSentence_EvenWhenTheWordsCameInAnEarlierPiece()
+    {
+        var filter = new ActionTagFilter();
+
+        Assert.Equal("Fancy a ", filter.Add("Fancy a [no-").Text);
+        Assert.False(filter.SeenTag);
+        Assert.Equal("no hander?", filter.Add("hander]?").Text);
+    }
+
+    [Fact]
+    public void TheAiIsToldToKeepTagsAtTheStart_AndToAnswerARequestInAFewEasyWords()
+    {
+        Assert.Contains("Tags go only at the very start of your reply", RiderActions.Instructions, StringComparison.Ordinal);
+        Assert.Contains("\"Sure, watch this!\"", RiderActions.Instructions, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void EveryTagFitsTheFilter()
     {

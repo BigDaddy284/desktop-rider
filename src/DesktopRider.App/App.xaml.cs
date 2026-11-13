@@ -105,6 +105,11 @@ public partial class App : Application
             window.QuietToggleRequested += (_, _) => comments.ToggleMute();
             comments.Start();
 
+            // While the rider may start conversations it also does a trick or a gesture by itself now and then.
+            var animations = _services.GetRequiredService<ProactiveAnimations>();
+            animations.ActionRequested += (_, e) => window.Perform(e.Action.Animation);
+            animations.Start();
+
             window.ApplyVisibility();
             trayViewModel.AnnounceIfStartedHidden();
         }

@@ -31,6 +31,7 @@ internal sealed partial class RiderSprite : IDisposable
     private Facing _facing = Facing.Right;
     private bool _failed;
     private bool _loading;
+    private readonly HashSet<string> _unreadable = new(StringComparer.OrdinalIgnoreCase);
     private string? _stageSheet;
     private bool _disposed;
 
@@ -40,7 +41,7 @@ internal sealed partial class RiderSprite : IDisposable
         _logger = logger;
         Manifest = manifest;
         _player = new AnimationPlayer(manifest);
-        _behaviour = new CharacterBehaviour(_player, manifest);
+        _behaviour = new CharacterBehaviour(_player, manifest) { Prepare = PrepareTrick };
         _idle = new IdleVariationPicker(_player, IdleChoices.Where(name => manifest.TryGet(name, out _)));
         _timer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromSeconds(1.0 / manifest.FramesPerSecond) };
         _timer.Tick += OnTick;
@@ -55,6 +56,9 @@ internal sealed partial class RiderSprite : IDisposable
 
     /// <summary>True while the animation showing has frames larger than the rider's window, such as a jump.</summary>
     public bool OnStage { get; private set; }
+
+    /// <summary>True while a jump or trick is on screen, or the rider is between two tricks asked for together.</summary>
+    public bool ShowingTrick => OnStage || _behaviour.IsTrickShowing;
 
     /// <summary>Size of the current frame in sprite pixels.</summary>
     public (int Width, int Height) FrameSize { get; private set; }
@@ -81,8 +85,11 @@ internal sealed partial class RiderSprite : IDisposable
         set => _behaviour.State = value;
     }
 
-    /// <summary>Performs an animation once because it was asked for in conversation. False if the rider has no such animation.</summary>
-    public bool Perform(string animation) => WhenReady(animation, () => _behaviour.Perform(animation));
+    /// <summary>
+    /// Performs an animation once because it was asked for in conversation. Asked for several, the rider does them
+    /// one after another. False if the rider has no such animation.
+    /// </summary>
+    public bool Perform(string animation) => _behaviour.Perform(animation);
 
     public Facing Facing
     {
@@ -155,7 +162,12 @@ internal sealed partial class RiderSprite : IDisposable
             elapsed = TimeSpan.FromSeconds(1);
         }
 
-        _idle.Advance(elapsed);
+        // Small idle movements wait while tricks asked for are being done, so they cannot slip in between two of them.
+        if (!_behaviour.IsPerforming)
+        {
+            _idle.Advance(elapsed);
+        }
+
         if (_behaviour.Advance(elapsed))
         {
             Refresh();
@@ -253,6 +265,35 @@ internal sealed partial class RiderSprite : IDisposable
         _sheets[relative] = sheet;
     }
 
+    // Asked just before a trick asked for in conversation starts. A jump's large sheet is read in the background
+    // first, so the rider never freezes; the trick starts on a later tick once the sheet is in.
+    private TrickReadiness PrepareTrick(AnimationClip clip)
+    {
+        if (!clip.HasOwnFrame)
+        {
+            return TrickReadiness.Ready;
+        }
+
+        var relative = clip.SheetFor(_facing);
+        if (_sheets.ContainsKey(relative))
+        {
+            return TrickReadiness.Ready;
+        }
+
+        if (_unreadable.Contains(relative))
+        {
+            return TrickReadiness.Skip;
+        }
+
+        if (!_loading)
+        {
+            _loading = true;
+            _ = LoadThenStartAsync(clip, relative, () => true);
+        }
+
+        return TrickReadiness.Wait;
+    }
+
     /// <summary>
     /// Starts an animation, first reading its pictures in the background if they are large, so the rider never
     /// freezes while a big sheet is read from disk.
@@ -280,6 +321,7 @@ internal sealed partial class RiderSprite : IDisposable
         catch (Exception ex) when (IsLoadFailure(ex))
         {
             LogSheetFailed(_logger, ex, clip.Name);
+            _unreadable.Add(relative);
         }
         finally
         {

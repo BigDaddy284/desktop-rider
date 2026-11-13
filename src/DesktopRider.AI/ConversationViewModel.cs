@@ -108,12 +108,19 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
     /// <summary>The longest message the user can send.</summary>
     public const int MaxMessageLength = 4000;
 
+    /// <summary>The most things the rider does for one reply, however many tags the AI writes.</summary>
+    public const int MaxActionsPerReply = 6;
+
     private readonly IAiChatService _chat;
     private readonly ISettingsService _settings;
     private readonly ILogger<ConversationViewModel> _logger;
     private readonly IConversationStore? _store;
     private readonly TimeProvider _time;
+    private static readonly char[] AfterTag = [' ', '\t', '\r', '\n', '-', '\u2013', '\u2014', ':', ',', ';', '.'];
+    private static readonly char[] BeforeWords = [' ', '\t', '\r', '\n', '\u2013', '\u2014'];
+
     private readonly RiderMemory? _memory;
+    private readonly Random _random;
     private CancellationTokenSource? _reply;
     private bool _saveProblemTold;
     private ConversationState _state;
@@ -131,9 +138,11 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
         ILogger<ConversationViewModel>? logger = null,
         IConversationStore? store = null,
         TimeProvider? timeProvider = null,
-        RiderMemory? memory = null)
+        RiderMemory? memory = null,
+        Random? random = null)
     {
         _memory = memory;
+        _random = random ?? Random.Shared;
         _chat = chat ?? throw new ArgumentNullException(nameof(chat));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _logger = logger ?? NullLogger<ConversationViewModel>.Instance;
@@ -352,7 +361,10 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
         ConversationLine? answer = null;
         var tags = new ActionTagFilter();
         var done = new HashSet<RiderAction>();
-        var asked = message is null ? [] : RiderActions.FromRequest(message);
+        var asked = message is null ? [] : RiderActions.Named(message);
+
+        // "Do some tricks" names none, so which ones are done is settled once the rider has said what it will do.
+        var wanted = message is null || asked.Count > 0 ? TrickRequest.None : RiderActions.TricksWanted(message);
         try
         {
             if (message is not null)
@@ -377,10 +389,23 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
                 var (words, actions) = tags.Add(piece);
                 foreach (var action in actions)
                 {
-                    Perform(action, done);
+                    if (action == RiderActions.SomeTricks)
+                    {
+                        wanted = TrickRequest.Several;
+                    }
+                    else if (action == RiderActions.AnyTrick)
+                    {
+                        wanted = wanted == TrickRequest.Several ? wanted : TrickRequest.One;
+                    }
+                    else
+                    {
+                        Perform(action, done);
+                    }
                 }
 
-                var addition = answer is null ? words.TrimStart() : words;
+                // A reply that began with a tag often carries on with a dash or a colon ("[whip] – Here goes!"),
+                // and some models open every reply with a long dash.
+                var addition = answer is not null ? words : tags.SeenTag ? words.TrimStart(AfterTag) : words.TrimStart(BeforeWords);
                 if (addition.Length == 0)
                 {
                     continue;
@@ -434,6 +459,7 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
             {
                 answer.Text = answer.Text.TrimEnd();
                 CurrentReply = answer.Text;
+                PerformTricksWanted(wanted, answer.Text, done);
             }
         }
         catch (AiProviderException problem)
@@ -718,9 +744,32 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
         }
     }
 
+    // The user asked for tricks without naming any (or the AI wrote [tricks]). Tricks the rider said it would do
+    // come first, because small models often name a trick and forget its tag; the rest are picked at random.
+    // Only tricks are ever picked: never thinking, talking, sleeping or looking about.
+    private void PerformTricksWanted(TrickRequest wanted, string reply, HashSet<RiderAction> done)
+    {
+        if (wanted == TrickRequest.None)
+        {
+            return;
+        }
+
+        foreach (var trick in RiderActions.Mentioned(reply))
+        {
+            Perform(trick, done);
+        }
+
+        var target = wanted == TrickRequest.Several ? RiderActions.HowManyInARow(_random) : 1;
+        var missing = target - done.Count(action => action.Kind == RiderActionKind.Trick);
+        foreach (var trick in RiderActions.RandomTricks(missing, _random, done))
+        {
+            Perform(trick, done);
+        }
+    }
+
     private void Perform(RiderAction action, HashSet<RiderAction> done)
     {
-        if (done.Add(action))
+        if (done.Count < MaxActionsPerReply && done.Add(action))
         {
             ActionRequested?.Invoke(this, new RiderActionEventArgs(action));
         }

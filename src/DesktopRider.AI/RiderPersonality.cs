@@ -23,6 +23,7 @@ public static class RiderPersonality
     public const string OwnCommentRequest =
         "(The user has not said anything for a while. Say one short, friendly thing of your own to them: a motocross remark, "
         + "a handy tip, or ask whether they would like a hand with anything. One or two sentences at most. "
+        + "You may start with one action tag if a trick or a gesture suits what you say. "
         + "Do not mention this note and do not repeat anything you have said before.)";
 
     private const string Who =

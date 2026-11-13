@@ -49,6 +49,12 @@ public class CompositionTests
                 Assert.False(comments.Enabled);
                 Assert.Null(comments.NextDue);
 
+                // Nor does the rider move by itself until then.
+                var animations = provider.GetRequiredService<ProactiveAnimations>();
+                animations.Start();
+                Assert.False(animations.Active);
+                Assert.Null(animations.NextDue);
+
                 // A conversation is kept in the data folder and is there again after a restart.
                 await provider.GetRequiredService<RiderMemory>().RememberAsync("My bike is a 250");
                 await provider.GetRequiredService<IConversationStore>().SaveAsync([new SavedLine(Speaker.User, "Hello", DateTimeOffset.UnixEpoch.AddYears(60))]);
