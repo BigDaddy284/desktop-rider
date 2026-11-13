@@ -175,3 +175,19 @@ settings windows on top of `RiderServices`.
   processor use over the same run: 9.6 % of one core (286 samples).
 - Boss checked the proof on the PC: the rider rides about and can be picked up and moved.
 - Still to confirm: clicks reach other windows when the mouse is not over the rider.
+
+### Textured model in the overlay (13 November 2026)
+
+- The graphics workstream's `Models/DesktopRider.fbx` (bike and rider rigs, 15 clips as separate takes) and its two
+  texture atlases are now the model the overlay uses. The proof model stays as a stand-in if the textured one is missing.
+- `ProofModelImport` imports it as legacy animation, names each clip after its take and sets which clips loop.
+- The bike and rider rigs are separate roots under one model object, so moving the object moves both and every clip
+  plays on both together.
+- Checked with the new `snapshot` bridge command: 38 materials, all URP Lit and all textured (atlases imported at
+  2048 pixels), nose facing forward, 0.88 x 1.55 x 1.90 m.
+- Per Boss, no models, textures or renders go to GitHub: `Models/` stays on the PC only, and the proof model was taken
+  out of the repository. Setting up the scene in a fresh clone needs those files copied in.
+- Unity tests: 662 passed, 0 failed (one timing test failed once during the import and passed on the re-run).
+  Build: succeeded, 0 errors, 0 warnings.
+- First run with the textured model: about 14 % of one core while riding (was about 10 % with the plain model),
+  memory about 245 MB. To look at again when the frame-rate work is revisited.

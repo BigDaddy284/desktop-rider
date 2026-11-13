@@ -376,6 +376,7 @@ level and the answer appears in `Bridge/result-<id>.txt`. Compiler results are a
 | `s1 setup` | Sets up the open scene and player settings for the overlay proof |
 | `b1 build` | Builds `Builds/Proof/DesktopRider3D.exe` |
 | `u1 run` / `x1 stop` | Starts the proof, or asks it to close |
+| `p1 snapshot 270 Idle 0.5` | Draws the rider from that direction (degrees), posed at that clip and second, to `Bridge/snapshot-270.png`, and lists its materials and textures. Used to check the model without seeing the screen |
 
 The same steps are on the editor's **Desktop Rider** menu. In the Test Runner window (Window, General, Test Runner)
 the EditMode tab runs them by hand.
@@ -383,6 +384,9 @@ the EditMode tab runs them by hand.
 **Riding tests** (`Tests/Riding`, 28 tests): headings, shortest turn, turn limit, braking so the bike stops on its
 target and lean angle limits for `RiderSteering`; and for `DesktopView`, where ground points appear on the desktop,
 the round trip back to the ground, aiming the small window's camera, and keeping the window on the desktop.
+
+**Known flaky test:** `OllamaProviderTests.StreamChat_ALongReplyThatKeepsArriving_IsNotTimedOut` depends on timing
+and failed once (of 662) while Unity was importing the textured model at the same time; it passed on the next run.
 Unity total: 662 passed, 0 failed.
 
 ### 8. Overlay proof: manual check

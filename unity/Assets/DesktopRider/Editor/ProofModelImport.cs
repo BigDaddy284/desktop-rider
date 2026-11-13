@@ -3,7 +3,11 @@ using UnityEngine;
 
 namespace DesktopRider.EditorTools
 {
-    /// <summary>Import rules for the rough proof model: old-style animation clips, cut at the ranges recorded in the Blender file.</summary>
+    /// <summary>
+    /// Import rules for the rider models: old-style (legacy) animation clips.
+    /// The rough proof model has one long take, cut at the ranges recorded in the Blender file.
+    /// The textured DesktopRider.fbx already has one take per clip (bike and rider rigs keyed together), so only the looping is set.
+    /// </summary>
     public sealed class ProofModelImport : AssetPostprocessor
     {
         // name, first frame, last frame, loops: from the DR_animations.json text block in desktop_rider_animated.blend (24 frames a second)
@@ -15,12 +19,27 @@ namespace DesktopRider.EditorTools
             ("RideOff", 641, 671, false), ("RidingLoop", 676, 700, true), ("RideOn", 705, 735, false),
         };
 
+        /// <summary>Raise this when the rules change so Unity imports the models again.</summary>
+        public override uint GetVersion() => 2;
+
         void OnPreprocessAnimation()
         {
-            if (!assetPath.Contains("/Models/Proof/")) return;
+            if (!IsRiderModel(assetPath)) return;
             var importer = (ModelImporter)assetImporter;
             var takes = importer.defaultClipAnimations;
             if (takes == null || takes.Length == 0) return;
+            if (!assetPath.Contains("/Models/Proof/"))
+            {
+                foreach (var take in takes)
+                {
+                    take.name = ClipName(take.takeName);
+                    bool loop = IsLooping(take.name);
+                    take.loopTime = loop; take.loop = loop;
+                    take.wrapMode = loop ? WrapMode.Loop : WrapMode.ClampForever;
+                }
+                importer.clipAnimations = takes;
+                return;
+            }
             var result = new ModelImporterClipAnimation[Clips.Length];
             for (int i = 0; i < Clips.Length; i++)
             {
@@ -35,9 +54,26 @@ namespace DesktopRider.EditorTools
             importer.clipAnimations = result;
         }
 
+        /// <summary>The proof model and the textured rider model; props and anything else keep Unity's defaults.</summary>
+        public static bool IsRiderModel(string path) =>
+            path.Contains("/Models/Proof/") || path.EndsWith("/Models/DesktopRider.fbx") || path.EndsWith("/Models/DesktopRider_Tricks.fbx");
+
+        /// <summary>Blender can prefix a take with its armature ("rider_rig|Idle"); the clip is called by the part after the bar.</summary>
+        public static string ClipName(string takeName)
+        {
+            int bar = takeName.LastIndexOf('|');
+            return bar >= 0 ? takeName.Substring(bar + 1) : takeName;
+        }
+
+        public static bool IsLooping(string clip)
+        {
+            foreach (var c in Clips) if (c.name == clip) return c.loop;
+            return false;   // tricks and anything new play once
+        }
+
         void OnPreprocessModel()
         {
-            if (!assetPath.Contains("/Models/Proof/")) return;
+            if (!IsRiderModel(assetPath)) return;
             var importer = (ModelImporter)assetImporter;
             importer.animationType = ModelImporterAnimationType.Legacy;
             importer.importAnimation = true;

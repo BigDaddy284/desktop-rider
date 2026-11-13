@@ -23,7 +23,8 @@ namespace DesktopRider.EditorTools
     [InitializeOnLoad]
     public static class EditorBridge
     {
-        const string ModelPath = "Assets/DesktopRider/Models/Proof/RiderProof.fbx";
+        const string ModelPath = "Assets/DesktopRider/Models/DesktopRider.fbx";            // textured model from Blender (kept off GitHub)
+        const string ProofModelPath = "Assets/DesktopRider/Models/Proof/RiderProof.fbx";   // rough stand-in if the textured one is missing
         const string ArtFolder = "Assets/DesktopRider/Art/Proof";
         static readonly string Root = Directory.GetParent(Application.dataPath).FullName;
         static readonly string Folder = Path.Combine(Root, "Bridge");
@@ -78,6 +79,7 @@ namespace DesktopRider.EditorTools
                 case "run": return Launch(argument);
                 case "stop": File.WriteAllText(Path.Combine(BuildFolder, "quit.txt"), "quit"); return "asked the rider to close";
                 case "test": return RunTests(id);
+                case "snapshot": return Snapshot(argument);
                 default: throw new ArgumentException("Unknown command " + command);
             }
         }
@@ -162,7 +164,12 @@ namespace DesktopRider.EditorTools
             free.leanPivot = lean.transform;
 
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
-            if (prefab == null) log.AppendLine("MODEL MISSING at " + ModelPath);
+            if (prefab == null)
+            {
+                log.AppendLine("textured model missing at " + ModelPath + ", using the proof model");
+                prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ProofModelPath);
+            }
+            if (prefab == null) log.AppendLine("MODEL MISSING at " + ModelPath + " and " + ProofModelPath);
             else
             {
                 var model = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
@@ -171,7 +178,8 @@ namespace DesktopRider.EditorTools
                 model.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);    // Blender +X (the bike's nose) becomes Unity -X; turn it to face +Z
                 free.modelAnimation = model.GetComponent<Animation>();
                 var clips = AnimationUtility.GetAnimationClips(model).Select(c => c.name).ToArray();
-                log.AppendLine("model placed; clips: " + string.Join(", ", clips));
+                // The bike and rider rigs are separate roots under this one object; moving the object moves both.
+                log.AppendLine("model placed: " + AssetDatabase.GetAssetPath(prefab) + "; clips: " + string.Join(", ", clips));
                 var bounds = new Bounds(model.transform.position, Vector3.zero);
                 foreach (var r in model.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(r.bounds);
                 log.AppendLine("model bounds centre " + bounds.center + " size " + bounds.size);
@@ -186,6 +194,57 @@ namespace DesktopRider.EditorTools
             AssetDatabase.SaveAssets();
             log.AppendLine("scene saved: " + scene.path);
             return log.ToString();
+        }
+
+        /// <summary>
+        /// Draws the rider to Bridge/snapshot-yaw.png so the model can be checked without looking at the screen.
+        /// Argument: "yaw [clip] [seconds]", e.g. "45 Idle 0.5". The scene is not saved afterwards.
+        /// </summary>
+        static string Snapshot(string argument)
+        {
+            var parts = (argument ?? "").Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            float yaw = parts.Length > 0 ? float.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture) : 45f;
+            var model = GameObject.Find("Rider/Lean/Model");
+            if (model == null) return "ERROR no Rider/Lean/Model in the scene; send setup first";
+            if (parts.Length > 1)
+            {
+                var clip = AnimationUtility.GetAnimationClips(model).FirstOrDefault(c => c.name == parts[1]);
+                if (clip == null) return "ERROR no clip " + parts[1];
+                float t = parts.Length > 2 ? float.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture) : 0f;
+                clip.SampleAnimation(model, t);
+            }
+            var go = new GameObject("SnapshotCamera");
+            try
+            {
+                var cam = go.AddComponent<Camera>();
+                cam.orthographic = true;
+                cam.orthographicSize = 1.1f;
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = new Color(0.55f, 0.6f, 0.65f, 1f);
+                var target = new Vector3(0f, 0.75f, 0f);
+                go.transform.rotation = Quaternion.Euler(30f, yaw, 0f);
+                go.transform.position = target - go.transform.forward * 10f;
+                var rt = new RenderTexture(768, 768, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
+                cam.targetTexture = rt;
+                cam.Render();
+                RenderTexture.active = rt;
+                var image = new Texture2D(768, 768, TextureFormat.RGBA32, false);
+                image.ReadPixels(new Rect(0, 0, 768, 768), 0, 0);
+                image.Apply();
+                RenderTexture.active = null;
+                string path = Path.Combine(Folder, "snapshot-" + Mathf.RoundToInt(yaw) + ".png");
+                File.WriteAllBytes(path, image.EncodeToPNG());
+                cam.targetTexture = null;
+                UnityEngine.Object.DestroyImmediate(rt);
+                UnityEngine.Object.DestroyImmediate(image);
+                var renderers = model.GetComponentsInChildren<Renderer>();
+                var materials = renderers.SelectMany(r => r.sharedMaterials).Where(m => m != null).Distinct().ToArray();
+                int textured = materials.Count(m => m.mainTexture != null);
+                return "saved " + path + "\nmaterials " + materials.Length + ", with a texture " + textured +
+                       "\nshaders " + string.Join(", ", materials.Select(m => m.shader.name).Distinct()) +
+                       "\ntextures " + string.Join(", ", materials.Select(m => m.mainTexture ? m.mainTexture.name + " " + m.mainTexture.width : null).Where(n => n != null).Distinct());
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
         }
 
         static void CreateShadow(Transform parent, StringBuilder log)
