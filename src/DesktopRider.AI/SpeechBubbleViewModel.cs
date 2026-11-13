@@ -7,6 +7,7 @@ namespace DesktopRider.AI;
 /// What the speech bubble beside the rider says. The bubble is for when the conversation window is closed:
 /// it shows that the rider is thinking, the reply as it arrives, and anything that went wrong.
 /// While the conversation window is open the same words are already there, so the bubble stays away.
+/// It also steps aside while the rider is doing a trick, and comes back afterwards if there is still something to read.
 /// </summary>
 public sealed class SpeechBubbleViewModel : ViewModelBase, IDisposable
 {
@@ -21,6 +22,8 @@ public sealed class SpeechBubbleViewModel : ViewModelBase, IDisposable
     private readonly ConversationViewModel _conversation;
     private string _text = string.Empty;
     private bool _visible;
+    private bool _wanted;
+    private bool _performing;
     private bool _conversationOpen;
     private bool _keepOpen;
     private bool _complete;
@@ -129,9 +132,29 @@ public sealed class SpeechBubbleViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>
+    /// Set while the rider is doing a trick. The bubble is out of the way for as long as the trick lasts. Whatever
+    /// it was saying, or has come to say meanwhile, shows again afterwards and is then given its full time to be read.
+    /// </summary>
+    public bool Performing
+    {
+        get => _performing;
+        set
+        {
+            if (_performing == value)
+            {
+                return;
+            }
+
+            _performing = value;
+            Show();
+        }
+    }
+
     /// <summary>Takes the bubble away: the user clicked it, its time ran out, or the rider was hidden.</summary>
     public void Dismiss()
     {
+        _wanted = false;
         IsVisible = false;
         _complete = false;
         HideAfter = null;
@@ -238,8 +261,15 @@ public sealed class SpeechBubbleViewModel : ViewModelBase, IDisposable
     private void Say(string words, bool stay)
     {
         Text = words;
-        IsVisible = true;
+        _wanted = true;
         _complete = stay;
-        HideAfter = stay && !_keepOpen ? ReadingTime(words) : null;
+        Show();
+    }
+
+    // Shows what there is to say unless a trick is in the way. The time allowed for reading only runs while it shows.
+    private void Show()
+    {
+        IsVisible = _wanted && !_performing;
+        HideAfter = IsVisible && _complete && !_keepOpen ? ReadingTime(Text) : null;
     }
 }

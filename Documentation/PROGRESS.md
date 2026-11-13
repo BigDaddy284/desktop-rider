@@ -50,7 +50,7 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 | Check | Result |
 |---|---|
 | Build (`dotnet build`, warnings as errors) | Succeeded, 0 warnings, 0 errors |
-| Tests (`dotnet test`) | 598 passed, 0 failed, 0 skipped (Core 153, Animation 83, AI 362) |
+| Tests (`dotnet test`) | 620 passed, 0 failed, 0 skipped (Core 153, Animation 84, AI 383) |
 | GitHub Actions build and test on Windows | Passed for Phase 1; runs again on each push |
 | Standalone Windows build (`dotnet publish`, win-x64) | Succeeded |
 | Manual checks on Windows 11 | The owner ran the 0.3.0 test build: it starts, shows the animated rider and works. M1 to M3 not yet reported step by step. |
@@ -68,7 +68,8 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 ## Known issues
 
 - On 13 November 2026 the owner tried the 0.7.0 build (Phase 7) and the 0.6.3 build (jumps and tricks) separately and reported that both work great. The steps of M8 and M9 were not reported one by one. 0.7.1 is the first build with both together and has not yet been tried by the owner.
-- 0.8.0 (tricks in a row, the rider moving by itself) has not been tried by the owner or run by the developer. In particular, reading each queued jump's pictures in the background between tricks is new window code that only M10 can confirm, and how well a given AI model uses the new tags is unknown; Desktop Rider does not depend on it.
+- On 13 November 2026 the owner tried 0.8.0 and reported replies with a word missing ("fancy a ?", "Let's go for a !") and a leading dash. The model was using the tag as a word. Fixed in 0.8.1; whether a given model now keeps to short replies such as "Sure, watch this!" depends on the model, but the missing word and the dash can no longer appear. The rest of M10 was not reported.
+- 0.8.1 also hides the speech bubble during tricks, at the owner's request. 0.8.1 has not been run by the developer or yet tried by the owner. In particular, reading each queued jump's pictures in the background between tricks is new window code that only M10 can confirm, and how well a given AI model uses the new tags is unknown; Desktop Rider does not depend on it.
 - The window that shows jumps and tricks larger than the rider's usual frame, and loading those large sheets in the background, have never been run by the developer (Linux build machine). They compile and the frame and origin rules are tested, but how they look on Windows depends on manual check M9.
 - The new jumps and tricks were animated from descriptions of the techniques and simple flight physics, not traced frame by frame from film, and use a gentler gravity so a jump fits on a desktop. Timing and body positions may need adjusting after the owner has watched them.
 - The conversation window, the speech bubble and click-versus-drag on the rider have never been run by the developer (Linux build machine). They compile and their logic is tested, but how they look and behave on Windows depends on manual check M6.

@@ -61,6 +61,7 @@ internal sealed class ConversationPresenter : IDisposable
         _overlayViewModel.PropertyChanged += OnOverlayViewModelChanged;
         _conversation.PropertyChanged += OnConversationChanged;
         _conversation.ActionRequested += OnActionRequested;
+        _overlay.TrickShowingChanged += OnTrickShowingChanged;
         _bubble.PropertyChanged += OnBubbleChanged;
     }
 
@@ -112,6 +113,7 @@ internal sealed class ConversationPresenter : IDisposable
         _overlayViewModel.PropertyChanged -= OnOverlayViewModelChanged;
         _conversation.PropertyChanged -= OnConversationChanged;
         _conversation.ActionRequested -= OnActionRequested;
+        _overlay.TrickShowingChanged -= OnTrickShowingChanged;
         _bubble.PropertyChanged -= OnBubbleChanged;
         _chatPlacer?.Dispose();
         _inputPlacer?.Dispose();
@@ -286,6 +288,9 @@ internal sealed class ConversationPresenter : IDisposable
 
     // "Do a wheelie": the conversation asks, the rider performs.
     private void OnActionRequested(object? sender, RiderActionEventArgs e) => OnInterfaceThread(() => _overlay.Perform(e.Action.Animation));
+
+    // The speech bubble keeps out of the way while a jump or trick is on screen.
+    private void OnTrickShowingChanged(object? sender, EventArgs e) => OnInterfaceThread(() => _bubble.Performing = _overlay.IsTrickShowing);
 
     private void OnBubbleChanged(object? sender, PropertyChangedEventArgs e) => OnInterfaceThread(() =>
     {

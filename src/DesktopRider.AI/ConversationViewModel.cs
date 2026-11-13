@@ -116,6 +116,9 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
     private readonly ILogger<ConversationViewModel> _logger;
     private readonly IConversationStore? _store;
     private readonly TimeProvider _time;
+    private static readonly char[] AfterTag = [' ', '\t', '\r', '\n', '-', '\u2013', '\u2014', ':', ',', ';', '.'];
+    private static readonly char[] BeforeWords = [' ', '\t', '\r', '\n', '\u2013', '\u2014'];
+
     private readonly RiderMemory? _memory;
     private readonly Random _random;
     private CancellationTokenSource? _reply;
@@ -400,7 +403,9 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
                     }
                 }
 
-                var addition = answer is null ? words.TrimStart() : words;
+                // A reply that began with a tag often carries on with a dash or a colon ("[whip] – Here goes!"),
+                // and some models open every reply with a long dash.
+                var addition = answer is not null ? words : tags.SeenTag ? words.TrimStart(AfterTag) : words.TrimStart(BeforeWords);
                 if (addition.Length == 0)
                 {
                     continue;

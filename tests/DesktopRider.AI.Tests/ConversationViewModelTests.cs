@@ -636,6 +636,27 @@ public class ConversationViewModelTests
         Assert.Empty(actions);
     }
 
+    [Theory]
+    [InlineData("Okay! Let's get back to those tricks \u2013 fancy a [backflip]?", "Okay! Let's get back to those tricks \u2013 fancy a backflip?")]
+    [InlineData("[seat-grab] \u2013 A superman seat grab it is!", "A superman seat grab it is!")]
+    [InlineData("[tricks] - Let's go!", "Let's go!")]
+    [InlineData("\u2013 Let's go for a [tricks]!", "Let's go for a few tricks!")]
+    [InlineData("[whip]: Sure, watch this!", "Sure, watch this!")]
+    public async Task TakingATagOut_NeverLeavesAHoleOrAStrayDashInWhatTheRiderSays(string reply, string shown)
+    {
+        // What the owner saw with 0.8.0: "fancy a ?", "Let's go for a !" and "- A superman seat grab it is!".
+        using var context = new Context();
+        context.Provider.Reply.Add(reply);
+        var actions = Actions(context);
+        context.Chat.Draft = "show me some tricks";
+
+        await context.Chat.SendAsync();
+
+        Assert.Equal(shown, context.Chat.Lines[^1].Text);
+        Assert.Equal(shown, context.Chat.CurrentReply);
+        Assert.NotEmpty(actions);
+    }
+
     private static List<string> Actions(Context context)
     {
         var actions = new List<string>();

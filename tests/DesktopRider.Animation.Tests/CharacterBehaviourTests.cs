@@ -341,6 +341,43 @@ public class CharacterBehaviourTests
     }
 
     [Fact]
+    public void ATrickIsShowing_FromWhenTheFirstAppears_UntilTheLastEnds_IncludingARestBetweenThem()
+    {
+        var (player, behaviour) = Create();
+        var ready = false;
+        behaviour.Prepare = clip => clip.Name != "Jump" || ready ? TrickReadiness.Ready : TrickReadiness.Wait;
+        behaviour.State = CharacterState.Thinking;
+        behaviour.Advance(Frames(1));
+
+        behaviour.Perform("Wheelie");
+        behaviour.Perform("Jump");
+
+        // Still finishing the thinking gesture: nothing to hide the speech bubble for yet.
+        behaviour.Advance(Frames(1));
+        Assert.Equal("Thinking", player.Current.Name);
+        Assert.False(behaviour.IsTrickShowing);
+        behaviour.State = CharacterState.Idle;
+
+        Trace(player, behaviour, 6);
+        Assert.Equal("Wheelie", player.Current.Name);
+        Assert.True(behaviour.IsTrickShowing);
+
+        // Resting while the jump's pictures are read: the tricks are not over.
+        Trace(player, behaviour, 10);
+        Assert.Equal("Idle", player.Current.Name);
+        Assert.True(behaviour.IsTrickShowing);
+
+        ready = true;
+        Trace(player, behaviour, 3);
+        Assert.Equal("Jump", player.Current.Name);
+        Assert.True(behaviour.IsTrickShowing);
+
+        Trace(player, behaviour, 10);
+        Assert.Equal("Idle", player.Current.Name);
+        Assert.False(behaviour.IsTrickShowing);
+    }
+
+    [Fact]
     public void OnlySoManyTricksMayWaitTheirTurn()
     {
         var (_, behaviour) = Create();

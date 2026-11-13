@@ -123,6 +123,7 @@ public class RiderActionsTests
     [InlineData("more tricks!")]
     [InlineData("go on, put on a show")]
     [InlineData("I want to see some tricks")]
+    [InlineData("show me what ya got")]
     public void FromRequest_PicksAFewDifferentTricks_WhenAskedForSome(string message)
     {
         Assert.Equal(TrickRequest.Several, RiderActions.TricksWanted(message));
@@ -228,6 +229,39 @@ public class RiderActionsTests
 
         Assert.Equal(["backflip", "whip", "tricks"], actions.Select(action => action.Tag));
         Assert.Equal("  Watch this!", text);
+    }
+
+    [Theory]
+    [InlineData("Okay! Fancy a [backflip]?", "Okay! Fancy a backflip?")]
+    [InlineData("Let's go for a [tricks]!", "Let's go for a few tricks!")]
+    [InlineData("How about a [seat-grab], then a [trick]?", "How about a seat grab, then a trick?")]
+    [InlineData("First, [whip] and away", "First, whip and away")]
+    [InlineData("[backflip] Sure, watch this!", " Sure, watch this!")]
+    [InlineData("Here it comes! [wheelie]", "Here it comes! ")]
+    [InlineData("Time to [sleep] now", "Time to  now")]
+    public void Filter_PutsATricksNameWhereItsTagWas_WhenTheTagIsInTheMiddleOfASentence(string reply, string shown)
+    {
+        var filter = new ActionTagFilter();
+
+        Assert.Equal(shown, filter.Add(reply).Text);
+        Assert.True(filter.SeenTag);
+    }
+
+    [Fact]
+    public void Filter_KnowsATagIsMidSentence_EvenWhenTheWordsCameInAnEarlierPiece()
+    {
+        var filter = new ActionTagFilter();
+
+        Assert.Equal("Fancy a ", filter.Add("Fancy a [no-").Text);
+        Assert.False(filter.SeenTag);
+        Assert.Equal("no hander?", filter.Add("hander]?").Text);
+    }
+
+    [Fact]
+    public void TheAiIsToldToKeepTagsAtTheStart_AndToAnswerARequestInAFewEasyWords()
+    {
+        Assert.Contains("Tags go only at the very start of your reply", RiderActions.Instructions, StringComparison.Ordinal);
+        Assert.Contains("\"Sure, watch this!\"", RiderActions.Instructions, StringComparison.Ordinal);
     }
 
     [Fact]

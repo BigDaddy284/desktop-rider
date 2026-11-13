@@ -271,4 +271,108 @@ public class SpeechBubbleViewModelTests
         Assert.False(bubble.IsVisible);
         Assert.Null(bubble.HideAfter);
     }
+
+    [Fact]
+    public async Task DuringATrick_TheBubbleStepsAside_AndComesBackAfterwardsWithItsFullReadingTime()
+    {
+        using var context = new ConversationViewModelTests.Context();
+        using var bubble = new SpeechBubbleViewModel(context.Chat);
+        context.Provider.Reply.Add("Sure, watch this!");
+        context.Chat.Draft = "Do a backflip";
+        await context.Chat.SendAsync();
+        Assert.True(bubble.IsVisible);
+
+        bubble.Performing = true;
+
+        Assert.False(bubble.IsVisible);
+        Assert.Null(bubble.HideAfter);
+
+        bubble.Performing = false;
+
+        Assert.True(bubble.IsVisible);
+        Assert.Equal("Sure, watch this!", bubble.Text);
+        Assert.Equal(SpeechBubbleViewModel.ReadingTime("Sure, watch this!"), bubble.HideAfter);
+    }
+
+    [Fact]
+    public async Task AReplyThatArrivesDuringATrick_IsNotShownUntilTheTrickIsOver()
+    {
+        using var context = new ConversationViewModelTests.Context();
+        using var bubble = new SpeechBubbleViewModel(context.Chat);
+        bubble.Performing = true;
+        context.Provider.Reply.AddRange(["Hold ", "tight!"]);
+        context.Chat.Draft = "Hi";
+        var shown = false;
+        bubble.PropertyChanged += (_, _) => shown |= bubble.IsVisible;
+
+        await context.Chat.SendAsync();
+
+        Assert.False(shown);
+        Assert.Null(bubble.HideAfter);
+
+        bubble.Performing = false;
+
+        Assert.True(bubble.IsVisible);
+        Assert.Equal("Hold tight!", bubble.Text);
+    }
+
+    [Fact]
+    public void ATrickWithNothingToSay_BringsNoBubbleBack()
+    {
+        using var context = new ConversationViewModelTests.Context();
+        using var bubble = new SpeechBubbleViewModel(context.Chat);
+
+        bubble.Performing = true;
+        bubble.Performing = false;
+
+        Assert.False(bubble.IsVisible);
+        Assert.Null(bubble.HideAfter);
+    }
+
+    [Fact]
+    public async Task ABubbleDismissedBeforeATrick_StaysAwayAfterIt()
+    {
+        using var context = new ConversationViewModelTests.Context();
+        using var bubble = new SpeechBubbleViewModel(context.Chat);
+        context.Provider.Reply.Add("Hello.");
+        context.Chat.Draft = "Hi";
+        await context.Chat.SendAsync();
+        bubble.Dismiss();
+
+        bubble.Performing = true;
+        bubble.Performing = false;
+
+        Assert.False(bubble.IsVisible);
+    }
+
+    [Fact]
+    public async Task WhileTheUserIsChattingInBubbles_TheReplyComesBackAfterATrick_AndStays()
+    {
+        using var context = new ConversationViewModelTests.Context();
+        using var bubble = new SpeechBubbleViewModel(context.Chat) { KeepOpen = true };
+        context.Provider.Reply.Add("Hello.");
+        context.Chat.Draft = "Hi";
+        await context.Chat.SendAsync();
+
+        bubble.Performing = true;
+        bubble.Performing = false;
+
+        Assert.True(bubble.IsVisible);
+        Assert.Null(bubble.HideAfter);
+    }
+
+    [Fact]
+    public async Task WithTheConversationWindowOpen_ATrickBringsNoBubble()
+    {
+        using var context = new ConversationViewModelTests.Context();
+        using var bubble = new SpeechBubbleViewModel(context.Chat) { ConversationOpen = true };
+        context.Provider.Reply.Add("Hello.");
+        context.Chat.Draft = "Hi";
+        await context.Chat.SendAsync();
+
+        bubble.Performing = true;
+        bubble.Performing = false;
+
+        Assert.False(bubble.IsVisible);
+    }
 }

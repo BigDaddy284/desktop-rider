@@ -91,6 +91,11 @@ public partial class OverlayWindow : Window
     /// <summary>Makes the rider perform an animation once, such as a wheelie asked for in conversation.</summary>
     internal void Perform(string animation) => _rider?.Perform(animation);
 
+    /// <summary>Raised when a jump or trick starts or ends, so the speech bubble can step aside for it.</summary>
+    internal event EventHandler? TrickShowingChanged;
+
+    internal bool IsTrickShowing { get; private set; }
+
     /// <summary>The rider's current picture, used to make the notification-area icon. Null while the stand-in is showing.</summary>
     internal BitmapSource? RiderPicture => _rider?.CurrentFrame as BitmapSource;
 
@@ -193,6 +198,12 @@ public partial class OverlayWindow : Window
         if (_rider?.CurrentFrame is not { } frame)
         {
             return;
+        }
+
+        if (_rider.ShowingTrick != IsTrickShowing)
+        {
+            IsTrickShowing = _rider.ShowingTrick;
+            TrickShowingChanged?.Invoke(this, EventArgs.Empty);
         }
 
         if (_rider.OnStage)

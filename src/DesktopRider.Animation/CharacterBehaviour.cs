@@ -52,6 +52,7 @@ public sealed class CharacterBehaviour
     private bool _trickAsked;
     private bool _trickStarted;
     private TimeSpan _trickLoopedFor;
+    private bool _trickShowing;
 
     public CharacterBehaviour(AnimationPlayer player, SpriteManifest manifest)
     {
@@ -77,6 +78,12 @@ public sealed class CharacterBehaviour
 
     /// <summary>True while a trick asked for with <see cref="Perform"/> is waiting to start or is playing.</summary>
     public bool IsPerforming => _trick is not null || _waitingTricks.Count > 0;
+
+    /// <summary>
+    /// True from the moment the first trick asked for with <see cref="Perform"/> appears until the last one has
+    /// finished, including any short rest between two of them. Used to keep the speech bubble out of the way.
+    /// </summary>
+    public bool IsTrickShowing => _trickShowing;
 
     /// <summary>
     /// Asked just before a trick starts, so that whoever draws the character can get its pictures ready first.
@@ -157,8 +164,11 @@ public sealed class CharacterBehaviour
 
         if (_trick is not null && ContinueTrick(elapsed))
         {
+            _trickShowing |= _player.Current == _trick;
             return before != (_player.Current, _player.FrameIndex);
         }
+
+        _trickShowing &= IsPerforming;
 
         switch (_state)
         {

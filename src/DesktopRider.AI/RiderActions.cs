@@ -84,6 +84,16 @@ public static partial class RiderActions
     /// <summary>Stands for "a few different tricks" when the AI writes <c>[tricks]</c>. See <see cref="AnyTrick"/>.</summary>
     public static RiderAction SomeTricks { get; } = new("tricks", string.Empty, RiderActionKind.Trick, "do a few different tricks in a row, picked at random", []);
 
+    /// <summary>
+    /// The words that stand in for a trick's tag when the AI wrote the tag in the middle of a sentence
+    /// ("fancy a [backflip]?"), so that taking the tag out does not leave a hole.
+    /// </summary>
+    public static string SpokenName(RiderAction action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        return action == SomeTricks ? "few tricks" : action.Tag.Replace('-', ' ');
+    }
+
     /// <summary>The fewest and the most tricks done for "do some tricks".</summary>
     public const int FewestInARow = 3;
 
@@ -92,7 +102,7 @@ public static partial class RiderActions
     private static readonly string[] OneTrickPhrases = ["another trick", "one more trick", "another stunt", "do something cool", "show off"];
 
     private static readonly string[] SeveralTricksPhrases =
-        ["more tricks", "more stunts", "trick show", "put on a show", "show me what you can do", "show me what you ve got", "show me what you got"];
+        ["more tricks", "more stunts", "trick show", "put on a show", "show me what you can do", "what you ve got", "what you got", "what ya got", "what you can do"];
 
     /// <summary>Added to the rider's personality so the AI knows what it can do and how to do it.</summary>
     public static string Instructions { get; } =
@@ -102,7 +112,9 @@ public static partial class RiderActions
         + ". Ordinary things on the bike, which are not tricks: " + Describe(RiderActionKind.Bike)
         + ". Gestures, which are not tricks: " + Describe(RiderActionKind.Gesture)
         + $". When the user asks for tricks without naming any, write [{SomeTricks.Tag}] to {SomeTricks.Description}, or [{AnyTrick.Tag}] to {AnyTrick.Description}. "
-        + "If you say which trick you are doing, write that trick's tag. You may write up to four tags, one after another, to do several things in a row. "
+        + "Tags go only at the very start of your reply, before any words, never inside a sentence. "
+        + "After the tag, when you have been asked to do something, just say a few easy words such as \"Sure, watch this!\" or \"Hold tight!\" "
+        + "and do not announce or ask which trick. You may write up to four tags, one after another, to do several things in a row. "
         + "Your thinking and talking movements happen by themselves and are not tricks. "
         + "Use only these tags, exactly as written. The user does not see the tags.";
 
@@ -266,6 +278,8 @@ public static partial class RiderActions
 /// <summary>
 /// Takes action tags such as <c>[wheelie]</c> out of a reply as it arrives piece by piece, so the user never sees
 /// them. A tag may be split across pieces. Anything else in square brackets is left in the reply untouched.
+/// A trick's tag written in the middle of a sentence ("fancy a [backflip]?") is replaced by the trick's name,
+/// so the sentence still reads properly.
 /// </summary>
 public sealed class ActionTagFilter
 {
@@ -273,6 +287,10 @@ public sealed class ActionTagFilter
     private const int MaxTagLength = 24;
 
     private readonly StringBuilder _held = new();
+    private char _lastShown = '\n';
+
+    /// <summary>True once a tag has been taken out of this reply.</summary>
+    public bool SeenTag { get; private set; }
 
     /// <summary>Feeds in the next piece of the reply.</summary>
     /// <returns>The words to show, and any actions whose tags were completed by this piece.</returns>
@@ -311,6 +329,13 @@ public sealed class ActionTagFilter
                 if (RiderActions.FromTag(_held.ToString()) is { } action)
                 {
                     (actions ??= []).Add(action);
+                    SeenTag = true;
+                    var before = LastShown(text);
+                    if (action.Kind == RiderActionKind.Trick && (char.IsLetterOrDigit(before) || before == ','))
+                    {
+                        // Mid-sentence: the words carry on, so the trick's name takes the tag's place.
+                        text.Append(RiderActions.SpokenName(action));
+                    }
                 }
                 else
                 {
@@ -326,7 +351,22 @@ public sealed class ActionTagFilter
             }
         }
 
+        _lastShown = LastShown(text);
         return (text.ToString(), actions ?? (IReadOnlyList<RiderAction>)[]);
+    }
+
+    // The last thing shown that is not a space, in this piece or an earlier one. A new line if nothing has been shown.
+    private char LastShown(StringBuilder text)
+    {
+        for (var i = text.Length - 1; i >= 0; i--)
+        {
+            if (!char.IsWhiteSpace(text[i]))
+            {
+                return text[i];
+            }
+        }
+
+        return _lastShown;
     }
 
     /// <summary>Call when the reply has ended. Returns anything still held back, which was not a tag after all.</summary>

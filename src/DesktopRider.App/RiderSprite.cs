@@ -57,6 +57,9 @@ internal sealed partial class RiderSprite : IDisposable
     /// <summary>True while the animation showing has frames larger than the rider's window, such as a jump.</summary>
     public bool OnStage { get; private set; }
 
+    /// <summary>True while a jump or trick is on screen, or the rider is between two tricks asked for together.</summary>
+    public bool ShowingTrick => OnStage || _behaviour.IsTrickShowing;
+
     /// <summary>Size of the current frame in sprite pixels.</summary>
     public (int Width, int Height) FrameSize { get; private set; }
 
