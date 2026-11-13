@@ -74,6 +74,18 @@ Last run, 13 November 2026, on the owner's PC: **19 PASS, 0 FAIL**. The worst bo
 
 Known: 24 sliver faces on the rider's boot straps, each under 0.01 mm², have no UV area. They cannot be seen.
 
+### Trick clips
+
+```
+blender --background --factory-startup --python Tools/Blender/verify_tricks.py -- <rigs-only DesktopRider_Tricks.fbx> <same export with meshes> <working .blend> Tools/Blender Right <output folder>
+```
+
+The rigs-only file has no meshes to compare, so the same export is also made with meshes into a scratch folder. The script keys the 18 tricks fresh in memory and samples every 4th frame of every clip (556 frames). For both files it checks the objects, bone names and hierarchy, all 18 clips and their lengths, and bone positions and rotations within 1 mm and 0.5°. For the file with meshes it also checks every skinned vertex within 1 mm. Last, it checks that both files carry the same animation curves. It exits with status 1 if any check fails.
+
+Last run, 13 November 2026, on the owner's PC: **17 PASS, 0 FAIL**. Worst bone position 0.0026 mm, worst vertex 0.0032 mm, rotations 0.0000° (rotations up to 179° were in the samples, including the backflip).
+
+The wheel and brake-disc change of 13 November was a texture change only. The FBX files were not exported again, and `verify_models.py` was run again after the texture was replaced.
+
 ## Known limitations
 
 - Development happens on a Linux build machine. It compiles the WPF application but cannot run it, so anything involving a real window is verified by GitHub Actions on Windows (build only) and by hand on the owner's Windows 11 PC.

@@ -20,6 +20,8 @@ Version 2.0 shows the owner's own 3D bike and rider in Unity instead of pre-rend
 | `DesktopRider.fbx` | Meshes `race_bike_youth` (8,444 vertices, 4,540 faces) and `race_rider` (6,726 vertices, 3,596 faces); rigs `bike_rig` (11 bones) and `rider_rig` (14 bones); 15 clips. |
 | `Textures/DesktopRider_Bike.png` | 4096 × 4096 bike texture, with the owner's race-kit graphics. Referenced by the FBX, not embedded. |
 | `Textures/DesktopRider_Rider.png` | 4096 × 4096 rider texture. Referenced by the FBX, not embedded. |
+| `DesktopRider_Tricks.fbx` | The same two rigs (no meshes) with the 18 trick clips. |
+| `DesktopRider_Tricks_manifest.json` | Its bones, and each trick's frame range, stage and timing values. |
 | `DesktopRider_model_manifest.json` | Counts, UV and material names, bones and parents, clip names and frame ranges, texture names. |
 | `Props/DR_Prop_*.fbx` (9 files) | Static ramp, landing and whoops meshes with flat colours. |
 | `Props/props_layout.json` | For each jump or trick: which props, where they sit relative to the bike's start, and how far the bike travels each frame. |
@@ -36,7 +38,13 @@ Version 2.0 shows the owner's own 3D bike and rider in Unity instead of pre-rend
 
 Idle, IdleVariation, LookLeft, LookRight, Revving, Thinking, Talking, Wheelie, Celebration, SleepStart, Sleeping, SleepEnd, RideOff, RidingLoop, RideOn. Their frame ranges are in the `DR_animations.json` text block of the Blender file and in the manifest. They are the same 15 animations the owner approved for version 1.
 
-The 18 jump, trick and whoop animations from `Tools/Blender/trick_animations.py` go in a second file, `DesktopRider_Tricks.fbx`, built on a copy of the rigs.
+## Clips (`DesktopRider_Tricks.fbx`)
+
+Jump, Whip, Scrub, Backflip, Superman, SupermanSeatGrab, NoHander, NoFooter, Nothing, HeelClicker, CanCan, NacNac, LazyBoy, OneHander, IndianAir, RockSolid, Whoops, Stoppie. They come from `Tools/Blender/trick_animations.py`, keyed in memory on the working file, with IK baked. Each take starts at frame 0 and none loops.
+
+- **Side.** The script keys gestures (one hand off, a foot off) on the side nearest the camera. This file is keyed for the bike seen from its right. A left-side file can be made with `side=Left` if Unity ever shows the bike from the left.
+- **Travel.** As in version 1, the bike stays in place and the ground moves under it. The forward distance per frame is `travel` in `Props/props_layout.json`. Add it to the parent object each frame, or move the props back by it.
+- Both rigs must play the same take together, as in the main file.
 
 ## Graphics on the bike
 
@@ -50,6 +58,8 @@ The kit is the owner's vector design, `Harvey28_v2.pdf`. It is fitted to the pla
 | Front number plate | Name across the top, 28 in the middle, team logo at the bottom. Fitted to width, with white above and below. |
 | Front mudguard | The rhino logo on top, pointing forward. |
 | Swingarm | The JS Financial Solutions strips: pink on the left, blue on the right. |
+| Wheels | Hubs in the kit's pink (237, 26, 121), rims in the kit's blue (39, 170, 225). |
+| Brake discs | Brushed steel, painted from the owner's disc photo: a darker carrier with 6 black bolts, cut-out windows, slots and a wavy edge. Front disc on the left, rear on the right. The mesh discs are round, so the wave and the cut-outs are painted, not cut. |
 | Tank cover | No kit piece, so it keeps the earlier painted look. |
 
 ## Rider changes approved on 13 November 2026
@@ -64,4 +74,6 @@ The kit is the owner's vector design, `Harvey28_v2.pdf`. It is fitted to the pla
 | Script | What it does |
 |---|---|
 | `Tools/Blender/build_unity_props.py` | Rebuilds the nine props as single closed meshes, with the same outlines as the version 1 props, and exports them with `props_layout.json`. |
+| `Tools/Blender/export_models.py` | Exports `DesktopRider.fbx`, the textures and the manifest from the working Blender file without saving it. With `tricks=<Tools/Blender folder> side=Right name=DesktopRider_Tricks meshes=0` it exports the trick clips instead. The repository copy has three unused lines removed and writes only the file name of the Blender file into the manifest. |
+| `Tools/Blender/verify_tricks.py` | Re-keys the tricks in memory and compares `DesktopRider_Tricks.fbx`, and an export of the same with meshes, against them. Exits with status 1 if any check fails. |
 | `Tools/Blender/verify_models.py` | Re-imports the exported FBX files into an empty Blender and checks them against the working and master Blender files. Exits with status 1 if any check fails. See TESTING.md. |

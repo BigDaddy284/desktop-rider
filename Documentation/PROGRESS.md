@@ -152,7 +152,7 @@ settings windows on top of `RiderServices`.
 
 ### 3D bike and rider for Unity, with the race-kit graphics
 
-**Status: bike, rider, 15 clips and 9 props exported to the Unity project and approved by the owner. The 18 trick clips and the helmet's right side are still in progress.**
+**Status: bike, rider, 15 clips, 18 trick clips and 9 props exported to the Unity project. Bike, rider and wheels approved by the owner. The helmet's right side is still in progress.**
 
 #### Completed (13 November 2026)
 
@@ -163,10 +163,13 @@ settings windows on top of `RiderServices`.
 - `DesktopRider.fbx` (meshes, both rigs, 15 clips with IK baked) and the textures were exported to `Assets/DesktopRider/Models/`.
 - The nine ramp, landing and whoops props were rebuilt as clean meshes for real-time use and exported with `props_layout.json`.
 - `Tools/Blender/build_unity_props.py` and `Tools/Blender/verify_models.py` added.
+- `DesktopRider_Tricks.fbx` exported with the 18 trick clips on copies of the two rigs, keyed for the right side. `Tools/Blender/export_models.py` and `Tools/Blender/verify_tricks.py` added.
+- At the owner's request the wheel hubs were made the kit's pink and the rims the kit's blue. The owner pointed out that the discs on the hub ends are brake discs, so they were painted as steel brake discs from the owner's reference photo. Texture change only; approved by the owner.
 
 #### Test results
 
 - `verify_models.py` on the owner's PC: 19 PASS, 0 FAIL (see TESTING.md, "3D model checks").
+- `verify_tricks.py` on the owner's PC: 17 PASS, 0 FAIL.
 - No C# changed in this part.
 
 #### Technical decisions
@@ -174,8 +177,9 @@ settings windows on top of `RiderServices`.
 - Models, textures and renders are kept out of the repository (owner's decision). `.gitignore` excludes `unity/Assets/DesktopRider/Models/`, `kit-fit-work/` and `.blend` files.
 - In the FBX the rider rig sits beside the bike rig and follows the `chassis` bone through keys, instead of being nested under it. Blender cannot write a readable nested armature. The Unity side moves both under one parent.
 - Helmet shape changes were kept as adjustable modifiers in the working Blender file and baked only into the exported mesh.
+- The trick clips keep the bike in place and the ground moving, as in version 1. The forward travel per frame is in `Props/props_layout.json`, not in the bones.
+- The brake discs are round in the mesh, so their wavy edge and cut-outs are painted on. The models are not reshaped without the owner asking.
 
 #### Next
 
-- `DesktopRider_Tricks.fbx` with the 18 trick clips, checked the same way.
 - The helmet's right side from the photographs of the same helmet model, for the owner's approval. This is a texture change only.
