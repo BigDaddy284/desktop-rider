@@ -69,6 +69,8 @@ The big upper fork tubes stopped 6.8 cm above the pink fork lowers, leaving a th
 
 The chain was also closed at the owner's request. A curved section wraps the back of the rear sprocket (83 mm pitch radius) and another the front sprocket. The top run is now straight from the rear sprocket to the front, 10 mm above the swingarm's top edge. All chain parts follow the `swingarm` bone. Last, at the owner's request, the grey back of each guard was deleted (20 faces and 36 vertices), so only the pink front remains and the round fork tube shows behind and beside it. The bike now has 8,520 vertices and 4,728 faces: the master less 36 vertices and 20 faces removed, plus 112 vertices and 208 faces added after the master's own.
 
+Finally the owner asked for the fork to step down to a slimmer tube. The fat upper tube now ends 40.3 cm down the fork (22.4 mm of the earlier extension kept), and the lower leg below it is a 19.7 mm radius tube, 80% of the upper tube, sliding inside it. 73 mm stays inside at rest, about 43 mm at full extension in the main clips and 23 mm in the tricks. The pink front guards moved back 5.8 mm to sit on the slimmer tube. Counts are unchanged by this step.
+
 The list of moved vertices is `kit-fit-work\export\bike_changed_vertices.json` on the owner's PC, and their original positions are in `fork_original_vertices.json` beside it.
 
 ## Rider changes approved on 13 November 2026
