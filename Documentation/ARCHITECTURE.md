@@ -90,7 +90,14 @@ The conversation follows the same rule as everything else: decisions in window-f
 
 **Tricks on request.** `RiderActions` (AI project) lists what the rider can be asked to do (wheelie, celebrate, rev, sleep, ride, look left, look right) and recognises a request two ways. The AI is told, in an addition to the personality that is always sent (`RiderPersonality.Compose`), to start its reply with a tag such as `[wheelie]`; `ActionTagFilter` takes tags out of the reply as it streams, so they are never shown. Because small local models often forget the tag, `RiderActions.FromRequest` also recognises a plain request in the user's own message ("do a wheelie", but not "what is a wheelie?"), and that is carried out as the answer starts. Each action happens at most once per message. `ConversationViewModel.ActionRequested` announces it, `ConversationPresenter` passes the animation name on, and `CharacterBehaviour.Perform` plays it: a trick takes precedence over thinking and talking, which carry on afterwards, and a looping animation is kept up for four seconds and then ended through its proper finishing animation. The AI project still knows nothing about animation; it only names the action.
 
-The conversation exists only in memory for now. Saving it between sessions is Phase 7.
+## Personality and memory
+
+- **Personality.** `RiderPersonality.Compose` (AI project) builds the instructions sent to the AI from the user's choices in `AiSettings`: how the rider talks (`Tone`: cheeky, friendly, serious), how much it says (`ReplyLength`), what it calls the user (`UserName`, never assumed) and, optionally, the user's own description (`SystemPrompt`), which replaces the built-in one. Three things are always included whatever is chosen: that the rider cannot see the screen (DESIGN.md section 10), the reply length, and how to do tricks.
+- **Saved conversation.** `JsonConversationStore` (AI project) keeps the conversation in `conversation.json`. `ConversationViewModel` saves after the user's message and again when the reply ends, brings the conversation back at start-up (`RestoreAsync`), and removes the saved copy when the conversation is cleared or keeping is switched off. Lines older than `Memory.RetentionDays` are left out when loading and dropped when saving. Explanations from Desktop Rider itself are never saved.
+- **The rider's memory.** `RiderMemory` (AI project) holds short notes the user asked the rider to keep, saved in `memory.json` by `JsonMemoryStore`. A note is added in one of two ways, both started by the user: saying "remember that…" in conversation (`RiderMemory.FactToRemember` recognises the request in the user's own words; no AI is involved in deciding what to store) or typing it in the settings. The notes are added to the instructions sent with each message while `Memory.Enabled` is on. Desktop Rider itself writes the outcome into the conversation, so the user can trust that something was or was not remembered whatever the AI says. At most 50 notes of 200 characters are kept.
+- **The rider speaking first.** `ProactiveComments` (AI project) is off unless `Behaviour.ProactiveComments` is switched on, and while off it sets no timer and makes no request. While on, a single one-shot timer waits for `ProactiveIntervalMinutes` since anything was last said; nothing is polled. When it goes off the rider stays silent if muted, in quiet hours (`QuietHours.Cover`), hidden, busy, or without a model; otherwise `ConversationViewModel.CommentAsync` asks the AI for one short remark. That request shows nothing until words arrive and reports no problem if the AI cannot be reached. After three remarks with no answer the timer is not set again until the user speaks.
+- **Rider settings.** `RiderSettingsViewModel` (AI project) is everything the settings window shows and does; `SettingsWindow` (App project) is the thin window. Every choice is saved as it is made.
+- `LocalJsonFile<T>` (Core) is the one place that reads and writes a JSON file safely: temporary file then swap, a missing file is not an error, a damaged file is set aside as `<name>.damaged-<date>.json`. The settings, the conversation and the memory all use it.
 
 ## Local data
 
@@ -99,9 +106,11 @@ Everything is stored under `%LOCALAPPDATA%\DesktopRider` on the user's own compu
 | Item | Location |
 |---|---|
 | Settings | `settings.json` |
+| The conversation, while the user allows it | `conversation.json` |
+| What the rider has been asked to remember | `memory.json` |
 | Logs | `Logs\desktop-rider-YYYYMMDD.log`, one per day, 14 days kept |
 
-Nothing is sent anywhere. There is no telemetry.
+Nothing is sent anywhere except to the Ollama address the user has set, as part of a conversation. There is no telemetry. The words of conversations and remembered notes are never written to the logs.
 
 ## Settings
 
@@ -152,3 +161,11 @@ Nothing is sent anywhere. There is no telemetry.
 | 2026-11-12 | The "Ask the rider to say hello" menu line and its tests were removed. | It was a stand-in for the conversation window, which now exists. Its cases (reply growing, stopping, empty reply, problems, shutdown) are covered by `ConversationViewModelTests`. |
 | 2026-11-12 | Opening the conversation window checks the connection once. | DESIGN.md 5.1 asks for a connection status and current model; one small request when the user opens the window provides both without any background polling. |
 | 2026-11-12 | The icon is always present while Desktop Rider runs. The "Minimise to system tray" setting is left for the settings screen in Phase 8. | With no taskbar button, the icon is the only way back to a hidden rider. |
+| 2026-11-13 | Phase 7 adds a **Rider settings** window now, holding only personality, memory and the rider's own comments. | These choices need somewhere a non-technical user can make them. Phase 8 completes the window with the remaining categories. |
+| 2026-11-13 | The rider is always told it cannot see the screen, even when the user writes their own personality. | DESIGN.md section 10 applies whatever the personality is. Before 0.7.0 a custom personality replaced that sentence too. |
+| 2026-11-13 | "Optional memory" is a list of notes the user explicitly asks the rider to keep, recognised from the user's own words rather than by asking the AI what to store. | Predictable, visible and deletable; needs no background AI requests; works the same with small local models. |
+| 2026-11-13 | `Memory.Enabled` governs the remembered notes and `Memory.KeepConversationHistory` governs the saved conversation, independently. | Matches the two switches in DESIGN.md section 7 and lets the user have either without the other. |
+| 2026-11-13 | Switching off conversation keeping deletes the saved copy; switching off memory keeps the notes but stops using them. | The conversation on screen is still there, so nothing is lost; the notes file is the only copy, so deleting is left to **Forget everything**. |
+| 2026-11-13 | The time conversations are kept (`RetentionDays`) does not apply to remembered notes. | A note is something the user asked to be kept; it stays until they delete it. |
+| 2026-11-13 | The rider's own remarks come from the AI, with no built-in stock phrases, and are silent when the AI cannot be reached. | Keeps the rider in the personality the user chose; an error about a remark nobody asked for would be an unnecessary pop-up. |
+| 2026-11-13 | Muting the rider lasts an hour and is not remembered between sessions. | A quick hush, separate from the saved on/off switch and quiet hours. |

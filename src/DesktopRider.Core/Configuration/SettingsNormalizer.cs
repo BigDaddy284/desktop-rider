@@ -43,7 +43,18 @@ public static class SettingsNormalizer
 
         ai.OllamaAddress = NormalizeAddress(ai.OllamaAddress);
         ai.Model = string.IsNullOrWhiteSpace(ai.Model) ? null : ai.Model.Trim();
-        ai.SystemPrompt = string.IsNullOrWhiteSpace(ai.SystemPrompt) ? null : ai.SystemPrompt;
+        ai.SystemPrompt = Tidy(ai.SystemPrompt, AiSettings.MaxSystemPromptLength);
+        ai.UserName = Tidy(ai.UserName, AiSettings.MaxUserNameLength);
+        if (!Enum.IsDefined(ai.Tone))
+        {
+            ai.Tone = RiderTone.Cheeky;
+        }
+
+        if (!Enum.IsDefined(ai.ReplyLength))
+        {
+            ai.ReplyLength = ReplyLength.Brief;
+        }
+
         ai.Temperature = Clamp(ai.Temperature, AiSettings.MinTemperature, AiSettings.MaxTemperature, 0.8);
         ai.RequestTimeoutSeconds = Math.Clamp(ai.RequestTimeoutSeconds, AiSettings.MinTimeoutSeconds, AiSettings.MaxTimeoutSeconds);
 
@@ -67,6 +78,18 @@ public static class SettingsNormalizer
         }
 
         return AiSettings.DefaultOllamaAddress;
+    }
+
+    // Text the user typed: no stray spaces, never longer than allowed, and null when there is nothing there.
+    private static string? Tidy(string? text, int maxLength)
+    {
+        var trimmed = text?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return null;
+        }
+
+        return trimmed.Length > maxLength ? trimmed[..maxLength].TrimEnd() : trimmed;
     }
 
     private static double Clamp(double value, double min, double max, double fallback) =>

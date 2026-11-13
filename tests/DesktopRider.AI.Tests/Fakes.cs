@@ -149,3 +149,148 @@ internal sealed class FakeProvider(string name = AiSettings.OllamaProvider) : IA
         }
     }
 }
+
+/// <summary>A conversation store held in memory, with a switch to make saving fail.</summary>
+internal sealed class FakeConversationStore : IConversationStore
+{
+    public List<SavedLine> Saved { get; set; } = [];
+
+    public bool FailSaves { get; set; }
+
+    public int SaveCount { get; private set; }
+
+    public int DeleteCount { get; private set; }
+
+    public int LoadCount { get; private set; }
+
+    public Task<IReadOnlyList<SavedLine>> LoadAsync(CancellationToken cancellationToken = default)
+    {
+        LoadCount++;
+        return Task.FromResult<IReadOnlyList<SavedLine>>([.. Saved]);
+    }
+
+    public Task SaveAsync(IReadOnlyList<SavedLine> lines, CancellationToken cancellationToken = default)
+    {
+        if (FailSaves)
+        {
+            return Task.FromException(new IOException("The disk is full."));
+        }
+
+        SaveCount++;
+        Saved = [.. lines];
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(CancellationToken cancellationToken = default)
+    {
+        DeleteCount++;
+        Saved = [];
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>A clock the test moves by hand. Timers made from it go off as the time passes them.</summary>
+internal sealed class ManualClock(DateTimeOffset now) : TimeProvider
+{
+    private readonly List<ManualTimer> _timers = [];
+
+    public ManualClock()
+        : this(new DateTimeOffset(2026, 6, 1, 12, 0, 0, TimeSpan.Zero))
+    {
+    }
+
+    public DateTimeOffset Now { get; private set; } = now;
+
+    public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
+
+    /// <summary>How many timers are waiting to go off.</summary>
+    public int Waiting => _timers.Count(timer => timer.Due is not null);
+
+    public override DateTimeOffset GetUtcNow() => Now;
+
+    public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+    {
+        var timer = new ManualTimer(this, callback, state);
+        _timers.Add(timer);
+        timer.Change(dueTime, period);
+        return timer;
+    }
+
+    /// <summary>Moves the time on, setting off each timer that falls due on the way, in order.</summary>
+    public void Advance(TimeSpan by)
+    {
+        var target = Now + by;
+        while (_timers.Where(timer => timer.Due <= target).OrderBy(timer => timer.Due).FirstOrDefault() is { } next)
+        {
+            Now = next.Due!.Value > Now ? next.Due.Value : Now;
+            next.Fire();
+        }
+
+        Now = target;
+    }
+
+    private sealed class ManualTimer(ManualClock clock, TimerCallback callback, object? state) : ITimer
+    {
+        public DateTimeOffset? Due { get; private set; }
+
+        public bool Change(TimeSpan dueTime, TimeSpan period)
+        {
+            Due = dueTime == Timeout.InfiniteTimeSpan ? null : clock.Now + dueTime;
+            return true;
+        }
+
+        public void Fire()
+        {
+            Due = null;
+            callback(state);
+        }
+
+        public void Dispose()
+        {
+            Due = null;
+            clock._timers.Remove(this);
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            Dispose();
+            return ValueTask.CompletedTask;
+        }
+    }
+}
+
+/// <summary>A memory store held in memory, with a switch to make saving fail.</summary>
+internal sealed class FakeMemoryStore : IMemoryStore
+{
+    public List<MemoryNote> Saved { get; set; } = [];
+
+    public bool FailSaves { get; set; }
+
+    public int DeleteCount { get; private set; }
+
+    public Task<IReadOnlyList<MemoryNote>> LoadAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MemoryNote>>([.. Saved]);
+
+    public Task SaveAsync(IReadOnlyList<MemoryNote> notes, CancellationToken cancellationToken = default)
+    {
+        if (FailSaves)
+        {
+            return Task.FromException(new IOException("The disk is full."));
+        }
+
+        Saved = [.. notes];
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(CancellationToken cancellationToken = default)
+    {
+        if (FailSaves)
+        {
+            return Task.FromException(new IOException("The disk is full."));
+        }
+
+        DeleteCount++;
+        Saved = [];
+        return Task.CompletedTask;
+    }
+}
