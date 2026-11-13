@@ -244,7 +244,7 @@
                                 <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding RiderSpeaksFirst, Mode=TwoWay}"
                                           Content="Let the rider start conversations" />
                                 <TextBlock Style="{StaticResource Explanation}" Margin="0,4,0,0"
-                                           Text="When this is on, the rider says something of its own now and then: a remark about bikes, a tip, or an offer of help. It uses your AI model to think of it, so the AI must be connected. If you ignore it a few times it stops until you next talk to it. While this is off, Desktop Rider never contacts the AI by itself." />
+                                           Text="When this is on, the rider says something of its own now and then: a remark about bikes, a tip, or an offer of help. It also does a trick or a small movement by itself from time to time. It uses your AI model to think of what to say, so the AI must be connected. If you ignore it a few times it stops until you next talk to it. While this is off, Desktop Rider never contacts the AI by itself." />
 
                                 <StackPanel IsEnabled="{Binding RiderSpeaksFirst}">
                                     <TextBlock Text="How often, when you have not been talking?" Style="{StaticResource Question}" />

@@ -504,6 +504,138 @@ public class ConversationViewModelTests
         Assert.All(RiderActions.All, action => Assert.Contains($"[{action.Tag}]", instructions, StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public async Task AskedForSomeTricks_TheRiderDoesAFewDifferentOnes_AndOnlyTricks(int seed)
+    {
+        using var context = new Context(seed: seed);
+        context.Provider.Reply.Add("You got it, hold on tight!");
+        var actions = Actions(context);
+        context.Chat.Draft = "Do some tricks";
+
+        await context.Chat.SendAsync();
+
+        var tricks = RiderActions.Tricks.Select(action => action.Animation).ToList();
+        Assert.InRange(actions.Count, RiderActions.FewestInARow, RiderActions.MostInARow);
+        Assert.Equal(actions.Count, actions.Distinct().Count());
+        Assert.All(actions, animation => Assert.Contains(animation, tricks));
+    }
+
+    [Fact]
+    public async Task AskedForSomeTricks_TheTrickTheRiderNames_IsDoneFirst_ThenMore()
+    {
+        // What happened to the owner: the rider said "how about a no hander" and then did a single wheelie.
+        using var context = new Context();
+        context.Provider.Reply.AddRange(["Ok, how about ", "a no hander?"]);
+        var actions = Actions(context);
+        context.Chat.Draft = "do some tricks";
+
+        await context.Chat.SendAsync();
+
+        Assert.Equal("NoHander", actions[0]);
+        Assert.InRange(actions.Count, RiderActions.FewestInARow, RiderActions.MostInARow);
+        Assert.Equal(actions.Count, actions.Distinct().Count());
+        Assert.Equal("Ok, how about a no hander?", context.Chat.Lines[^1].Text);
+    }
+
+    [Fact]
+    public async Task AskedForATrick_TheOneTheRiderNames_IsTheOneDone()
+    {
+        using var context = new Context();
+        context.Provider.Reply.Add("One superman coming up!");
+        var actions = Actions(context);
+        context.Chat.Draft = "Do a trick";
+
+        await context.Chat.SendAsync();
+
+        Assert.Equal(["Superman"], actions);
+    }
+
+    [Fact]
+    public async Task AskedForATrick_AndTheRiderNamesNone_OneIsPickedAtRandom()
+    {
+        using var context = new Context();
+        context.Provider.Reply.Add("Watch this!");
+        var actions = Actions(context);
+        context.Chat.Draft = "Show me a trick";
+
+        await context.Chat.SendAsync();
+
+        Assert.Contains(Assert.Single(actions), RiderActions.Tricks.Select(action => action.Animation));
+    }
+
+    [Fact]
+    public async Task TheTricksTag_FromTheAi_DoesAFewTricks_AndIsNeverShown()
+    {
+        using var context = new Context();
+        context.Provider.Reply.AddRange(["[tri", "cks] Here we go!"]);
+        var actions = Actions(context);
+        context.Chat.Draft = "I'm bored, entertain me";
+
+        await context.Chat.SendAsync();
+
+        Assert.InRange(actions.Count, RiderActions.FewestInARow, RiderActions.MostInARow);
+        Assert.DoesNotContain(string.Empty, actions);
+        Assert.Equal("Here we go!", context.Chat.Lines[^1].Text);
+    }
+
+    [Fact]
+    public async Task SeveralTagsFromTheAi_AreDoneInOrder_AndCountTowardsTheFew()
+    {
+        using var context = new Context();
+        context.Provider.Reply.Add("[backflip] [whip] [superman] Three for you!");
+        var actions = Actions(context);
+        context.Chat.Draft = "do some tricks";
+
+        await context.Chat.SendAsync();
+
+        Assert.Equal(["Backflip", "Whip", "Superman"], actions.Take(3));
+        Assert.InRange(actions.Count, 3, RiderActions.MostInARow);
+    }
+
+    [Fact]
+    public async Task TheAiCannotMakeTheRiderDoMoreThanTheLimit()
+    {
+        using var context = new Context();
+        context.Provider.Reply.Add(string.Concat(RiderActions.Tricks.Select(action => $"[{action.Tag}]")) + " Phew!");
+        var actions = Actions(context);
+        context.Chat.Draft = "Hello";
+
+        await context.Chat.SendAsync();
+
+        Assert.Equal(ConversationViewModel.MaxActionsPerReply, actions.Count);
+        Assert.Equal("Phew!", context.Chat.Lines[^1].Text);
+    }
+
+    [Fact]
+    public async Task TalkAboutATrick_WithoutBeingAskedForOne_DoesNothing()
+    {
+        using var context = new Context();
+        context.Provider.Reply.Add("A backflip is a full rotation backwards off the ramp.");
+        var actions = Actions(context);
+        context.Chat.Draft = "What is a backflip?";
+
+        await context.Chat.SendAsync();
+
+        Assert.Empty(actions);
+    }
+
+    [Fact]
+    public async Task AskedForSomeTricks_ButTheAiCannotAnswer_NothingIsDone()
+    {
+        using var context = new Context();
+        context.Provider.Problem = new AiProviderException(AiErrorKind.NotRunning, "Desktop Rider cannot reach Ollama.");
+        var actions = Actions(context);
+        context.Chat.Draft = "Do some tricks";
+
+        await context.Chat.SendAsync();
+
+        Assert.Empty(actions);
+    }
+
     private static List<string> Actions(Context context)
     {
         var actions = new List<string>();
@@ -523,12 +655,12 @@ public class ConversationViewModelTests
 
     internal sealed class Context : IDisposable
     {
-        public Context(string? model = "picked-model")
+        public Context(string? model = "picked-model", int seed = 1)
         {
             Settings.Current.Ai.Model = model;
             Memory = new RiderMemory(MemoryStore, Settings, Clock);
             Service = new AiChatService(new AiProviderRegistry([Provider]), Settings, Memory);
-            Chat = new ConversationViewModel(Service, Settings, store: Store, timeProvider: Clock, memory: Memory);
+            Chat = new ConversationViewModel(Service, Settings, store: Store, timeProvider: Clock, memory: Memory, random: new Random(seed));
         }
 
         public FakeMemoryStore MemoryStore { get; } = new();

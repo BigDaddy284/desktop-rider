@@ -13,6 +13,8 @@ public class CharacterBehaviourTests
             { "name": "Thinking", "loop": false, "frameCount": 5, "columns": 5, "right": "Right/Thinking.png", "left": "Left/Thinking.png" },
             { "name": "Talking", "loop": true, "frameCount": 3, "columns": 3, "right": "Right/Talking.png", "left": "Left/Talking.png" },
             { "name": "Wheelie", "loop": false, "frameCount": 6, "columns": 8, "right": "Right/Wheelie.png", "left": "Left/Wheelie.png" },
+            { "name": "Jump", "loop": false, "frameCount": 6, "columns": 4, "right": "Right/Jump.png", "left": "Left/Jump.png", "frameWidth": 180, "frameHeight": 200, "originX": 30, "originY": 120 },
+            { "name": "Wave", "loop": false, "frameCount": 5, "columns": 5, "right": "Right/Wave.png", "left": "Left/Wave.png" },
             { "name": "SleepStart", "loop": false, "frameCount": 2, "columns": 2, "right": "Right/SleepStart.png", "left": "Left/SleepStart.png" },
             { "name": "Sleeping", "loop": true, "frameCount": 4, "columns": 4, "right": "Right/Sleeping.png", "left": "Left/Sleeping.png", "enter": "SleepStart", "exit": "SleepEnd" },
             { "name": "SleepEnd", "loop": false, "frameCount": 2, "columns": 2, "right": "Right/SleepEnd.png", "left": "Left/SleepEnd.png" }
@@ -243,8 +245,6 @@ public class CharacterBehaviourTests
     public void TheRealSprites_HaveEveryAnimationTheConversationCanAskFor()
     {
         var manifest = RealManifest();
-        var player = new AnimationPlayer(manifest);
-        var behaviour = new CharacterBehaviour(player, manifest);
 
         // Kept in step by hand with RiderActions in the AI project, which this project does not refer to.
         string[] asked =
@@ -254,7 +254,120 @@ public class CharacterBehaviourTests
             "HeelClicker", "CanCan", "NacNac", "LazyBoy", "OneHander", "Scrub", "IndianAir", "RockSolid", "Whoops", "Stoppie",
         ];
 
-        Assert.All(asked, animation => Assert.True(behaviour.Perform(animation), animation));
+        // Each on a fresh rider, because only so many tricks may wait their turn at once.
+        Assert.All(asked, animation => Assert.True(new CharacterBehaviour(new AnimationPlayer(manifest), manifest).Perform(animation), animation));
+    }
+
+    [Fact]
+    public void SeveralTricksAskedForTogether_ArePlayedOneAfterAnother_InTheOrderAsked()
+    {
+        var (player, behaviour) = Create();
+
+        Assert.True(behaviour.Perform("Wheelie"));
+        Assert.True(behaviour.Perform("Jump"));
+        Assert.True(behaviour.Perform("Wave"));
+        Assert.True(behaviour.IsPerforming);
+
+        // No resting frame slips in between two tricks.
+        Assert.Equal(["Idle", "Wheelie", "Jump", "Wave", "Idle"], Trace(player, behaviour, 30));
+        Assert.False(behaviour.IsPerforming);
+        Assert.True(player.IsResting);
+    }
+
+    [Fact]
+    public void SeveralTricksDuringAReply_AllPlay_ThenTalkingCarriesOn()
+    {
+        var (player, behaviour) = Create();
+        behaviour.State = CharacterState.Talking;
+        behaviour.Advance(Frames(1));
+
+        behaviour.Perform("Wheelie");
+        behaviour.Perform("Jump");
+
+        Assert.Equal(["Talking", "Wheelie", "Jump", "Talking"], Trace(player, behaviour, 20));
+    }
+
+    [Fact]
+    public void ALoopingTrickInARow_IsEndedProperly_BeforeTheNextStarts()
+    {
+        var (player, behaviour) = Create();
+        behaviour.TrickLoopTime = Frames(6);
+
+        behaviour.Perform("Sleeping");
+        behaviour.Perform("Wheelie");
+
+        Assert.Equal(["Idle", "SleepStart", "Sleeping", "SleepEnd", "Wheelie", "Idle"], Trace(player, behaviour, 30));
+        Assert.False(behaviour.IsPerforming);
+    }
+
+    [Fact]
+    public void ATrickWhosePicturesAreNotReady_Waits_WithoutHoldingUpTheRider()
+    {
+        var (player, behaviour) = Create();
+        var ready = false;
+        var asked = new List<string>();
+        behaviour.Prepare = clip =>
+        {
+            asked.Add(clip.Name);
+            return clip.Name != "Jump" || ready ? TrickReadiness.Ready : TrickReadiness.Wait;
+        };
+
+        behaviour.Perform("Wheelie");
+        behaviour.Perform("Jump");
+
+        // The wheelie plays, then the rider rests while the jump's pictures are read.
+        Assert.Equal(["Idle", "Wheelie", "Idle"], Trace(player, behaviour, 12));
+        Assert.True(behaviour.IsPerforming);
+
+        ready = true;
+
+        Assert.Equal(["Idle", "Jump", "Idle"], Trace(player, behaviour, 12));
+        Assert.False(behaviour.IsPerforming);
+        Assert.Equal("Wheelie", asked[0]);
+        Assert.Contains("Jump", asked);
+    }
+
+    [Fact]
+    public void ATrickThatCannotBeShown_IsLeftOut_AndTheRestStillPlay()
+    {
+        var (player, behaviour) = Create();
+        behaviour.Prepare = clip => clip.Name == "Jump" ? TrickReadiness.Skip : TrickReadiness.Ready;
+
+        behaviour.Perform("Jump");
+        behaviour.Perform("Wheelie");
+
+        Assert.Equal(["Idle", "Wheelie", "Idle"], Trace(player, behaviour, 12));
+        Assert.False(behaviour.IsPerforming);
+    }
+
+    [Fact]
+    public void OnlySoManyTricksMayWaitTheirTurn()
+    {
+        var (_, behaviour) = Create();
+
+        for (var i = 0; i < CharacterBehaviour.MaxWaitingTricks; i++)
+        {
+            Assert.True(behaviour.Perform("Wheelie"));
+        }
+
+        Assert.False(behaviour.Perform("Wheelie"));
+    }
+
+    [Fact]
+    public void ATrickFromTheMenu_AlsoDropsTricksStillWaitingBehindIt()
+    {
+        var (player, behaviour) = Create();
+        behaviour.State = CharacterState.Thinking;
+        behaviour.Advance(Frames(1));
+        behaviour.Perform("Sleeping");
+        behaviour.Perform("Wheelie");
+        behaviour.Advance(Frames(1));
+        behaviour.State = CharacterState.Idle;
+
+        player.Request("Talking", priority: 1);
+
+        Assert.Equal(["Thinking", "Talking"], Trace(player, behaviour, 10));
+        Assert.False(behaviour.IsPerforming);
     }
 
     [Fact]

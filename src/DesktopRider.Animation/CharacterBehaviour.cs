@@ -13,6 +13,19 @@ public enum CharacterState
     Talking,
 }
 
+/// <summary>Whether a trick that is next in line can start now.</summary>
+public enum TrickReadiness
+{
+    /// <summary>It can start now.</summary>
+    Ready,
+
+    /// <summary>Not yet, for instance because its pictures are still being read. Ask again shortly.</summary>
+    Wait,
+
+    /// <summary>It cannot be done at all. Leave it out and move on to the next.</summary>
+    Skip,
+}
+
 /// <summary>
 /// Chooses the animation that suits what the character is doing. Other parts of the application only say which
 /// state the character is in; this class turns that into requests to the <see cref="AnimationPlayer"/>.
@@ -34,6 +47,7 @@ public sealed class CharacterBehaviour
     private bool _talkOwed;
     private bool _talkStarted;
     private TimeSpan _talkedFor;
+    private readonly Queue<AnimationClip> _waitingTricks = new();
     private AnimationClip? _trick;
     private bool _trickAsked;
     private bool _trickStarted;
@@ -58,15 +72,28 @@ public sealed class CharacterBehaviour
     /// <summary>How long a looping animation such as revving is kept up when it is performed as a trick.</summary>
     public TimeSpan TrickLoopTime { get; set; } = TimeSpan.FromSeconds(4);
 
+    /// <summary>The most tricks that can be waiting their turn. More than this are refused.</summary>
+    public const int MaxWaitingTricks = 8;
+
     /// <summary>True while a trick asked for with <see cref="Perform"/> is waiting to start or is playing.</summary>
-    public bool IsPerforming => _trick is not null;
+    public bool IsPerforming => _trick is not null || _waitingTricks.Count > 0;
+
+    /// <summary>
+    /// Asked just before a trick starts, so that whoever draws the character can get its pictures ready first.
+    /// Left unset, every trick is ready at once.
+    /// </summary>
+    public Func<AnimationClip, TrickReadiness>? Prepare { get; set; }
 
     /// <summary>
     /// Asks the character to perform an animation once, such as a wheelie asked for in conversation. It takes
     /// precedence over thinking and talking, which carry on afterwards. A looping animation is kept up for
-    /// <see cref="TrickLoopTime"/> and then ended properly.
+    /// <see cref="TrickLoopTime"/> and then ended properly. Asked for several, the character does them one
+    /// after another in the order they were asked for.
     /// </summary>
-    /// <returns>False if the character has no such animation, or it is only a lead-in or lead-out of another.</returns>
+    /// <returns>
+    /// False if the character has no such animation, it is only a lead-in or lead-out of another, or too many
+    /// are already waiting.
+    /// </returns>
     public bool Perform(string animation)
     {
         if (!_manifest.TryGet(animation, out var clip)
@@ -76,10 +103,12 @@ public sealed class CharacterBehaviour
             return false;
         }
 
-        _trick = clip;
-        _trickAsked = false;
-        _trickStarted = false;
-        _trickLoopedFor = TimeSpan.Zero;
+        if (_waitingTricks.Count >= MaxWaitingTricks)
+        {
+            return false;
+        }
+
+        _waitingTricks.Enqueue(clip);
         return true;
     }
 
@@ -121,6 +150,11 @@ public sealed class CharacterBehaviour
             _talkOwed = _talkedFor < MinimumTalking;
         }
 
+        if (_trick is null)
+        {
+            TakeNextTrick();
+        }
+
         if (_trick is not null && ContinueTrick(elapsed))
         {
             return before != (_player.Current, _player.FrameIndex);
@@ -152,6 +186,28 @@ public sealed class CharacterBehaviour
 
     private static bool IsNamed(string? name, AnimationClip clip) => string.Equals(name, clip.Name, StringComparison.OrdinalIgnoreCase);
 
+    // Moves on to the next trick in line, if there is one and its pictures are ready.
+    private void TakeNextTrick()
+    {
+        while (_trick is null && _waitingTricks.TryPeek(out var next))
+        {
+            var readiness = Prepare?.Invoke(next) ?? TrickReadiness.Ready;
+            if (readiness == TrickReadiness.Wait)
+            {
+                return;
+            }
+
+            _waitingTricks.Dequeue();
+            if (readiness == TrickReadiness.Ready)
+            {
+                _trick = next;
+                _trickAsked = false;
+                _trickStarted = false;
+                _trickLoopedFor = TimeSpan.Zero;
+            }
+        }
+    }
+
     /// <returns>True while the trick still has the character's attention.</returns>
     private bool ContinueTrick(TimeSpan elapsed)
     {
@@ -178,9 +234,15 @@ public sealed class CharacterBehaviour
 
         if (_trickStarted)
         {
-            // A single movement that has now finished.
+            // A single movement that has now finished. If another is waiting and ready it starts straight away.
             _trick = null;
-            return false;
+            TakeNextTrick();
+            if (_trick is null)
+            {
+                return false;
+            }
+
+            trick = _trick;
         }
 
         if (!_trickAsked)
@@ -193,7 +255,9 @@ public sealed class CharacterBehaviour
         if (_player.Current.Loop)
         {
             // Something else took its place before it could start, such as a trick chosen from the menu.
+            // The user has chosen something else, so anything still waiting is dropped too.
             _trick = null;
+            _waitingTricks.Clear();
             return false;
         }
 

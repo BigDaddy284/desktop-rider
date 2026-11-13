@@ -44,7 +44,8 @@ public static class ServiceCollectionExtensions
             provider.GetRequiredService<ILogger<ConversationViewModel>>(),
             provider.GetRequiredService<IConversationStore>(),
             provider.GetRequiredService<TimeProvider>(),
-            provider.GetRequiredService<RiderMemory>()));
+            provider.GetRequiredService<RiderMemory>(),
+            provider.GetService<Random>()));
         services.AddSingleton<SpeechBubbleViewModel>();
         services.AddSingleton<RiderSettingsViewModel>();
         services.AddSingleton(provider =>
@@ -56,6 +57,16 @@ public static class ServiceCollectionExtensions
                 provider.GetRequiredService<ISettingsService>(),
                 provider.GetRequiredService<TimeProvider>(),
                 provider.GetRequiredService<ILogger<ProactiveComments>>(),
+                interfaceThread is null ? null : work => interfaceThread.Post(_ => work(), null));
+        });
+        services.AddSingleton(provider =>
+        {
+            var interfaceThread = SynchronizationContext.Current;
+            return new ProactiveAnimations(
+                provider.GetRequiredService<ProactiveComments>(),
+                provider.GetRequiredService<ISettingsService>(),
+                provider.GetRequiredService<TimeProvider>(),
+                provider.GetService<Random>(),
                 interfaceThread is null ? null : work => interfaceThread.Post(_ => work(), null));
         });
         services.AddSingleton<ITrayMenuContributor>(provider => provider.GetRequiredService<AiMenuViewModel>());

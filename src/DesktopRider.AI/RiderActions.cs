@@ -3,12 +3,38 @@ using System.Text.RegularExpressions;
 
 namespace DesktopRider.AI;
 
+/// <summary>What sort of thing an action is, so that "do some tricks" only ever picks tricks.</summary>
+public enum RiderActionKind
+{
+    /// <summary>A jump, a freestyle trick or a stunt: what people mean by "a trick".</summary>
+    Trick,
+
+    /// <summary>Something ordinary done with the bike, such as revving it or riding off for a moment.</summary>
+    Bike,
+
+    /// <summary>A small gesture or mood, such as celebrating, looking round or having a sleep.</summary>
+    Gesture,
+}
+
+/// <summary>How many tricks the user asked for without naming any.</summary>
+public enum TrickRequest
+{
+    None,
+
+    /// <summary>"Do a trick".</summary>
+    One,
+
+    /// <summary>"Do some tricks".</summary>
+    Several,
+}
+
 /// <summary>Something the rider can be asked to do in conversation, such as a wheelie.</summary>
 /// <param name="Tag">The word the AI writes in square brackets to make the rider do it.</param>
 /// <param name="Animation">The name of the animation to play.</param>
+/// <param name="Kind">Whether it is a trick, something ordinary on the bike or a gesture.</param>
 /// <param name="Description">What it is, in words the AI can understand.</param>
 /// <param name="Phrases">Words in the user's own message that ask for it, used when the AI forgets the tag.</param>
-public sealed record RiderAction(string Tag, string Animation, string Description, IReadOnlyList<string> Phrases);
+public sealed record RiderAction(string Tag, string Animation, RiderActionKind Kind, string Description, IReadOnlyList<string> Phrases);
 
 /// <summary>
 /// The things the rider can do when asked in conversation, and the two ways a request is recognised:
@@ -19,78 +45,197 @@ public static partial class RiderActions
 {
     public static IReadOnlyList<RiderAction> All { get; } =
     [
-        new("wheelie", "Wheelie", "lift the front wheel in a wheelie", ["wheelie", "wheelies", "wheely"]),
-        new("celebrate", "Celebration", "do a victory celebration", ["celebrate", "celebration", "victory dance"]),
-        new("rev", "Revving", "rev the engine", ["rev", "revs", "revving", "rev it"]),
-        new("sleep", "Sleeping", "have a short sleep on the bike", ["go to sleep", "have a nap", "take a nap", "have a sleep", "have a rest"]),
-        new("ride", "RidingLoop", "ride the bike for a moment", ["go for a ride", "ride around", "ride off", "go for a spin"]),
-        new("look-left", "LookLeft", "look to the left", ["look left", "look to the left", "look to your left"]),
-        new("look-right", "LookRight", "look to the right", ["look right", "look to the right", "look to your right"]),
-        new("jump", "Jump", "ride over a dirt jump", ["do a jump", "hit a jump", "hit the jump", "go over a jump", "jump the bike", "big jump", "jump over"]),
-        new("whip", "Whip", "throw a whip over a jump, laying the bike flat in the air", ["a whip", "whip it", "whip the bike"]),
-        new("backflip", "Backflip", "do a backflip off the freestyle ramp", ["backflip", "backflips", "back flip", "do a flip"]),
-        new("superman", "Superman", "do a superman, flying flat out behind the bike", ["superman"]),
-        new("seat-grab", "SupermanSeatGrab", "do a superman seat grab, holding on by the seat", ["seat grab", "seatgrab", "superman seat grab"]),
-        new("no-hander", "NoHander", "jump with both hands off the bars", ["no hander", "nohander", "no handed", "no hands"]),
-        new("no-footer", "NoFooter", "jump with both feet off the pegs", ["no footer", "nofooter", "no feet"]),
-        new("nothing", "Nothing", "do a nothing: no hands and no feet in the air", ["do a nothing", "nothing trick", "no hands no feet", "no hands and no feet"]),
-        new("heel-clicker", "HeelClicker", "do a heel clicker, clicking the boots together over the bars", ["heel clicker", "heelclicker", "click your heels"]),
-        new("can-can", "CanCan", "do a can-can, swinging one leg over the seat", ["can can", "cancan"]),
-        new("nac-nac", "NacNac", "do a nac-nac, swinging one leg back over the rear wheel", ["nac nac", "nacnac", "nac"]),
-        new("lazy-boy", "LazyBoy", "do a lazy boy, lying back flat on the seat in the air", ["lazy boy", "lazyboy"]),
-        new("one-hander", "OneHander", "jump with one hand in the air", ["one hander", "one handed", "one hand"]),
-        new("scrub", "Scrub", "scrub a jump, laying the bike flat off the lip to stay low", ["scrub", "scrub it", "scrub the jump"]),
-        new("indian-air", "IndianAir", "do an indian air: a superman with the legs scissoring", ["indian air", "indianair"]),
-        new("rock-solid", "RockSolid", "do a rock solid, letting go with both hands and floating above the bike", ["rock solid", "rocksolid"]),
-        new("whoops", "Whoops", "blitz through a supercross whoop section", ["whoops section", "whoop section", "hit the whoops", "ride the whoops", "through the whoops", "do the whoops", "do some whoops", "skim the whoops", "blitz the whoops"]),
-        new("stoppie", "Stoppie", "do a stoppie, lifting the rear wheel on the front brake", ["stoppie", "stoppy", "endo", "nose wheelie"]),
+        new("wheelie", "Wheelie", RiderActionKind.Trick, "lift the front wheel in a wheelie", ["wheelie", "wheelies", "wheely"]),
+        new("celebrate", "Celebration", RiderActionKind.Gesture, "do a victory celebration", ["celebrate", "celebration", "victory dance"]),
+        new("rev", "Revving", RiderActionKind.Bike, "rev the engine", ["rev", "revs", "revving", "rev it"]),
+        new("sleep", "Sleeping", RiderActionKind.Gesture, "have a short sleep on the bike", ["go to sleep", "have a nap", "take a nap", "have a sleep", "have a rest"]),
+        new("ride", "RidingLoop", RiderActionKind.Bike, "ride the bike for a moment", ["go for a ride", "ride around", "ride off", "go for a spin"]),
+        new("look-left", "LookLeft", RiderActionKind.Gesture, "look to the left", ["look left", "look to the left", "look to your left"]),
+        new("look-right", "LookRight", RiderActionKind.Gesture, "look to the right", ["look right", "look to the right", "look to your right"]),
+        new("jump", "Jump", RiderActionKind.Trick, "ride over a dirt jump", ["do a jump", "hit a jump", "hit the jump", "go over a jump", "jump the bike", "big jump", "jump over"]),
+        new("whip", "Whip", RiderActionKind.Trick, "throw a whip over a jump, laying the bike flat in the air", ["a whip", "whip it", "whip the bike"]),
+        new("backflip", "Backflip", RiderActionKind.Trick, "do a backflip off the freestyle ramp", ["backflip", "backflips", "back flip", "do a flip"]),
+        new("superman", "Superman", RiderActionKind.Trick, "do a superman, flying flat out behind the bike", ["superman"]),
+        new("seat-grab", "SupermanSeatGrab", RiderActionKind.Trick, "do a superman seat grab, holding on by the seat", ["seat grab", "seatgrab", "superman seat grab"]),
+        new("no-hander", "NoHander", RiderActionKind.Trick, "jump with both hands off the bars", ["no hander", "nohander", "no handed", "no hands"]),
+        new("no-footer", "NoFooter", RiderActionKind.Trick, "jump with both feet off the pegs", ["no footer", "nofooter", "no feet"]),
+        new("nothing", "Nothing", RiderActionKind.Trick, "do a nothing: no hands and no feet in the air", ["do a nothing", "nothing trick", "no hands no feet", "no hands and no feet"]),
+        new("heel-clicker", "HeelClicker", RiderActionKind.Trick, "do a heel clicker, clicking the boots together over the bars", ["heel clicker", "heelclicker", "click your heels"]),
+        new("can-can", "CanCan", RiderActionKind.Trick, "do a can-can, swinging one leg over the seat", ["can can", "cancan"]),
+        new("nac-nac", "NacNac", RiderActionKind.Trick, "do a nac-nac, swinging one leg back over the rear wheel", ["nac nac", "nacnac", "nac"]),
+        new("lazy-boy", "LazyBoy", RiderActionKind.Trick, "do a lazy boy, lying back flat on the seat in the air", ["lazy boy", "lazyboy"]),
+        new("one-hander", "OneHander", RiderActionKind.Trick, "jump with one hand in the air", ["one hander", "one handed", "one hand"]),
+        new("scrub", "Scrub", RiderActionKind.Trick, "scrub a jump, laying the bike flat off the lip to stay low", ["scrub", "scrub it", "scrub the jump"]),
+        new("indian-air", "IndianAir", RiderActionKind.Trick, "do an indian air: a superman with the legs scissoring", ["indian air", "indianair"]),
+        new("rock-solid", "RockSolid", RiderActionKind.Trick, "do a rock solid, letting go with both hands and floating above the bike", ["rock solid", "rocksolid"]),
+        new("whoops", "Whoops", RiderActionKind.Trick, "blitz through a supercross whoop section", ["whoops section", "whoop section", "hit the whoops", "ride the whoops", "through the whoops", "do the whoops", "do some whoops", "skim the whoops", "blitz the whoops"]),
+        new("stoppie", "Stoppie", RiderActionKind.Trick, "do a stoppie, lifting the rear wheel on the front brake", ["stoppie", "stoppy", "endo", "nose wheelie"]),
     ];
 
-    /// <summary>The jumps and tricks, one of which is picked when the user just asks for "a trick".</summary>
-    public static IReadOnlyList<RiderAction> Tricks { get; } =
-        [.. All.Where(action => action.Tag is not ("rev" or "sleep" or "ride" or "look-left" or "look-right" or "celebrate"))];
+    /// <summary>The jumps, tricks and stunts: the only things picked when the user asks for "a trick" or "some tricks".</summary>
+    public static IReadOnlyList<RiderAction> Tricks { get; } = [.. All.Where(action => action.Kind == RiderActionKind.Trick)];
 
-    private static readonly string[] AnyTrickPhrases =
-        ["do a trick", "do some tricks", "do tricks", "show me a trick", "show me some tricks", "another trick", "do a stunt", "do some stunts", "do something cool", "show off"];
+    /// <summary>
+    /// Stands for "one trick, any trick" when the AI writes <c>[trick]</c>. It is not in <see cref="All"/> and has
+    /// no animation of its own: whoever reads the tag picks a real trick in its place.
+    /// </summary>
+    public static RiderAction AnyTrick { get; } = new("trick", string.Empty, RiderActionKind.Trick, "do one trick picked at random", []);
+
+    /// <summary>Stands for "a few different tricks" when the AI writes <c>[tricks]</c>. See <see cref="AnyTrick"/>.</summary>
+    public static RiderAction SomeTricks { get; } = new("tricks", string.Empty, RiderActionKind.Trick, "do a few different tricks in a row, picked at random", []);
+
+    /// <summary>The fewest and the most tricks done for "do some tricks".</summary>
+    public const int FewestInARow = 3;
+
+    public const int MostInARow = 4;
+
+    private static readonly string[] OneTrickPhrases = ["another trick", "one more trick", "another stunt", "do something cool", "show off"];
+
+    private static readonly string[] SeveralTricksPhrases =
+        ["more tricks", "more stunts", "trick show", "put on a show", "show me what you can do", "show me what you ve got", "show me what you got"];
 
     /// <summary>Added to the rider's personality so the AI knows what it can do and how to do it.</summary>
     public static string Instructions { get; } =
-        "You can move. When the user asks you to do one of these things, or it would be fun, put its tag on its own at the very start of your reply, "
-        + "then answer normally: "
-        + string.Join("; ", All.Select(action => $"[{action.Tag}] to {action.Description}"))
-        + ". Use a tag only for these actions, exactly as written, and at most one per reply. The user does not see the tag.";
+        "You can move. You only move when you write a tag: saying you will do something does not make it happen. "
+        + "When the user asks you to do one of these things, or it would be fun, put its tag at the very start of your reply, then answer normally. "
+        + "Tricks, jumps and stunts: " + Describe(RiderActionKind.Trick)
+        + ". Ordinary things on the bike, which are not tricks: " + Describe(RiderActionKind.Bike)
+        + ". Gestures, which are not tricks: " + Describe(RiderActionKind.Gesture)
+        + $". When the user asks for tricks without naming any, write [{SomeTricks.Tag}] to {SomeTricks.Description}, or [{AnyTrick.Tag}] to {AnyTrick.Description}. "
+        + "If you say which trick you are doing, write that trick's tag. You may write up to four tags, one after another, to do several things in a row. "
+        + "Your thinking and talking movements happen by themselves and are not tricks. "
+        + "Use only these tags, exactly as written. The user does not see the tags.";
+
+    private static string Describe(RiderActionKind kind) =>
+        string.Join("; ", All.Where(action => action.Kind == kind).Select(action => $"[{action.Tag}] to {action.Description}"));
 
     private static readonly string[] QuestionStarts = ["what", "why", "how", "when", "who", "which", "where"];
 
-    /// <summary>The action for a tag the AI wrote, with or without its square brackets. Null if it is not one.</summary>
+    /// <summary>
+    /// The action for a tag the AI wrote, with or without its square brackets. Null if it is not one.
+    /// <c>[trick]</c> and <c>[tricks]</c> give <see cref="AnyTrick"/> and <see cref="SomeTricks"/>.
+    /// </summary>
     public static RiderAction? FromTag(string tag)
     {
         ArgumentNullException.ThrowIfNull(tag);
         var name = tag.Trim().Trim('[', ']').Trim().Replace(' ', '-').Replace('_', '-');
-        return All.FirstOrDefault(action => string.Equals(action.Tag, name, StringComparison.OrdinalIgnoreCase));
+        if (Is(name, "tricks") || Is(name, "stunts") || Is(name, "some-tricks") || Is(name, "random-tricks"))
+        {
+            return SomeTricks;
+        }
+
+        if (Is(name, "trick") || Is(name, "stunt") || Is(name, "random-trick"))
+        {
+            return AnyTrick;
+        }
+
+        return All.FirstOrDefault(action => Is(action.Tag, name));
+
+        static bool Is(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
     /// The actions the user's own message asks for. A question about something ("what is a wheelie?")
-    /// is not a request to do it. Asking for "a trick" without naming one picks a trick at random.
+    /// is not a request to do it. Asking for "a trick" without naming one picks a trick at random, and
+    /// asking for "some tricks" picks a few different ones. Only tricks are ever picked this way.
     /// </summary>
     public static IReadOnlyList<RiderAction> FromRequest(string message, Random? random = null)
     {
-        ArgumentNullException.ThrowIfNull(message);
-        var words = WordBreaks().Replace(message.ToLowerInvariant(), " ").Trim();
-        if (words.Length == 0 || QuestionStarts.Any(start => words.StartsWith(start + " ", StringComparison.Ordinal)))
+        var named = Named(message);
+        if (named.Count > 0)
         {
-            return [];
+            return named;
         }
 
-        var padded = " " + words + " ";
+        return TricksWanted(message) switch
+        {
+            TrickRequest.One => RandomTricks(1, random),
+            TrickRequest.Several => RandomTricks(HowManyInARow(random), random),
+            _ => [],
+        };
+    }
+
+    /// <summary>The actions the user's message asks for by name, in the order they are listed in <see cref="All"/>.</summary>
+    public static IReadOnlyList<RiderAction> Named(string message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        var padded = Padded(message);
+        return padded is null || IsQuestion(padded) ? [] : [.. Find(padded, All).OrderBy(action => All.ToList().IndexOf(action))];
+    }
+
+    /// <summary>Whether the user's message asks for a trick, or several, without it mattering which.</summary>
+    public static TrickRequest TricksWanted(string message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        var padded = Padded(message);
+        if (padded is null || IsQuestion(padded))
+        {
+            return TrickRequest.None;
+        }
+
+        // "Do you know any tricks?" asks what the rider knows; it is not a request to do them.
+        if (Has(padded, "know"))
+        {
+            return TrickRequest.None;
+        }
+
+        return SeveralTricksPhrases.Any(phrase => Has(padded, phrase)) || AskForTricks().IsMatch(padded) ? TrickRequest.Several
+            : OneTrickPhrases.Any(phrase => Has(padded, phrase)) || AskForATrick().IsMatch(padded) ? TrickRequest.One
+            : TrickRequest.None;
+    }
+
+    /// <summary>
+    /// The tricks named in something the rider said, in the order it said them. Used when the user asked for tricks
+    /// and the AI answered "how about a no-hander" without writing the tag. Only tricks are looked for.
+    /// </summary>
+    public static IReadOnlyList<RiderAction> Mentioned(string reply)
+    {
+        ArgumentNullException.ThrowIfNull(reply);
+        return Padded(reply) is { } padded ? Find(padded, Tricks) : [];
+    }
+
+    /// <summary>How many tricks to do for "do some tricks".</summary>
+    public static int HowManyInARow(Random? random = null) => (random ?? Random.Shared).Next(FewestInARow, MostInARow + 1);
+
+    /// <summary>Different tricks picked at random, never anything that is not a trick.</summary>
+    /// <param name="count">How many are wanted. Fewer come back if there are not that many left to pick.</param>
+    /// <param name="random">The source of chance.</param>
+    /// <param name="except">Tricks to leave out, such as ones already done.</param>
+    public static IReadOnlyList<RiderAction> RandomTricks(int count, Random? random = null, IEnumerable<RiderAction>? except = null)
+    {
+        var left = except is null ? Tricks.ToList() : [.. Tricks.Except(except)];
+        var source = random ?? Random.Shared;
+        var picked = new List<RiderAction>();
+        while (picked.Count < count && left.Count > 0)
+        {
+            var at = source.Next(left.Count);
+            picked.Add(left[at]);
+            left.RemoveAt(at);
+        }
+
+        return picked;
+    }
+
+    // Lower case, with every run of anything else turned into one space, and a space at each end. Null if nothing is left.
+    private static string? Padded(string text)
+    {
+        var words = WordBreaks().Replace(text.ToLowerInvariant(), " ").Trim();
+        return words.Length == 0 ? null : " " + words + " ";
+    }
+
+    private static bool IsQuestion(string padded) => QuestionStarts.Any(start => padded.StartsWith(" " + start + " ", StringComparison.Ordinal));
+
+    private static bool Has(string padded, string phrase) => padded.Contains(" " + phrase + " ", StringComparison.Ordinal);
+
+    // The actions whose words appear, in the order they appear, each once.
+    private static List<RiderAction> Find(string padded, IReadOnlyList<RiderAction> among)
+    {
         var found = new List<(RiderAction Action, int Start, int End)>();
-        foreach (var action in All)
+        foreach (var action in among)
         {
             foreach (var phrase in action.Phrases)
             {
-                var at = padded.IndexOf(" " + phrase + " ", StringComparison.Ordinal);
-                if (at >= 0)
+                for (var at = padded.IndexOf(" " + phrase + " ", StringComparison.Ordinal); at >= 0; at = padded.IndexOf(" " + phrase + " ", at + 1, StringComparison.Ordinal))
                 {
                     found.Add((action, at, at + phrase.Length));
                 }
@@ -98,22 +243,21 @@ public static partial class RiderActions
         }
 
         // "nose wheelie" is a stoppie, not a wheelie: words that are only part of a longer match do not count.
-        var asked = found
+        return [.. found
             .Where(match => !found.Any(other => other.Action != match.Action
                 && other.Start <= match.Start && other.End >= match.End
                 && other.End - other.Start > match.End - match.Start))
             .OrderBy(match => match.Start)
             .Select(match => match.Action)
-            .Distinct()
-            .OrderBy(action => All.ToList().IndexOf(action))
-            .ToList();
-        if (asked.Count == 0 && AnyTrickPhrases.Any(phrase => padded.Contains(" " + phrase + " ", StringComparison.Ordinal)))
-        {
-            asked.Add(Tricks[(random ?? Random.Shared).Next(Tricks.Count)]);
-        }
-
-        return asked;
+            .Distinct()];
     }
+
+    // An asking word, then at most six words, then "tricks": "do some tricks", "show me a couple of your best stunts".
+    [GeneratedRegex(@" (do|show|pull|bust|throw|try|perform|see|watch|give)( [a-z0-9]+){0,6} (tricks|stunts) ")]
+    private static partial Regex AskForTricks();
+
+    [GeneratedRegex(@" (do|show|pull|bust|throw|try|perform|see|watch|give)( [a-z0-9]+){0,6} (trick|stunt) ")]
+    private static partial Regex AskForATrick();
 
     [GeneratedRegex(@"[^a-z0-9]+")]
     private static partial Regex WordBreaks();

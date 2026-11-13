@@ -91,6 +91,23 @@ public sealed partial class ProactiveComments : ITrayMenuContributor, IDisposabl
         }
     }
 
+    /// <summary>
+    /// True if this is a moment when the rider may do something of its own accord: it is not muted, not in quiet
+    /// hours, not hidden and not in the middle of answering. Says nothing about whether the user has switched that on.
+    /// </summary>
+    public bool MayActNow()
+    {
+        var settings = _settings.Current;
+        var behaviour = settings.Behaviour;
+        if (IsMuted || _conversation.IsBusy || !settings.Appearance.CharacterVisible)
+        {
+            return false;
+        }
+
+        return !(behaviour.QuietHoursEnabled
+            && QuietHours.Cover(TimeOnly.FromDateTime(_time.GetLocalNow().DateTime), behaviour.QuietHoursStart, behaviour.QuietHoursEnd));
+    }
+
     /// <summary>The words for the "keep quiet" choice on the rider's menu, or null when there is nothing to offer.</summary>
     public string? MuteChoiceText => !Enabled ? null : IsMuted ? UnmuteText : MuteText;
 
@@ -269,18 +286,7 @@ public sealed partial class ProactiveComments : ITrayMenuContributor, IDisposabl
         }
     }
 
-    private bool MaySpeakNow()
-    {
-        var settings = _settings.Current;
-        var behaviour = settings.Behaviour;
-        if (IsMuted || _conversation.IsBusy || !settings.Appearance.CharacterVisible || string.IsNullOrWhiteSpace(settings.Ai.Model))
-        {
-            return false;
-        }
-
-        return !(behaviour.QuietHoursEnabled
-            && QuietHours.Cover(TimeOnly.FromDateTime(_time.GetLocalNow().DateTime), behaviour.QuietHoursStart, behaviour.QuietHoursEnd));
-    }
+    private bool MaySpeakNow() => MayActNow() && !string.IsNullOrWhiteSpace(_settings.Current.Ai.Model);
 
     // What the rider said is never logged.
     [LoggerMessage(Level = LogLevel.Information, Message = "The rider started a conversation ({Unanswered} in a row without an answer).")]
