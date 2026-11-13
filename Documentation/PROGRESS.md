@@ -171,7 +171,7 @@ settings windows on top of `RiderServices`.
 
   The cost is about 5 ms of processor time per frame drawn, almost independent of window size, so frame rate is
   what matters. The light's real-time shadow map is off (the bike carries its own shadow) and anti-aliasing is 2x.
-- Known issue: memory crept from 231 to 241 MB over 80 seconds. A longer run is needed to tell normal heap growth
-  from a leak.
+- Memory over 24 minutes: 231 MB at start, 242 MB after 2 minutes, then flat at 244 MB to the end. No leak. Average
+  processor use over the same run: 9.6 % of one core (286 samples).
 - Boss checked the proof on the PC: the rider rides about and can be picked up and moved.
 - Still to confirm: clicks reach other windows when the mouse is not over the rider.
