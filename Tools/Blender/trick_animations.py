@@ -137,6 +137,34 @@ def t_seat_grab(u):
     return p, hold(u), {}
 
 
+def t_indian_air(u):
+    # A superman with the legs scissoring past each other.
+    k = math.sin(u * 30) * 0.22
+    p = pose(hips=(-0.316, 0, 0.37), hipsrot=(0, 75, 0), head=(0, -58, 0),
+             **_feet((-1.6, 0.1, 1.34 + k), (-1.6, -0.1, 1.34 - k)))
+    return p, hold(u), {}
+
+
+def t_rock_solid(u):
+    # From a seat grab, both hands let go for a moment and the rider floats free above the bike.
+    hs = SIDE['hs']
+    free = bump(u, 0.36, 0.44, 0.56, 0.64)
+    seat = Vector((-0.40, 0.13 * hs, 0.84)); out_n = Vector((-0.75, 0.7 * hs, 1.0)); out_f = Vector((-0.2, -0.7 * hs, 1.25))
+    grip_f = GRIP['R'] if hs > 0 else GRIP['L']
+    n = tuple(seat.lerp(out_n, free)); f = tuple(grip_f.lerp(out_f, free))
+    hands = _hands(n, f) if hs > 0 else _hands(f, n)
+    p = pose(hips=(-0.41, near(0.04), 0.29 + 0.05 * free), hipsrot=(0, 78, near(34) * (1 - free)), head=(0, -55, near(-20) * (1 - free)),
+             **_feet((-1.9, 0.1 + 0.25 * hs * (1 - free), 1.36), (-1.9, -0.1 + 0.25 * hs * (1 - free), 1.36)), **hands)
+    return p, hold(u), {}
+
+
+def t_scrub(u):
+    # Staying low: the bike is thrown flat the moment it leaves the lip and picked up again before the landing.
+    w = bump(u, -0.05, 0.16, 0.34, 0.78)
+    p = pose(hips=(-0.02, near(-0.06), 0.03), spine=(near(18), 26, 0), head=(near(26), -16, 0))
+    return p, w, dict(roll=near(-70) * w, yaw=near(-24) * w, steer=near(-26) * w)
+
+
 def t_whip(u):
     w = bump(u, 0.10, 0.42, 0.52, 0.88)
     p = pose(hips=(0.0, near(-0.04), 0.07), spine=(near(14), 20, 0), head=(near(22), -14, 0))
@@ -438,6 +466,7 @@ def animations():
         A.append(dict(name=name, stage='air', build=lambda kw=kw, name=name: build_jump(name=name, **kw)))
     jump('Jump', trick=t_plain, angle=30.0, lip=0.5, land_angle=26.0, ramp='dirt')
     jump('Whip', trick=t_whip, angle=32.0, lip=0.55, land_angle=27.0, ramp='dirt')
+    jump('Scrub', trick=t_scrub, angle=24.0, lip=0.42, land_angle=22.0, ramp='dirt', nose_hold=0.0)
     jump('Backflip', trick=t_backflip, flip=1)
     jump('Superman', trick=t_superman)
     jump('SupermanSeatGrab', trick=t_seat_grab)
@@ -449,6 +478,8 @@ def animations():
     jump('NacNac', trick=t_nac_nac)
     jump('LazyBoy', trick=t_lazy_boy)
     jump('OneHander', trick=t_one_hander)
+    jump('IndianAir', trick=t_indian_air)
+    jump('RockSolid', trick=t_rock_solid)
     A.append(dict(name='Whoops', stage='ground', build=build_whoops))
     A.append(dict(name='Stoppie', stage='ground', build=build_stoppie))
     return A
@@ -535,11 +566,14 @@ def camera(side, stage):
 
 
 def render(out, side, names=None, samples=16, step=2, only=None, scale=100, force=False):
+    """Renders one animation at a time, with only that animation's props in the scene, which is several times quicker."""
     sc = bpy.context.scene
-    table = build(side, names)
-    sc.eevee.taa_render_samples = samples
+    configure(side)
+    wanted = [a['name'] for a in animations() if not names or a['name'] in names]
     done = {}
-    for a in table:
+    for name in wanted:
+        a = build(side, [name])[0]
+        sc.eevee.taa_render_samples = samples
         d = os.path.join(out, side, a['name']); os.makedirs(d, exist_ok=True)
         camera(side, a['stage']); sc.render.resolution_percentage = scale
         ts = list(range(0, a['frames'] + 1, step))
@@ -551,7 +585,7 @@ def render(out, side, names=None, samples=16, step=2, only=None, scale=100, forc
                 continue
             sc.frame_set(a['start'] + t); sc.render.filepath = path; bpy.ops.render.render(write_still=True)
         done[a['name']] = len(ts)
-    json.dump(dict(table=table, counts=done), open(os.path.join(out, side, 'table_%s.json' % '_'.join(sorted(done))[:60]), 'w'), indent=1)
+        json.dump(dict(a, count=len(ts)), open(os.path.join(d, 'info.json'), 'w'), indent=1)
     return done
 
 

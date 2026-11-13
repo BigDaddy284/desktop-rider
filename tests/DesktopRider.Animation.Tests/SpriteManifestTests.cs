@@ -144,4 +144,33 @@ public class SpriteManifestTests
         Assert.Equal((30, 120), manifest.OriginFor(jump, Facing.Right));
         Assert.Equal((50, 120), manifest.OriginFor(jump, Facing.Left));
     }
+
+    [Fact]
+    public void RealRiderManifest_JumpsAndTricksStartFromTheRidersUsualPlace()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "RiderSprites", "sprites.json");
+        if (!File.Exists(path))
+        {
+            return; // The sprites are not part of this checkout.
+        }
+
+        var manifest = SpriteManifest.Parse(File.ReadAllText(path));
+        var big = manifest.Animations.Where(clip => clip.HasOwnFrame).ToList();
+
+        Assert.True(big.Count >= 10, "At least ten jump, trick and whoop animations are expected.");
+        Assert.All(big, clip =>
+        {
+            // One-shots that begin and end at rest, with room above for the jump and room in front for a ramp to arrive.
+            Assert.False(clip.Loop);
+            var (width, height) = manifest.FrameSizeFor(clip);
+            var (x, y) = manifest.OriginFor(clip, Facing.Right);
+            Assert.True(width > manifest.FrameWidth && height > manifest.FrameHeight, clip.Name);
+            Assert.Equal(height - manifest.FrameHeight, y);
+            Assert.True(width - manifest.FrameWidth - x > 0, clip.Name);
+
+            // At the normal on-screen size (45%) the larger frame must sit on a whole pixel, or the rider would shift.
+            Assert.Equal(0, x % 20);
+            Assert.Equal(0, y % 20);
+        });
+    }
 }

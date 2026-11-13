@@ -31,6 +31,7 @@ internal sealed partial class RiderSprite : IDisposable
     private Facing _facing = Facing.Right;
     private bool _failed;
     private bool _loading;
+    private string? _stageSheet;
     private bool _disposed;
 
     private RiderSprite(string folder, SpriteManifest manifest, ILogger logger)
@@ -186,6 +187,17 @@ internal sealed partial class RiderSprite : IDisposable
 
         frame.Freeze();
         CurrentFrame = frame;
+        if (clip.HasOwnFrame)
+        {
+            _stageSheet = clip.SheetFor(_facing);
+        }
+        else if (_stageSheet is not null)
+        {
+            // A jump has just finished: let go of its large sheet straight away.
+            _sheets.Remove(_stageSheet);
+            _stageSheet = null;
+        }
+
         OnStage = clip.HasOwnFrame;
         FrameSize = Manifest.FrameSizeFor(clip);
         FrameOrigin = Manifest.OriginFor(clip, _facing);

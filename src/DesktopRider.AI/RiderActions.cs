@@ -26,7 +26,32 @@ public static partial class RiderActions
         new("ride", "RidingLoop", "ride the bike for a moment", ["go for a ride", "ride around", "ride off", "go for a spin"]),
         new("look-left", "LookLeft", "look to the left", ["look left", "look to the left", "look to your left"]),
         new("look-right", "LookRight", "look to the right", ["look right", "look to the right", "look to your right"]),
+        new("jump", "Jump", "ride over a dirt jump", ["do a jump", "hit a jump", "hit the jump", "go over a jump", "jump the bike", "big jump", "jump over"]),
+        new("whip", "Whip", "throw a whip over a jump, laying the bike flat in the air", ["a whip", "whip it", "whip the bike"]),
+        new("backflip", "Backflip", "do a backflip off the freestyle ramp", ["backflip", "backflips", "back flip", "do a flip"]),
+        new("superman", "Superman", "do a superman, flying flat out behind the bike", ["superman"]),
+        new("seat-grab", "SupermanSeatGrab", "do a superman seat grab, holding on by the seat", ["seat grab", "seatgrab", "superman seat grab"]),
+        new("no-hander", "NoHander", "jump with both hands off the bars", ["no hander", "nohander", "no handed", "no hands"]),
+        new("no-footer", "NoFooter", "jump with both feet off the pegs", ["no footer", "nofooter", "no feet"]),
+        new("nothing", "Nothing", "do a nothing: no hands and no feet in the air", ["do a nothing", "nothing trick", "no hands no feet", "no hands and no feet"]),
+        new("heel-clicker", "HeelClicker", "do a heel clicker, clicking the boots together over the bars", ["heel clicker", "heelclicker", "click your heels"]),
+        new("can-can", "CanCan", "do a can-can, swinging one leg over the seat", ["can can", "cancan"]),
+        new("nac-nac", "NacNac", "do a nac-nac, swinging one leg back over the rear wheel", ["nac nac", "nacnac", "nac"]),
+        new("lazy-boy", "LazyBoy", "do a lazy boy, lying back flat on the seat in the air", ["lazy boy", "lazyboy"]),
+        new("one-hander", "OneHander", "jump with one hand in the air", ["one hander", "one handed", "one hand"]),
+        new("scrub", "Scrub", "scrub a jump, laying the bike flat off the lip to stay low", ["scrub", "scrub it", "scrub the jump"]),
+        new("indian-air", "IndianAir", "do an indian air: a superman with the legs scissoring", ["indian air", "indianair"]),
+        new("rock-solid", "RockSolid", "do a rock solid, letting go with both hands and floating above the bike", ["rock solid", "rocksolid"]),
+        new("whoops", "Whoops", "blitz through a supercross whoop section", ["whoops section", "whoop section", "hit the whoops", "ride the whoops", "through the whoops", "do the whoops", "do some whoops", "skim the whoops", "blitz the whoops"]),
+        new("stoppie", "Stoppie", "do a stoppie, lifting the rear wheel on the front brake", ["stoppie", "stoppy", "endo", "nose wheelie"]),
     ];
+
+    /// <summary>The jumps and tricks, one of which is picked when the user just asks for "a trick".</summary>
+    public static IReadOnlyList<RiderAction> Tricks { get; } =
+        [.. All.Where(action => action.Tag is not ("rev" or "sleep" or "ride" or "look-left" or "look-right" or "celebrate"))];
+
+    private static readonly string[] AnyTrickPhrases =
+        ["do a trick", "do some tricks", "do tricks", "show me a trick", "show me some tricks", "another trick", "do a stunt", "do some stunts", "do something cool", "show off"];
 
     /// <summary>Added to the rider's personality so the AI knows what it can do and how to do it.</summary>
     public static string Instructions { get; } =
@@ -47,9 +72,9 @@ public static partial class RiderActions
 
     /// <summary>
     /// The actions the user's own message asks for. A question about something ("what is a wheelie?")
-    /// is not a request to do it.
+    /// is not a request to do it. Asking for "a trick" without naming one picks a trick at random.
     /// </summary>
-    public static IReadOnlyList<RiderAction> FromRequest(string message)
+    public static IReadOnlyList<RiderAction> FromRequest(string message, Random? random = null)
     {
         ArgumentNullException.ThrowIfNull(message);
         var words = WordBreaks().Replace(message.ToLowerInvariant(), " ").Trim();
@@ -59,7 +84,35 @@ public static partial class RiderActions
         }
 
         var padded = " " + words + " ";
-        return All.Where(action => action.Phrases.Any(phrase => padded.Contains(" " + phrase + " ", StringComparison.Ordinal))).ToList();
+        var found = new List<(RiderAction Action, int Start, int End)>();
+        foreach (var action in All)
+        {
+            foreach (var phrase in action.Phrases)
+            {
+                var at = padded.IndexOf(" " + phrase + " ", StringComparison.Ordinal);
+                if (at >= 0)
+                {
+                    found.Add((action, at, at + phrase.Length));
+                }
+            }
+        }
+
+        // "nose wheelie" is a stoppie, not a wheelie: words that are only part of a longer match do not count.
+        var asked = found
+            .Where(match => !found.Any(other => other.Action != match.Action
+                && other.Start <= match.Start && other.End >= match.End
+                && other.End - other.Start > match.End - match.Start))
+            .OrderBy(match => match.Start)
+            .Select(match => match.Action)
+            .Distinct()
+            .OrderBy(action => All.ToList().IndexOf(action))
+            .ToList();
+        if (asked.Count == 0 && AnyTrickPhrases.Any(phrase => padded.Contains(" " + phrase + " ", StringComparison.Ordinal)))
+        {
+            asked.Add(Tricks[(random ?? Random.Shared).Next(Tricks.Count)]);
+        }
+
+        return asked;
     }
 
     [GeneratedRegex(@"[^a-z0-9]+")]

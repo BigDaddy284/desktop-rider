@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: 12 November 2026
+Last updated: 13 November 2026
 
 ## Current task
 
@@ -37,6 +37,7 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 | 6 | Connect character animation states to conversation events | Built and unit tested (`CharacterBehaviour`): thinking, talking, back to rest. Awaits manual check M6. |
 | 6 | Interface style and bubble chat (owner's request after trying 0.6.0) | Built: dark Windows 11 style for the rider's menu, the icon's menu, the conversation window and bubbles; a **Chat in bubbles** switch with a typing bubble below the rider. Logic unit tested; the look awaits the owner's check (M6, M7). |
 | 6 | Tricks on request (owner's request) | Built and unit tested: asking the rider in conversation for a wheelie, a rev, a celebration, a nap, a ride or a look left or right plays that animation. Awaits the owner's check (M7 steps 14 to 16). |
+| 4 | Jumps, freestyle tricks, whoops and a stoppie (owner's request) | Built in 0.6.3: 18 new animations rendered from the owner's own models in both directions (jump, whip, scrub, backflip, superman, superman seat grab, no hander, no footer, nothing, heel clicker, can-can, nac-nac, lazy boy, one hander, indian air, rock solid, whoops, stoppie), larger frames with their own window so ramps and height fit, and all of them available on request and to the AI. Manifest, frame rules and requests are unit tested. How they look on Windows awaits the owner's check (M8), and the ramps, mounds and whoops are new artwork awaiting approval. |
 | 3 | Organise all supplied references | Done. Stored privately by the owner; folder structure and written summary are in `References/`. |
 
 ## Latest results
@@ -44,7 +45,7 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 | Check | Result |
 |---|---|
 | Build (`dotnet build`, warnings as errors) | Succeeded, 0 warnings, 0 errors |
-| Tests (`dotnet test`) | 350 passed, 0 failed, 0 skipped (Core 142, Animation 68, AI 140) |
+| Tests (`dotnet test`) | 390 passed, 0 failed, 0 skipped (Core 142, Animation 76, AI 172) |
 | GitHub Actions build and test on Windows | Passed for Phase 1; runs again on each push |
 | Standalone Windows build (`dotnet publish`, win-x64) | Succeeded |
 | Manual checks on Windows 11 | The owner ran the 0.3.0 test build: it starts, shows the animated rider and works. M1 to M3 not yet reported step by step. |
@@ -62,6 +63,8 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 
 ## Known issues
 
+- The window that shows jumps and tricks larger than the rider's usual frame, and loading those large sheets in the background, have never been run by the developer (Linux build machine). They compile and the frame and origin rules are tested, but how they look on Windows depends on manual check M8.
+- The new jumps and tricks were animated from descriptions of the techniques and simple flight physics, not traced frame by frame from film, and use a gentler gravity so a jump fits on a desktop. Timing and body positions may need adjusting after the owner has watched them.
 - The conversation window, the speech bubble and click-versus-drag on the rider have never been run by the developer (Linux build machine). They compile and their logic is tested, but how they look and behave on Windows depends on manual check M6.
 - The owner tried 0.6.0 and reported the conversation working, then asked for the dark Windows 11 style and a bubble chat mode before moving on; these are in 0.6.1. The dark style has never been seen by the developer, so its look is unconfirmed until the owner tries it.
 - The owner tried 0.6.1 and reported it looks OK, but in bubble mode clicking the rider hid only the typing bubble and left the rider's answer up. 0.6.2 puts a finished answer away with the typing bubble (regression test in `SpeechBubbleViewModelTests`).

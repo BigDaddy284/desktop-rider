@@ -247,7 +247,12 @@ public class CharacterBehaviourTests
         var behaviour = new CharacterBehaviour(player, manifest);
 
         // Kept in step by hand with RiderActions in the AI project, which this project does not refer to.
-        string[] asked = ["Wheelie", "Celebration", "Revving", "Sleeping", "RidingLoop", "LookLeft", "LookRight"];
+        string[] asked =
+        [
+            "Wheelie", "Celebration", "Revving", "Sleeping", "RidingLoop", "LookLeft", "LookRight",
+            "Jump", "Whip", "Backflip", "Superman", "SupermanSeatGrab", "NoHander", "NoFooter", "Nothing",
+            "HeelClicker", "CanCan", "NacNac", "LazyBoy", "OneHander", "Scrub", "IndianAir", "RockSolid", "Whoops", "Stoppie",
+        ];
 
         Assert.All(asked, animation => Assert.True(behaviour.Perform(animation), animation));
     }
