@@ -35,6 +35,10 @@ The balancing bike was acceptable in a flat side view but will look odd once it 
 
 Front three-quarter shows the lean and the foot on the ground. Side-on shows the seated posture.
 
+## This rider's own style
+
+The owner's start-gate video shows the rider resting on the stationary bike seated forward with **both feet on the ground**, elbows up. That supports a feet-down resting pose over the version 1 balancing bike. See [RIDER_STYLE.md](RIDER_STYLE.md).
+
 ## Reference links
 
 | Type | Link |

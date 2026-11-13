@@ -38,6 +38,13 @@ v1 only has one seated pose. Free riding needs at least: standing, seated, lean 
 
 Front three-quarter from the outside of a corner shows the lean, the foot out and the elbows. Side-on shows the standing position best.
 
+## This rider's own style
+
+From the owner's photographs (see [RIDER_STYLE.md](RIDER_STYLE.md)). These take priority over the general technique above.
+
+- **Seated is the default**, not standing: chest forward and low over the bar pad, elbows out wide and up. Stands only for jumps and bumps.
+- **Corners:** sits at the very front of the seat, inside leg straight out ahead with the boot level with the front axle and toe up, outside elbow high, head turned to the exit. The bike leans 30° to 45° while the body stays nearer upright.
+
 ## Reference links
 
 | Type | Link |

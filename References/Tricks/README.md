@@ -11,7 +11,10 @@ Each sheet has the same parts:
 5. **Best views**: which camera angles show the move.
 6. **Reference links.**
 
-There is also [PHOTO_AUDIT.md](PHOTO_AUDIT.md), which lists the views of the rider, gear and bike that the owner's photographs do not cover.
+Also here:
+
+- [RIDER_STYLE.md](RIDER_STYLE.md): how this particular rider rides, from the owner's own photographs and videos. Where it differs from the general sheets, it wins.
+- [PHOTO_AUDIT.md](PHOTO_AUDIT.md): the views of the rider, gear and bike that the owner's photographs do and do not cover.
 
 ## The sheets
 

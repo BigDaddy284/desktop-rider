@@ -41,6 +41,14 @@ Good match. The rider is very still; real riders visibly extend at the lip and r
 
 Side-on shows the arc and bike attitude. Front three-quarter from the landing shows the rider's stance.
 
+## This rider's own style
+
+From the owner's photographs (see [RIDER_STYLE.md](RIDER_STYLE.md)). These take priority over the general technique above.
+
+- Standing on the pegs, knees bent, arms bent, looking at the landing.
+- Small air, about a wheel's height. The bike stays level or slightly nose up and flies straight.
+- Version 1's jump is higher and pitches more than any jump in the photographs.
+
 ## Reference links
 
 | Type | Link |
