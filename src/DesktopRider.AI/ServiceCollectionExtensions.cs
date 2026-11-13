@@ -11,7 +11,8 @@ public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the AI services. Requires <c>AddDesktopRiderCore</c>. Creating these services makes no request;
-    /// Ollama is only contacted when the user asks for something.
+    /// Ollama is only contacted when the user asks for something, or, if the user has switched it on, when the
+    /// rider starts a conversation itself.
     /// </summary>
     public static IServiceCollection AddDesktopRiderAi(this IServiceCollection services)
     {
@@ -46,7 +47,19 @@ public static class ServiceCollectionExtensions
             provider.GetRequiredService<RiderMemory>()));
         services.AddSingleton<SpeechBubbleViewModel>();
         services.AddSingleton<RiderSettingsViewModel>();
+        services.AddSingleton(provider =>
+        {
+            // Made on the interface thread at start-up, which is where the rider's own remarks must be made.
+            var interfaceThread = SynchronizationContext.Current;
+            return new ProactiveComments(
+                provider.GetRequiredService<ConversationViewModel>(),
+                provider.GetRequiredService<ISettingsService>(),
+                provider.GetRequiredService<TimeProvider>(),
+                provider.GetRequiredService<ILogger<ProactiveComments>>(),
+                interfaceThread is null ? null : work => interfaceThread.Post(_ => work(), null));
+        });
         services.AddSingleton<ITrayMenuContributor>(provider => provider.GetRequiredService<AiMenuViewModel>());
+        services.AddSingleton<ITrayMenuContributor>(provider => provider.GetRequiredService<ProactiveComments>());
         return services;
     }
 

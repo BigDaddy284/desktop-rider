@@ -298,6 +298,13 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
             return;
         }
 
+        // The rider was about to say something of its own but has not started: the user's message comes first.
+        if (_reply is { } unprompted)
+        {
+            _reply = null;
+            unprompted.Cancel();
+        }
+
         if (text.Length > MaxMessageLength)
         {
             text = text[..MaxMessageLength];
@@ -309,22 +316,53 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
 
         // Kept straight away, so the message survives even if Desktop Rider is closed before the answer ends.
         var saved = SaveHistoryAsync();
+        await ReplyAsync(history, text, saved);
+    }
 
+    /// <summary>
+    /// The rider says something of its own, without being asked. Only ever called while the user has switched
+    /// that on. Nothing shows until the first words arrive, and if the AI cannot be reached nothing shows at all:
+    /// a remark nobody asked for is not worth an error message. Returns true if the rider said something.
+    /// </summary>
+    public Task<bool> CommentAsync()
+    {
+        if (IsBusy || _reply is not null || _disposed)
+        {
+            return Task.FromResult(false);
+        }
+
+        var history = BuildHistory();
+        history.Add(new ChatMessage(ChatRole.User, RiderPersonality.OwnCommentRequest));
+        return ReplyAsync(history, null, Task.CompletedTask);
+    }
+
+    // Shows the rider's reply as it arrives. With no message from the user this is the rider speaking of its own
+    // accord, which stays out of sight until there are words to show and never reports a problem.
+    private async Task<bool> ReplyAsync(List<ChatMessage> history, string? message, Task saved)
+    {
+        var unprompted = message is null;
         var stop = new CancellationTokenSource();
         _reply = stop;
-        CurrentReply = string.Empty;
-        State = ConversationState.Thinking;
+        if (!unprompted)
+        {
+            CurrentReply = string.Empty;
+            State = ConversationState.Thinking;
+        }
+
         ConversationLine? answer = null;
         var tags = new ActionTagFilter();
         var done = new HashSet<RiderAction>();
-        var asked = RiderActions.FromRequest(text);
+        var asked = message is null ? [] : RiderActions.FromRequest(message);
         try
         {
-            // "Remember that…" is kept before the message goes to the AI, so the rider's answer already knows it.
-            await RememberIfAskedAsync(text);
-            if (!ReferenceEquals(_reply, stop))
+            if (message is not null)
             {
-                return;
+                // "Remember that…" is kept before the message goes to the AI, so the rider's answer already knows it.
+                await RememberIfAskedAsync(message);
+                if (!ReferenceEquals(_reply, stop))
+                {
+                    return false;
+                }
             }
 
             await foreach (var piece in _chat.StreamReplyAsync(history, stop.Token))
@@ -373,7 +411,7 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
 
             if (!ReferenceEquals(_reply, stop))
             {
-                return;
+                return false;
             }
 
             // Brackets still held back at the end were not a tag, so they belong to the reply.
@@ -387,7 +425,10 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
             ConnectionText = ConnectedText;
             if (answer is null)
             {
-                Notify(EmptyReplyNotice);
+                if (!unprompted)
+                {
+                    Notify(EmptyReplyNotice);
+                }
             }
             else
             {
@@ -401,12 +442,15 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
             {
                 LogReplyFailed(_logger, problem.Kind);
                 ApplyProblem(problem);
-                Notify(problem.Message);
+                if (!unprompted)
+                {
+                    Notify(problem.Message);
+                }
             }
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
         {
-            if (ReferenceEquals(_reply, stop))
+            if (ReferenceEquals(_reply, stop) && !unprompted)
             {
                 Notify(StoppedNotice);
             }
@@ -429,12 +473,14 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
             }
 
             stop.Dispose();
-            if (current && !_disposed)
+            if (current && !_disposed && (answer is not null || !unprompted))
             {
                 await saved;
                 await SaveHistoryAsync();
             }
         }
+
+        return answer is not null;
     }
 
     /// <summary>Stops a reply that is still arriving. What has arrived so far is kept.</summary>

@@ -99,6 +99,12 @@ public partial class App : Application
             _aiMenu.SettingsRequested += OnSettingsRequested;
             window.SettingsRequested += OnSettingsRequested;
 
+            // The rider only ever speaks first if the user has switched that on; until then this sets no timer.
+            var comments = _services.GetRequiredService<ProactiveComments>();
+            window.QuietChoice = () => comments.MuteChoiceText;
+            window.QuietToggleRequested += (_, _) => comments.ToggleMute();
+            comments.Start();
+
             window.ApplyVisibility();
             trayViewModel.AnnounceIfStartedHidden();
         }

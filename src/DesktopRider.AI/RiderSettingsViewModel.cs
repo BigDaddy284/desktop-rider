@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Windows.Input;
 using DesktopRider.Core.Configuration;
 using DesktopRider.Core.ViewModels;
@@ -18,7 +19,7 @@ public sealed class MemoryNoteItem(MemoryNote note, ICommand forgetCommand)
 }
 
 /// <summary>
-/// The rider's settings: its personality and what it keeps between sessions. Every choice takes effect and is saved the moment it is made, so there
+/// The rider's settings: its personality, what it keeps between sessions and whether it speaks first. Every choice takes effect and is saved the moment it is made, so there
 /// is no Save button to forget. It has no window, so it is unit tested.
 /// </summary>
 public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
@@ -30,6 +31,7 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
     public const string AlreadyRememberedText = "The rider already remembers that.";
     public const string MemoryFullText = "The rider's memory is full. Delete something to make room.";
     public const string MemoryOffText = "Switch on the rider's memory first.";
+    public const string TimeNotUnderstoodText = "Type a time such as 22:00 or 8:30.";
     public const string MemoryNotSavedText = "That change could not be saved. It applies until Desktop Rider is closed.";
 
     private readonly ISettingsService _settings;
@@ -40,6 +42,7 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
     private string _conversationMessage = string.Empty;
     private string _memoryMessage = string.Empty;
     private string _newNote = string.Empty;
+    private string _quietHoursMessage = string.Empty;
 
     public RiderSettingsViewModel(
         ISettingsService settings,
@@ -266,6 +269,97 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
     public async Task ForgetEverythingAsync() =>
         MemoryMessage = await _memory.ForgetEverythingAsync() ? EverythingForgottenText : MemoryNotSavedText;
 
+    /// <summary>Whether the rider may start a conversation itself now and then. Off until the user switches it on.</summary>
+    public bool RiderSpeaksFirst
+    {
+        get => Behaviour.ProactiveComments;
+        set
+        {
+            if (value != Behaviour.ProactiveComments)
+            {
+                _ = ChangeAsync(s => s.Behaviour.ProactiveComments = value);
+            }
+        }
+    }
+
+    public bool Every15Minutes
+    {
+        get => Behaviour.ProactiveIntervalMinutes == 15;
+        set => ChooseInterval(value, 15);
+    }
+
+    public bool Every30Minutes
+    {
+        get => Behaviour.ProactiveIntervalMinutes == 30;
+        set => ChooseInterval(value, 30);
+    }
+
+    public bool EveryHour
+    {
+        get => Behaviour.ProactiveIntervalMinutes == 60;
+        set => ChooseInterval(value, 60);
+    }
+
+    public bool EveryTwoHours
+    {
+        get => Behaviour.ProactiveIntervalMinutes == 120;
+        set => ChooseInterval(value, 120);
+    }
+
+    /// <summary>Whether there are hours of the day when the rider never speaks first.</summary>
+    public bool QuietHoursOn
+    {
+        get => Behaviour.QuietHoursEnabled;
+        set
+        {
+            if (value != Behaviour.QuietHoursEnabled)
+            {
+                _ = ChangeAsync(s => s.Behaviour.QuietHoursEnabled = value);
+            }
+        }
+    }
+
+    /// <summary>When the quiet hours start, as typed: "22:00".</summary>
+    public string QuietFrom
+    {
+        get => Show(Behaviour.QuietHoursStart);
+        set => ChooseTime(value, Behaviour.QuietHoursStart, (s, time) => s.Behaviour.QuietHoursStart = time);
+    }
+
+    /// <summary>When the quiet hours end, as typed: "08:00".</summary>
+    public string QuietUntil
+    {
+        get => Show(Behaviour.QuietHoursEnd);
+        set => ChooseTime(value, Behaviour.QuietHoursEnd, (s, time) => s.Behaviour.QuietHoursEnd = time);
+    }
+
+    /// <summary>Help for a time that could not be understood. Empty when all is well.</summary>
+    public string QuietHoursMessage
+    {
+        get => _quietHoursMessage;
+        private set
+        {
+            if (_quietHoursMessage != value)
+            {
+                _quietHoursMessage = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Reads a time of day as people type it: "22:00", "8.30", "8", "10pm". Null if it is not one.</summary>
+    public static TimeOnly? ReadTime(string? typed)
+    {
+        var text = (typed ?? string.Empty).Trim().Replace('.', ':').ToUpperInvariant();
+        if (text.Length == 0)
+        {
+            return null;
+        }
+
+        string[] formats = ["H:mm", "HH:mm", "h:mmtt", "h:mm tt", "htt", "h tt", "%H"];
+        return TimeOnly.TryParseExact(text, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var time) ? time : null;
+    }
+
     /// <summary>Words explaining that a change could not be saved. Empty when all is well.</summary>
     public string Problem
     {
@@ -286,6 +380,8 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
     private AiSettings Ai => _settings.Current.Ai;
 
     private MemorySettings Memory => _settings.Current.Memory;
+
+    private BehaviourSettings Behaviour => _settings.Current.Behaviour;
 
     public void Dispose()
     {
@@ -324,6 +420,38 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
         if (selected && Ai.ReplyLength != length)
         {
             _ = ChangeAsync(s => s.Ai.ReplyLength = length);
+        }
+    }
+
+    private static string Show(TimeOnly time) => time.ToString("HH:mm", CultureInfo.InvariantCulture);
+
+    private void ChooseInterval(bool selected, int minutes)
+    {
+        if (selected && Behaviour.ProactiveIntervalMinutes != minutes)
+        {
+            _ = ChangeAsync(s => s.Behaviour.ProactiveIntervalMinutes = minutes);
+        }
+    }
+
+    private void ChooseTime(string typed, TimeOnly current, Action<AppSettings, TimeOnly> change)
+    {
+        if (ReadTime(typed) is not { } time)
+        {
+            // The box goes back to the time in use, with a hint about what to type.
+            QuietHoursMessage = TimeNotUnderstoodText;
+            OnAllPropertiesChanged();
+            return;
+        }
+
+        QuietHoursMessage = string.Empty;
+        if (time != current)
+        {
+            _ = ChangeAsync(s => change(s, time));
+        }
+        else
+        {
+            // "8" typed over "08:00" is the same time; the box is tidied to match.
+            OnAllPropertiesChanged();
         }
     }
 

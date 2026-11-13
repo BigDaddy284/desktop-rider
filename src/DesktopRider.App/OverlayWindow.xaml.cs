@@ -62,6 +62,15 @@ public partial class OverlayWindow : Window
     /// <summary>Raised when the user chooses "Rider settings" from the rider's menu.</summary>
     internal event EventHandler? SettingsRequested;
 
+    /// <summary>Raised when the user chooses to hush the rider, or to let it speak again, from the rider's menu.</summary>
+    internal event EventHandler? QuietToggleRequested;
+
+    /// <summary>
+    /// Supplies the words for the "keep quiet" line of the rider's menu each time the menu opens.
+    /// Null words leave the line out, which is right while the rider never speaks first anyway.
+    /// </summary>
+    internal Func<string?>? QuietChoice { get; set; }
+
     /// <summary>What the rider is doing in the conversation, so that its animation can follow.</summary>
     internal CharacterState CharacterState
     {
@@ -150,6 +159,15 @@ public partial class OverlayWindow : Window
     }
 
     private void OnCharacterClicked(object? sender, EventArgs e) => TalkRequested?.Invoke(this, EventArgs.Empty);
+
+    private void OnMenuOpened(object sender, RoutedEventArgs e)
+    {
+        var words = QuietChoice?.Invoke();
+        QuietItem.Header = words ?? string.Empty;
+        QuietItem.Visibility = words is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void OnQuietClick(object sender, RoutedEventArgs e) => QuietToggleRequested?.Invoke(this, EventArgs.Empty);
 
     private void OnSettingsClick(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke(this, EventArgs.Empty);
 

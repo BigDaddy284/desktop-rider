@@ -1,10 +1,10 @@
 # Progress
 
-Last updated: 12 November 2026
+Last updated: 13 November 2026
 
 ## Current task
 
-Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: built, tested automatically, and confirmed by the owner on Windows 11 with the 0.6.2 build, including the dark style, chat in bubbles and tricks on request. Next is Phase 7: personality and memory.
+Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: built, tested automatically, and confirmed by the owner on Windows 11 with the 0.6.2 build, including the dark style, chat in bubbles and tricks on request. Phase 7 (personality and memory) is built and tested automatically in 0.7.0 and awaits the owner's check on Windows (M8). Next is Phase 8: settings and polish.
 
 ## Completed tasks
 
@@ -40,6 +40,7 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 | 7 | Implement configurable personality | Built and unit tested (`RiderPersonality`, `RiderSettingsViewModel`): a **Rider settings** window with how the rider talks (cheeky, friendly, serious), short or detailed replies, what the rider calls you, and an optional description in your own words. The window itself awaits manual check M8. |
 | 7 | Implement local conversation history | Built and unit tested (`JsonConversationStore`, `ConversationViewModel`): the conversation is kept in `conversation.json` on this computer and is back next time; it can be switched off, kept for a week to a year, and deleted. The owner has not yet tried it (M8). |
 | 7 | Implement optional memory | Built and unit tested (`RiderMemory`, `JsonMemoryStore`): the rider remembers short notes the user asks it to ("remember that…" in conversation, or typed in Rider settings), kept in `memory.json` on this computer. It can be switched off, and notes can be forgotten one at a time or all at once. The owner has not yet tried it (M8). |
+| 7 | Implement proactive behaviour controls | Built and unit tested (`ProactiveComments`, `QuietHours`): off by default with no timer and no AI request; when switched on, a remark after the chosen time, quiet hours, a one-hour mute on the rider's menu, and silence after three unanswered remarks. The owner has not yet tried it (M8). |
 | 3 | Organise all supplied references | Done. Stored privately by the owner; folder structure and written summary are in `References/`. |
 
 ## Latest results
@@ -47,7 +48,7 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 | Check | Result |
 |---|---|
 | Build (`dotnet build`, warnings as errors) | Succeeded, 0 warnings, 0 errors |
-| Tests (`dotnet test`) | 350 passed, 0 failed, 0 skipped (Core 142, Animation 68, AI 140) |
+| Tests (`dotnet test`) | 501 passed, 0 failed, 0 skipped (Core 153, Animation 68, AI 280) |
 | GitHub Actions build and test on Windows | Passed for Phase 1; runs again on each push |
 | Standalone Windows build (`dotnet publish`, win-x64) | Succeeded |
 | Manual checks on Windows 11 | The owner ran the 0.3.0 test build: it starts, shows the animated rider and works. M1 to M3 not yet reported step by step. |
@@ -55,7 +56,6 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 ## Remaining tasks
 
 - **Phase 4 – Animation system:** connect animations to behaviour (moving around the screen, reacting to the user) as those features arrive.
-- **Phase 7 – Personality and memory.**
 - **Phase 8 – Settings and polish.**
 - **Phase 9 – Final validation.**
 
@@ -70,10 +70,12 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 - The owner tried 0.6.1 and reported it looks OK, but in bubble mode clicking the rider hid only the typing bubble and left the rider's answer up. 0.6.2 puts a finished answer away with the typing bubble (regression test in `SpeechBubbleViewModelTests`).
 - Whether the AI itself chooses to do a trick unprompted depends on the model following an instruction, which small models may not. Plain requests such as "do a wheelie" do not depend on that.
 - In the default corner the typing bubble only just fits below the rider. With Windows display scaling above 100% it will not fit there and appears beside or above the rider instead; dragging the rider up a little puts it below.
-- The conversation is forgotten when Desktop Rider closes. Saving it is Phase 7.
+- The Rider settings window (0.7.0) has never been seen by the developer. It compiles and everything it decides is tested, but its look and layout are unconfirmed until the owner tries it (M8).
+- What the rider says when it starts a conversation, and how well it uses a remembered fact or the chosen way of talking, depends on the AI model. Small models may follow those instructions loosely.
+- "Remember that…" is recognised from a fixed set of wordings. Something phrased very differently is not stored; the settings window's **Add** box always works.
 - The owner tried the 0.5.0 build: choosing **Check the AI connection** appeared to do nothing. Results were shown as Windows notifications, which Windows can hide. 0.5.1 shows them in Desktop Rider's own small window instead, starting the moment the menu item is clicked. The owner confirmed 0.5.1 works.
 - The developer can only run the AI code against a stand-in for Ollama. The owner has confirmed discovery, model choice and a streamed reply against a real Ollama; the failure and stop cases have only been tested automatically.
-- The address, personality, temperature and waiting time have no settings screen yet (Phase 8); they can only be changed in the settings file.
+- The Ollama address, temperature and waiting time have no settings screen yet (Phase 8); they can only be changed in the settings file.
 - The window has never been run by the developer, because the build machine is Linux. Everything visual depends on manual checks M1 and M2.
 
 
@@ -85,4 +87,4 @@ Recorded in ARCHITECTURE.md.
 
 ## Next task
 
-Phase 7: Personality and memory (configurable personality, local conversation history, optional memory, proactive behaviour controls). 
+Phase 8: Settings and polish (complete the settings interface, start-up options, transitions and visual polish, packaging). 

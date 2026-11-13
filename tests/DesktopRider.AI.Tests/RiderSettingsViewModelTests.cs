@@ -362,6 +362,105 @@ public class RiderSettingsViewModelTests
         Assert.Equal(["my race number is 284"], context.View.Notes.Select(note => note.Text));
     }
 
+    [Fact]
+    public void AtFirst_TheRiderNeverSpeaksFirst()
+    {
+        using var context = new Context();
+
+        Assert.False(context.View.RiderSpeaksFirst);
+        Assert.True(context.View.Every30Minutes);
+        Assert.False(context.View.Every15Minutes);
+        Assert.False(context.View.EveryHour);
+        Assert.False(context.View.EveryTwoHours);
+        Assert.False(context.View.QuietHoursOn);
+        Assert.Equal("22:00", context.View.QuietFrom);
+        Assert.Equal("08:00", context.View.QuietUntil);
+        Assert.Equal(string.Empty, context.View.QuietHoursMessage);
+    }
+
+    [Fact]
+    public void LettingTheRiderSpeakFirst_AndHowOften_AreSaved()
+    {
+        using var context = new Context();
+
+        context.View.RiderSpeaksFirst = true;
+        context.View.EveryTwoHours = true;
+        context.View.Every30Minutes = false;
+
+        Assert.True(context.Settings.Current.Behaviour.ProactiveComments);
+        Assert.Equal(120, context.Settings.Current.Behaviour.ProactiveIntervalMinutes);
+        Assert.True(context.View.EveryTwoHours);
+        Assert.False(context.View.Every30Minutes);
+
+        context.View.Every15Minutes = true;
+        Assert.Equal(15, context.Settings.Current.Behaviour.ProactiveIntervalMinutes);
+        context.View.EveryHour = true;
+        Assert.Equal(60, context.Settings.Current.Behaviour.ProactiveIntervalMinutes);
+        context.View.Every30Minutes = true;
+        Assert.Equal(30, context.Settings.Current.Behaviour.ProactiveIntervalMinutes);
+    }
+
+    [Fact]
+    public void QuietHours_AreSaved_AsTyped()
+    {
+        using var context = new Context();
+
+        context.View.QuietHoursOn = true;
+        context.View.QuietFrom = "21.30";
+        context.View.QuietUntil = "7";
+
+        Assert.True(context.Settings.Current.Behaviour.QuietHoursEnabled);
+        Assert.Equal(new TimeOnly(21, 30), context.Settings.Current.Behaviour.QuietHoursStart);
+        Assert.Equal(new TimeOnly(7, 0), context.Settings.Current.Behaviour.QuietHoursEnd);
+        Assert.Equal("21:30", context.View.QuietFrom);
+        Assert.Equal("07:00", context.View.QuietUntil);
+        Assert.Equal(string.Empty, context.View.QuietHoursMessage);
+    }
+
+    [Fact]
+    public void ATimeThatMakesNoSense_ChangesNothing_AndSaysWhatToType()
+    {
+        using var context = new Context();
+        var saves = context.Settings.SaveCount;
+
+        context.View.QuietFrom = "late";
+
+        Assert.Equal(saves, context.Settings.SaveCount);
+        Assert.Equal("22:00", context.View.QuietFrom);
+        Assert.Equal(RiderSettingsViewModel.TimeNotUnderstoodText, context.View.QuietHoursMessage);
+
+        context.View.QuietFrom = "23:00";
+
+        Assert.Equal(string.Empty, context.View.QuietHoursMessage);
+        Assert.Equal("23:00", context.View.QuietFrom);
+    }
+
+    [Theory]
+    [InlineData("22:00", 22, 0)]
+    [InlineData("8:30", 8, 30)]
+    [InlineData(" 08.05 ", 8, 5)]
+    [InlineData("7", 7, 0)]
+    [InlineData("0:00", 0, 0)]
+    [InlineData("10pm", 22, 0)]
+    [InlineData("10 PM", 22, 0)]
+    [InlineData("7:15am", 7, 15)]
+    public void ReadTime_UnderstandsTimesAsPeopleTypeThem(string typed, int hour, int minute)
+    {
+        Assert.Equal(new TimeOnly(hour, minute), RiderSettingsViewModel.ReadTime(typed));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    [InlineData("25:00")]
+    [InlineData("12:75")]
+    [InlineData("soon")]
+    [InlineData("-3")]
+    public void ReadTime_RejectsEverythingElse(string? typed)
+    {
+        Assert.Null(RiderSettingsViewModel.ReadTime(typed));
+    }
+
     private sealed class Context : IDisposable
     {
         public Context()

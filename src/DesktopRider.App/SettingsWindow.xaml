@@ -235,6 +235,42 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- The rider speaking first -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Comments from the rider" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="The rider normally only speaks when you talk to it." Style="{StaticResource Explanation}" />
+
+                                <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding RiderSpeaksFirst, Mode=TwoWay}"
+                                          Content="Let the rider start conversations" />
+                                <TextBlock Style="{StaticResource Explanation}" Margin="0,4,0,0"
+                                           Text="When this is on, the rider says something of its own now and then: a remark about bikes, a tip, or an offer of help. It uses your AI model to think of it, so the AI must be connected. If you ignore it a few times it stops until you next talk to it. While this is off, Desktop Rider never contacts the AI by itself." />
+
+                                <StackPanel IsEnabled="{Binding RiderSpeaksFirst}">
+                                    <TextBlock Text="How often, when you have not been talking?" Style="{StaticResource Question}" />
+                                    <RadioButton GroupName="Often" Style="{StaticResource Choice}" IsChecked="{Binding Every15Minutes, Mode=TwoWay}" Content="About every 15 minutes" />
+                                    <RadioButton GroupName="Often" Style="{StaticResource Choice}" IsChecked="{Binding Every30Minutes, Mode=TwoWay}" Content="About every 30 minutes" />
+                                    <RadioButton GroupName="Often" Style="{StaticResource Choice}" IsChecked="{Binding EveryHour, Mode=TwoWay}" Content="About every hour" />
+                                    <RadioButton GroupName="Often" Style="{StaticResource Choice}" IsChecked="{Binding EveryTwoHours, Mode=TwoWay}" Content="About every two hours" />
+
+                                    <CheckBox Style="{StaticResource Switch}" Margin="0,14,0,0" IsChecked="{Binding QuietHoursOn, Mode=TwoWay}"
+                                              Content="Quiet hours: never speak first between these times" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0" IsEnabled="{Binding QuietHoursOn}">
+                                        <TextBlock Text="From" FontSize="13" Foreground="{StaticResource SoftInk}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <TextBox x:Name="QuietFromBox" Style="{StaticResource Field}" Width="64" MaxLength="8"
+                                                 Text="{Binding QuietFrom, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                                        <TextBlock Text="until" FontSize="13" Foreground="{StaticResource SoftInk}" VerticalAlignment="Center" Margin="10,0,8,0" />
+                                        <TextBox x:Name="QuietUntilBox" Style="{StaticResource Field}" Width="64" MaxLength="8"
+                                                 Text="{Binding QuietUntil, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding QuietHoursMessage}" Style="{StaticResource Explanation}" Margin="0,4,0,0" />
+                                </StackPanel>
+
+                                <TextBlock Style="{StaticResource Explanation}" Margin="0,10,0,0"
+                                           Text="To hush the rider for a while, right-click it and choose &quot;Keep the rider quiet for an hour&quot;." />
+                            </StackPanel>
+                        </Border>
+
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
