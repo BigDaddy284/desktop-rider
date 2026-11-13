@@ -100,25 +100,29 @@ check("rider_rig is its own rig beside bike_rig (its transform is keyed to follo
 for r in RIGS: ob[r].data.pose_position = 'REST'
 bpy.context.view_layer.update()
 fb_rest = {m: world_mesh(ob[m]) for m in MESHES}
-# The bike may differ from the master only in the vertices listed in an optional JSON, given as a fifth argument:
-#   {"fork": [indices], "chain_runs": [indices], "added": {"vertices": n, "faces": n}}
-# These are the owner's requested changes: the fork tubes and lower legs reshaped, the chain runs moved, and the two
-# chain wraps round the sprockets added. Added geometry is appended after the master's vertices, so indices still match.
-bike_ok = set(); added = dict(vertices=0, faces=0)
+# The bike may differ from the master only as listed in an optional JSON given as a fifth argument:
+#   {"<label>": [indices of master vertices that were moved], ..., "added": {"vertices": n, "faces": n}}
+# Moved: the fork (tube ends, lower legs, guard backs) and the two chain runs. Added: the curved chain sections, appended
+# after the master's vertices and faces, so every master vertex keeps its index.
+#   "removed": {"vertices": [master vertex indices], "faces": [master face indices]}   geometry deleted (fork guard backs)
+# Deleting keeps the order of what remains, so FBX vertex n is the n-th master vertex that was not removed.
+bike_ok = set(); added = dict(vertices=0, faces=0); removed = dict(vertices=[], faces=[])
 if len(argv) > 4 and os.path.exists(argv[4]):
     for key, lst in json.load(open(argv[4])).items():
         if key == "added": added = lst
+        elif key == "removed": removed = lst
         else: bike_ok.update(lst)
 n_master = len(master_rest["race_bike_youth"]); n_fbx = len(fb_rest["race_bike_youth"])
 n_faces = len(ob["race_bike_youth"].data.polygons)
-bd = [(a - b).length for a, b in zip(fb_rest["race_bike_youth"], master_rest["race_bike_youth"])]
-bchanged = {i for i, x in enumerate(bd) if x > 2e-6}
+gone = set(removed["vertices"]); kept = [i for i in range(n_master) if i not in gone]      # kept[n] = master index of FBX vertex n
+bd = {mi: (fb_rest["race_bike_youth"][n] - master_rest["race_bike_youth"][mi]).length for n, mi in enumerate(kept) if n < n_fbx}
+bchanged = {mi for mi, x in bd.items() if x > 2e-6}
+exp_v = n_master - len(gone) + added["vertices"]; exp_f = master_faces - len(removed["faces"]) + added["faces"]
 check("bike rest shape identical to master outside the listed vertices; only the listed geometry added",
-      bchanged <= bike_ok and n_fbx == n_master + added["vertices"] and n_faces == master_faces + added["faces"],
-      "%d vertices differ from master, %d of them outside the %d listed; max deviation elsewhere %.6f mm; largest listed move %.1f mm; "
-      "vertices %d (master %d + %d added), faces %d (master %d + %d added)" % (
-          len(bchanged), len(bchanged - bike_ok), len(bike_ok), 1000 * max([x for i, x in enumerate(bd) if i not in bike_ok] or [0]),
-          1000 * max([bd[i] for i in bike_ok] or [0]), n_fbx, n_master, added["vertices"], n_faces, master_faces, added["faces"]))
+      bchanged <= bike_ok and n_fbx == exp_v and n_faces == exp_f,
+      "%d vertices differ from master, %d of them outside the %d listed vertices; max deviation elsewhere %.6f mm; largest listed move %.1f mm; vertices %d (expected %d = master %d - %d removed + %d added); faces %d (expected %d = master %d - %d removed + %d added)" % (
+          len(bchanged), len(bchanged - bike_ok), len(bike_ok), 1000 * max([x for mi, x in bd.items() if mi not in bike_ok] or [0]), 1000 * max([bd[mi] for mi in bike_ok if mi in bd] or [0]),
+          n_fbx, exp_v, n_master, len(gone), added["vertices"], n_faces, exp_f, master_faces, len(removed["faces"]), added["faces"]))
 dv = [(a - b).length for a, b in zip(fb_rest["race_rider"], master_rest["race_rider"])]
 changed = {i for i, x in enumerate(dv) if x > 2e-6}
 check("rider rest shape identical to master outside the helmet", changed <= helmet, "%d vertices differ from master, %d of them outside the %d helmet vertices; max deviation outside %.6f mm" % (
