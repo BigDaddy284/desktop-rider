@@ -160,7 +160,18 @@ settings windows on top of `RiderServices`.
 - The current Blender model is in as a rough, untextured stand-in (`Models/Proof`), with its 15 clips cut at the
   ranges recorded in the Blender file. The textured model comes from the graphics workstream.
 - Unity tests: 650 passed, 0 failed. Build: succeeded, 0 errors, 0 warnings.
-- First measurements while riding: 15 to 25 % of one processor core at 60 frames a second, Direct3D 11.
-  Memory was not recorded (fixed; reads from Windows now). Too high for all-day use; to be reduced in this phase.
-- Known issue: frame rate sometimes reads 27 a second against a target of 60. Not yet explained.
-- Waiting on: a look at the running proof on the PC (see TESTING.md section 8).
+- Measurements on the development PC (Direct3D 11, 1-minute runs, processor time as a share of one core):
+
+  | Set-up | Average processor | Memory |
+  |---|---|---|
+  | Whole-screen window, 60 riding / 15 resting frames a second | 26.8 % | about 245 MB |
+  | Same, one job worker thread | 19.6 % | |
+  | Same, 5 frames a second throughout | 2.8 % | |
+  | Small window that follows the rider, 30 / 10 frames a second, one worker (now the default) | 10.3 % (1.3 % fully at rest) | about 240 MB |
+
+  The cost is about 5 ms of processor time per frame drawn, almost independent of window size, so frame rate is
+  what matters. The light's real-time shadow map is off (the bike carries its own shadow) and anti-aliasing is 2x.
+- Known issue: memory crept from 231 to 241 MB over 80 seconds. A longer run is needed to tell normal heap growth
+  from a leak.
+- Boss checked the proof on the PC: the rider rides about and can be picked up and moved.
+- Still to confirm: clicks reach other windows when the mouse is not over the rider.

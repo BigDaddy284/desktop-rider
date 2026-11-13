@@ -26,12 +26,16 @@ namespace DesktopRider.Riding
         public Vector2 restSeconds = new Vector2(2f, 6f);
         [Range(0.02f, 0.3f)] public float screenMargin = 0.12f;
 
-        [Header("Size on screen")]
+        [Header("View")]
         public float pixelsPerMetre = 100f;
+        [Tooltip("How steeply the camera looks down at the desktop, in degrees.")]
+        public float cameraPitch = 45f;
+        [Tooltip("The window is centred this far above the rider's feet, in metres.")]
+        public float framingHeight = 0.7f;
 
         [Header("Frame rate")]
-        public int movingFrameRate = 60;
-        public int restingFrameRate = 15;
+        public int movingFrameRate = 30;
+        public int restingFrameRate = 10;
 
         Vector3 target;
         float speed, restUntil, lean;
@@ -43,6 +47,9 @@ namespace DesktopRider.Riding
         void Start()
         {
             QualitySettings.vSyncCount = 0;
+            // Each extra worker thread spins while waiting for work; one is plenty for a single rider.
+            // Measured on the development PC: 26.8 % of a core with the default count, 19.6 % with one.
+            Unity.Jobs.LowLevel.Unsafe.JobsUtility.JobWorkerCount = CommandLineInt("-workers", 1);
             // For measuring: "-movingFps 30 -restingFps 10" on the command line overrides the frame rates.
             movingFrameRate = CommandLineInt("-movingFps", movingFrameRate);
             restingFrameRate = CommandLineInt("-restingFps", restingFrameRate);
@@ -52,8 +59,6 @@ namespace DesktopRider.Riding
 
         void Update()
         {
-            if (viewCamera != null && viewCamera.orthographic)
-                viewCamera.orthographicSize = Screen.height / (2f * pixelsPerMetre);
             UpdateMouse();
             if (dragging) { Play(idleClip); SetFrameRate(movingFrameRate); return; }
 
@@ -89,14 +94,45 @@ namespace DesktopRider.Riding
             SetFrameRate(moving ? movingFrameRate : restingFrameRate);
         }
 
+        DesktopView View => new DesktopView(OverlayWindow.DesktopSize.x, OverlayWindow.DesktopSize.y, pixelsPerMetre, cameraPitch);
+
+        /// <summary>After moving: put the small window over the rider and aim the camera so it shows the right part of the desktop.</summary>
+        void LateUpdate()
+        {
+            if (viewCamera == null) return;
+            var view = View;
+            var window = OverlayWindow.WindowRect;
+            if (OverlayWindow.IsActive)
+            {
+                var centre = view.ToDesktop(transform.position + Vector3.up * framingHeight);
+                var corner = view.WindowCorner(centre, window.width, window.height);
+                OverlayWindow.PlaceWindow(corner);
+                window = OverlayWindow.WindowRect;
+            }
+
+            var windowCentre = new Vector2(window.x + window.width * 0.5f, window.y + window.height * 0.5f);
+            viewCamera.orthographic = true;
+            viewCamera.orthographicSize = window.height / (2f * pixelsPerMetre);
+            viewCamera.transform.SetPositionAndRotation(view.CameraFor(windowCentre), view.Rotation);
+        }
+
         void UpdateMouse()
         {
             if (viewCamera == null) return;
-            Ray ray = viewCamera.ScreenPointToRay(OverlayWindow.MousePosition);
-            bool over = Physics.Raycast(ray, out RaycastHit hit, 500f) && hit.transform.IsChildOf(transform);
+            var view = View;
+            var window = OverlayWindow.WindowRect;
+            Vector2 mouse = OverlayWindow.MouseDesktop;
+
+            bool over = false;
+            if (window.Contains(new Vector2Int((int)mouse.x, (int)mouse.y)))
+            {
+                var inWindow = new Vector3(mouse.x - window.x, window.height - (mouse.y - window.y), 0f);
+                Ray ray = viewCamera.ScreenPointToRay(inWindow);
+                over = Physics.Raycast(ray, out RaycastHit hit, 500f) && hit.transform.IsChildOf(transform);
+            }
             OverlayWindow.WantsMouse = over || dragging;
 
-            if (!dragging && over && OverlayWindow.LeftButtonDown && GroundPoint(ray, out Vector3 start))
+            if (!dragging && over && OverlayWindow.LeftButtonDown && view.ToGround(mouse, out Vector3 start))
             {
                 dragging = true;
                 dragOffset = transform.position - start;
@@ -110,27 +146,28 @@ namespace DesktopRider.Riding
                     restUntil = Time.time + restSeconds.x;
                     PickTarget();
                 }
-                else if (GroundPoint(ray, out Vector3 point))
+                else if (view.ToGround(mouse, out Vector3 point))
                 {
-                    transform.position = point + dragOffset;
+                    transform.position = KeepOnDesktop(view, point + dragOffset);
                 }
             }
         }
 
-        void PickTarget()
+        /// <summary>Pulls a ground point back so the rider stays on the desktop.</summary>
+        static Vector3 KeepOnDesktop(DesktopView view, Vector3 ground)
         {
-            if (viewCamera == null) return;
-            float x = Mathf.Lerp(screenMargin, 1f - screenMargin, (float)random.NextDouble());
-            float y = Mathf.Lerp(screenMargin, 1f - screenMargin, (float)random.NextDouble());
-            if (GroundPoint(viewCamera.ViewportPointToRay(new Vector3(x, y, 0f)), out Vector3 point)) target = point;
+            var pixel = view.ToDesktop(ground);
+            pixel.x = Mathf.Clamp(pixel.x, 0f, view.Width);
+            pixel.y = Mathf.Clamp(pixel.y, 0f, view.Height);
+            return view.ToGround(pixel, out var kept) ? kept : ground;
         }
 
-        static bool GroundPoint(Ray ray, out Vector3 point)
+        void PickTarget()
         {
-            var ground = new Plane(Vector3.up, Vector3.zero);
-            if (ground.Raycast(ray, out float enter)) { point = ray.GetPoint(enter); return true; }
-            point = default;
-            return false;
+            var view = View;
+            float x = Mathf.Lerp(screenMargin, 1f - screenMargin, (float)random.NextDouble()) * view.Width;
+            float y = Mathf.Lerp(screenMargin, 1f - screenMargin, (float)random.NextDouble()) * view.Height;
+            if (view.ToGround(new Vector2(x, y), out Vector3 point)) target = point;
         }
 
         void Play(string clip)

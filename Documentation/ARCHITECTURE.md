@@ -375,16 +375,18 @@ ends the abandoned read. The visible behaviour (a silence time limit, immediate 
 
 ## The see-through window (Unity)
 
-Unity draws into one window that covers the main screen. `OverlayWindow` (Scripts/Overlay) turns it into a borderless,
-always-on-top layered window with its frame extended over the whole area, so pixels the camera clears to transparent
+Unity draws into one small window (360 by 360 pixels) that is moved about the desktop to wherever the rider is.
+`OverlayWindow` (Scripts/Overlay) turns it into a borderless, always-on-top layered window with its frame extended over the whole area, so pixels the camera clears to transparent
 show the desktop through. Windows' "transparent to the mouse" flag is switched on and off each frame: off while the
 mouse is over the rider (a ray from the camera hits the rider's collider), on everywhere else, so clicks reach the
 windows behind. The mouse is read from Windows directly, because a click-through window receives no mouse messages.
 The swap chain uses the older blit model (`useFlipModelSwapchain` off) and Direct3D 11, which a see-through window needs.
 All of this is skipped inside the editor.
 
-The camera is orthographic, looking down at 45 degrees, with its size set from the screen height so the rider is the
-same number of pixels per metre on any screen. The desktop is the ground plane at height zero.
+`DesktopView` (Scripts/Riding) is the isometric view of the whole desktop as one orthographic camera looking down at
+45 degrees would see it: it turns ground points into desktop pixels and back. The real camera is moved sideways so the
+small window shows exactly the piece of that view it covers, so the rider looks the same as if one huge window covered
+the screen, at a fraction of the drawing cost. The desktop is the ground plane at height zero.
 
 `FreeRider` (Scripts/Riding) moves the rider on that plane. Its arithmetic is in `RiderSteering`, which has no scene
 or clock and is unit tested. The model sits under a `Lean` object that rolls into turns.

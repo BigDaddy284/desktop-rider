@@ -380,8 +380,10 @@ level and the answer appears in `Bridge/result-<id>.txt`. Compiler results are a
 The same steps are on the editor's **Desktop Rider** menu. In the Test Runner window (Window, General, Test Runner)
 the EditMode tab runs them by hand.
 
-**Riding tests** (`Tests/Riding`, 16 tests): headings, shortest turn, turn limit, braking so the bike stops on its
-target, and lean angle limits for `RiderSteering`.
+**Riding tests** (`Tests/Riding`, 28 tests): headings, shortest turn, turn limit, braking so the bike stops on its
+target and lean angle limits for `RiderSteering`; and for `DesktopView`, where ground points appear on the desktop,
+the round trip back to the ground, aiming the small window's camera, and keeping the window on the desktop.
+Unity total: 662 passed, 0 failed.
 
 ### 8. Overlay proof: manual check
 
@@ -392,5 +394,4 @@ Automated tests cannot see the desktop. With the proof running:
 3. The bike can be picked up and dragged.
 4. Ctrl+Shift+Q closes it. `Builds/Proof/proof-stats.txt` records frame rate, memory and processor use every 5 s.
 
-Status on 13 November 2026: built and started, Windows reports the window as see-through and on top. Steps 1 to 3
-are waiting for a look on the PC.
+Status on 13 November 2026: steps 1 and 3 confirmed by Boss on the PC. Step 2 still to confirm.
