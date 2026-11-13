@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using DesktopRider.AI;
 using DesktopRider.Core;
 using DesktopRider.Core.Configuration;
 using DesktopRider.Core.Infrastructure;
@@ -20,6 +21,10 @@ public partial class App : Application
     private SingleInstanceGuard? _instanceGuard;
     private ServiceProvider? _services;
     private ILogger<App>? _logger;
+    private TrayIconController? _tray;
+    private AiMenuViewModel? _aiMenu;
+    private MessageWindow? _messageWindow;
+    private ConversationPresenter? _conversation;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -29,7 +34,7 @@ public partial class App : Application
         if (!_instanceGuard.IsFirstInstance)
         {
             MessageBox.Show(
-                $"{AppInfo.Name} is already running. Look for the rider on your desktop.",
+                $"{AppInfo.Name} is already running. Look for the rider on your desktop.\n\nIf you cannot see it, click the {AppInfo.Name} icon beside the clock (it may be behind the small arrow) and choose \"{TrayViewModel.ShowText}\".",
                 AppInfo.Name,
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -44,8 +49,10 @@ public partial class App : Application
 
             var services = new ServiceCollection();
             services.AddDesktopRiderCore(paths);
+            services.AddDesktopRiderAi();
             services.AddSingleton<IScreenProvider, WindowsScreenProvider>();
             services.AddSingleton<OverlayViewModel>();
+            services.AddSingleton<TrayViewModel>();
             services.AddSingleton<OverlayWindow>();
             _services = services.BuildServiceProvider();
 
@@ -62,7 +69,31 @@ public partial class App : Application
             var window = _services.GetRequiredService<OverlayWindow>();
             MainWindow = window;
             window.Closed += (_, _) => Shutdown();
-            window.Show();
+
+            // Exit must work from the notification-area icon even when the rider is hidden and its window was never opened.
+            _services.GetRequiredService<OverlayViewModel>().ExitRequested += (_, _) => Shutdown();
+
+            var trayViewModel = _services.GetRequiredService<TrayViewModel>();
+            _tray = new TrayIconController(
+                trayViewModel,
+                TrayIconFactory.TryCreate(window.RiderPicture),
+                _services.GetRequiredService<ILogger<TrayIconController>>());
+            _tray.Show();
+
+            _aiMenu = _services.GetRequiredService<AiMenuViewModel>();
+            _aiMenu.ProgressChanged += OnAiMessage;
+            _aiMenu.MessageRequested += OnAiMessage;
+
+            _conversation = new ConversationPresenter(
+                window,
+                _services.GetRequiredService<OverlayViewModel>(),
+                _services.GetRequiredService<ConversationViewModel>(),
+                _services.GetRequiredService<SpeechBubbleViewModel>(),
+                _services.GetRequiredService<IScreenProvider>());
+            _aiMenu.TalkRequested += OnTalkRequested;
+
+            window.ApplyVisibility();
+            trayViewModel.AnnounceIfStartedHidden();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
@@ -90,10 +121,34 @@ public partial class App : Application
         DispatcherUnhandledException -= OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException -= OnDomainUnhandledException;
         TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+        if (_aiMenu is not null)
+        {
+            _aiMenu.ProgressChanged -= OnAiMessage;
+            _aiMenu.MessageRequested -= OnAiMessage;
+            _aiMenu.TalkRequested -= OnTalkRequested;
+        }
+
+        _conversation?.Dispose();
+
+        _tray?.Dispose();
         _services?.Dispose();
         _instanceGuard?.Dispose();
         base.OnExit(e);
     }
+
+    // AI messages arrive from background work, so the window is only touched from the interface thread.
+    private void OnAiMessage(object? sender, AiMessageEventArgs e) => Dispatcher.BeginInvoke(() =>
+    {
+        if (_messageWindow is null)
+        {
+            _messageWindow = new MessageWindow();
+            _messageWindow.Closed += (_, _) => _messageWindow = null;
+        }
+
+        _messageWindow.ShowMessage(e.Title, e.Message);
+    });
+
+    private void OnTalkRequested(object? sender, EventArgs e) => Dispatcher.BeginInvoke(() => _conversation?.OpenConversation());
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {

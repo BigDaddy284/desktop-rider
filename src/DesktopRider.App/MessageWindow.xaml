@@ -1,0 +1,21 @@
+<Window x:Class="DesktopRider.App.MessageWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Desktop Rider"
+        Width="440"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True"
+        ShowActivated="False"
+        Background="#FFF7F7F7"
+        UseLayoutRounding="True">
+    <!-- A small, plain window for telling the user something they asked about. It never appears on its own. -->
+    <StackPanel Margin="22,18,22,18">
+        <TextBlock x:Name="Heading" FontSize="18" FontWeight="SemiBold" Foreground="#FF1F2937" TextWrapping="Wrap" />
+        <ScrollViewer MaxHeight="320" Margin="0,10,0,0" VerticalScrollBarVisibility="Auto">
+            <TextBlock x:Name="Body" FontSize="14" Foreground="#FF374151" TextWrapping="Wrap" />
+        </ScrollViewer>
+        <Button Content="OK" IsDefault="True" IsCancel="True" Click="OnOkClick" MinWidth="88" Padding="12,5" Margin="0,18,0,0" HorizontalAlignment="Right" />
+    </StackPanel>
+</Window>

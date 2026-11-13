@@ -41,6 +41,12 @@ public sealed class AppearanceSettings
 
     public bool CharacterVisible { get; set; } = true;
 
+    /// <summary>
+    /// How the user talks to the rider. False opens the conversation window. True shows a small typing bubble
+    /// below the rider and the rider answers in its speech bubble.
+    /// </summary>
+    public bool ChatInBubbles { get; set; }
+
     /// <summary>Lets clicks pass through the character to the windows behind it.</summary>
     public bool ClickThrough { get; set; }
 
@@ -133,4 +139,7 @@ public sealed class ApplicationSettings
     public bool MinimiseToTray { get; set; } = true;
 
     public bool CheckForUpdates { get; set; }
+
+    /// <summary>Set once the user has been told where to find the rider after hiding it, so they are only told once.</summary>
+    public bool TrayHintShown { get; set; }
 }

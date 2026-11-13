@@ -35,3 +35,15 @@ public interface IScreenProvider
 {
     IReadOnlyList<ScreenArea> GetScreens();
 }
+
+/// <summary>Which side of the character a speech bubble or the conversation window sits on.</summary>
+public enum CompanionSide
+{
+    Above,
+    Left,
+    Right,
+    Below,
+}
+
+/// <summary>Where to put a speech bubble or the conversation window, and which side of the character that is.</summary>
+public readonly record struct CompanionPlacement(PixelPoint Position, CompanionSide Side);

@@ -39,6 +39,7 @@ public sealed class JsonSettingsStoreTests : IDisposable
         settings.Appearance.Opacity = 0.7;
         settings.Appearance.AlwaysOnTop = false;
         settings.Appearance.ClickThrough = true;
+        settings.Appearance.ChatInBubbles = true;
         settings.Appearance.Position = new SavedPosition { X = -320.5, Y = 48, Monitor = @"\\.\DISPLAY2" };
         settings.Behaviour.ProactiveComments = true;
         settings.Behaviour.ProactiveIntervalMinutes = 45;
@@ -52,6 +53,7 @@ public sealed class JsonSettingsStoreTests : IDisposable
         settings.Memory.Enabled = false;
         settings.Memory.RetentionDays = 7;
         settings.Application.StartWithWindows = true;
+        settings.Application.TrayHintShown = true;
 
         await _store.SaveAsync(settings);
         var result = await _store.LoadAsync();
@@ -62,6 +64,7 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.Equal(0.7, loaded.Appearance.Opacity);
         Assert.False(loaded.Appearance.AlwaysOnTop);
         Assert.True(loaded.Appearance.ClickThrough);
+        Assert.True(loaded.Appearance.ChatInBubbles);
         Assert.Equal(-320.5, loaded.Appearance.Position!.X);
         Assert.Equal(48, loaded.Appearance.Position.Y);
         Assert.Equal(@"\\.\DISPLAY2", loaded.Appearance.Position.Monitor);
@@ -77,6 +80,7 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.False(loaded.Memory.Enabled);
         Assert.Equal(7, loaded.Memory.RetentionDays);
         Assert.True(loaded.Application.StartWithWindows);
+        Assert.True(loaded.Application.TrayHintShown);
     }
 
     [Fact]

@@ -81,6 +81,65 @@ public static class PlacementCalculator
         return screens.MinBy(s => DistanceSquared(s.WorkingArea, centreX, centreY));
     }
 
+    /// <summary>
+    /// Works out where a speech bubble, typing bubble or the conversation window goes so that it sits next to the
+    /// character and stays fully on the character's screen. The preferred side is tried first, then above, left,
+    /// right and below. If it fits nowhere, it goes on the preferred side and is pushed back onto the screen,
+    /// overlapping the character.
+    /// </summary>
+    /// <param name="anchor">Where the character is.</param>
+    /// <param name="size">The size of the bubble or window to place.</param>
+    /// <param name="screens">The screens available.</param>
+    /// <param name="gap">Space left between the two, in pixels. It may be negative to tuck one into the other.</param>
+    /// <param name="preferred">The side to use when there is room.</param>
+    public static CompanionPlacement Beside(
+        PixelRect anchor,
+        PixelSize size,
+        IReadOnlyList<ScreenArea> screens,
+        int gap = 0,
+        CompanionSide preferred = CompanionSide.Above)
+    {
+        ArgumentNullException.ThrowIfNull(screens);
+        var screen = ScreenFor(anchor.Location, anchor.Size, screens);
+        if (screen is null)
+        {
+            return new CompanionPlacement(PositionOn(preferred, anchor, size, gap), preferred);
+        }
+
+        var area = screen.WorkingArea;
+        CompanionSide[] order = [preferred, CompanionSide.Above, CompanionSide.Left, CompanionSide.Right, CompanionSide.Below];
+        foreach (var side in order.Distinct())
+        {
+            var position = PositionOn(side, anchor, size, gap);
+            var fits = side switch
+            {
+                CompanionSide.Above => position.Y >= area.Y,
+                CompanionSide.Left => position.X >= area.X,
+                CompanionSide.Right => position.X + size.Width <= area.Right,
+                _ => position.Y + size.Height <= area.Bottom,
+            };
+            if (fits)
+            {
+                return new CompanionPlacement(ClampTo(area, position, size), side);
+            }
+        }
+
+        return new CompanionPlacement(ClampTo(area, PositionOn(preferred, anchor, size, gap), size), preferred);
+    }
+
+    private static PixelPoint PositionOn(CompanionSide side, PixelRect anchor, PixelSize size, int gap)
+    {
+        var centredX = anchor.X + ((anchor.Width - size.Width) / 2);
+        var centredY = anchor.Y + ((anchor.Height - size.Height) / 2);
+        return side switch
+        {
+            CompanionSide.Above => new PixelPoint(centredX, anchor.Y - gap - size.Height),
+            CompanionSide.Left => new PixelPoint(anchor.X - gap - size.Width, centredY),
+            CompanionSide.Right => new PixelPoint(anchor.Right + gap, centredY),
+            _ => new PixelPoint(centredX, anchor.Bottom + gap),
+        };
+    }
+
     private static PixelPoint ClampTo(PixelRect area, PixelPoint position, PixelSize size)
     {
         // If the character is larger than the screen, its top-left corner stays visible.

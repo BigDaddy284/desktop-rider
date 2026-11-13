@@ -18,6 +18,10 @@ public sealed partial class OverlayViewModel : ViewModelBase, IDisposable
         _settings.Changed += OnSettingsChanged;
 
         ToggleAlwaysOnTopCommand = new RelayCommand(() => _ = SetAlwaysOnTopAsync(!AlwaysOnTop));
+        ShowCommand = new RelayCommand(() => _ = SetCharacterVisibleAsync(true));
+        HideCommand = new RelayCommand(() => _ = SetCharacterVisibleAsync(false));
+        ToggleChatInBubblesCommand = new RelayCommand(() => _ = SetChatInBubblesAsync(!ChatInBubbles));
+        ToggleVisibilityCommand = new RelayCommand(() => _ = SetCharacterVisibleAsync(!CharacterVisible));
         ResetPositionCommand = new RelayCommand(() => ResetPositionRequested?.Invoke(this, EventArgs.Empty));
         ExitCommand = new RelayCommand(() => ExitRequested?.Invoke(this, EventArgs.Empty));
     }
@@ -32,19 +36,45 @@ public sealed partial class OverlayViewModel : ViewModelBase, IDisposable
 
     public bool AlwaysOnTop => _settings.Current.Appearance.AlwaysOnTop;
 
+    /// <summary>False while the user has the rider hidden. Desktop Rider keeps running in the notification area.</summary>
+    public bool CharacterVisible => _settings.Current.Appearance.CharacterVisible;
+
+    /// <summary>True when the user talks to the rider through bubbles beside it instead of the conversation window.</summary>
+    public bool ChatInBubbles => _settings.Current.Appearance.ChatInBubbles;
+
     public double CharacterOpacity => _settings.Current.Appearance.Opacity;
 
     public ICommand ToggleAlwaysOnTopCommand { get; }
+
+    public ICommand ToggleChatInBubblesCommand { get; }
+
+    public ICommand ShowCommand { get; }
+
+    public ICommand HideCommand { get; }
+
+    public ICommand ToggleVisibilityCommand { get; }
 
     public ICommand ResetPositionCommand { get; }
 
     public ICommand ExitCommand { get; }
 
-    public async Task SetAlwaysOnTopAsync(bool value)
+    public Task SetAlwaysOnTopAsync(bool value) => ChangeAsync(s => s.Appearance.AlwaysOnTop = value);
+
+    /// <summary>Chooses between the conversation window and bubbles beside the rider, and remembers the choice.</summary>
+    public Task SetChatInBubblesAsync(bool value) =>
+        value == ChatInBubbles ? Task.CompletedTask : ChangeAsync(s => s.Appearance.ChatInBubbles = value);
+
+    /// <summary>Shows or hides the rider and remembers the choice for next time.</summary>
+    public Task SetCharacterVisibleAsync(bool value) =>
+        value == CharacterVisible ? Task.CompletedTask : ChangeAsync(s => s.Appearance.CharacterVisible = value);
+
+    public void Dispose() => _settings.Changed -= OnSettingsChanged;
+
+    private async Task ChangeAsync(Action<AppSettings> change)
     {
         try
         {
-            await _settings.UpdateAsync(s => s.Appearance.AlwaysOnTop = value).ConfigureAwait(false);
+            await _settings.UpdateAsync(change).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -53,8 +83,6 @@ public sealed partial class OverlayViewModel : ViewModelBase, IDisposable
             OnAllPropertiesChanged();
         }
     }
-
-    public void Dispose() => _settings.Changed -= OnSettingsChanged;
 
     private void OnSettingsChanged(object? sender, EventArgs e) => OnAllPropertiesChanged();
 

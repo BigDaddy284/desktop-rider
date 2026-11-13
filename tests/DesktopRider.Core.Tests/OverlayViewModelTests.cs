@@ -91,31 +91,95 @@ public class OverlayViewModelTests
         Assert.Equal(0, notifications);
     }
 
-    private sealed class FakeSettingsService : ISettingsService
+    [Fact]
+    public async Task HideAndShow_ChangeVisibilityAndAreRemembered()
     {
-        public event EventHandler? Changed;
+        var settings = new FakeSettingsService();
+        using var viewModel = new OverlayViewModel(settings);
+        var notifications = 0;
+        viewModel.PropertyChanged += (_, _) => notifications++;
 
-        public AppSettings Current { get; } = new();
+        Assert.True(viewModel.CharacterVisible);
+        viewModel.HideCommand.Execute(null);
+        Assert.False(viewModel.CharacterVisible);
+        Assert.False(settings.Current.Appearance.CharacterVisible);
 
-        public SettingsLoadStatus LoadStatus => SettingsLoadStatus.Defaults;
+        viewModel.ShowCommand.Execute(null);
+        Assert.True(viewModel.CharacterVisible);
+        Assert.Equal(2, settings.SaveCount);
+        Assert.Equal(2, notifications);
 
-        public bool FailSaves { get; set; }
+        await viewModel.SetCharacterVisibleAsync(false);
+        Assert.False(viewModel.CharacterVisible);
+    }
 
-        public int SaveCount { get; private set; }
+    [Fact]
+    public void ShowWhenAlreadyShowing_AndHideWhenAlreadyHidden_DoNothing()
+    {
+        var settings = new FakeSettingsService();
+        using var viewModel = new OverlayViewModel(settings);
 
-        public Task InitializeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        viewModel.ShowCommand.Execute(null);
+        Assert.Equal(0, settings.SaveCount);
 
-        public Task UpdateAsync(Action<AppSettings> change, CancellationToken cancellationToken = default)
-        {
-            change(Current);
-            if (FailSaves)
-            {
-                return Task.FromException(new IOException("The disk is full."));
-            }
+        viewModel.HideCommand.Execute(null);
+        viewModel.HideCommand.Execute(null);
+        Assert.Equal(1, settings.SaveCount);
+    }
 
-            SaveCount++;
-            Changed?.Invoke(this, EventArgs.Empty);
-            return Task.CompletedTask;
-        }
+    [Fact]
+    public void ToggleVisibility_FlipsEachTime()
+    {
+        using var viewModel = new OverlayViewModel(new FakeSettingsService());
+
+        viewModel.ToggleVisibilityCommand.Execute(null);
+        Assert.False(viewModel.CharacterVisible);
+        viewModel.ToggleVisibilityCommand.Execute(null);
+        Assert.True(viewModel.CharacterVisible);
+    }
+
+    [Fact]
+    public async Task Hide_WhenSavingFails_StillHidesForThisSession()
+    {
+        var settings = new FakeSettingsService { FailSaves = true };
+        using var viewModel = new OverlayViewModel(settings);
+        var notifications = 0;
+        viewModel.PropertyChanged += (_, _) => notifications++;
+
+        await viewModel.SetCharacterVisibleAsync(false);
+
+        Assert.False(viewModel.CharacterVisible);
+        Assert.Equal(1, notifications);
+    }
+
+    [Fact]
+    public async Task ChatInBubbles_IsOffAtFirst_AndTheChoiceIsSavedOnce()
+    {
+        var settings = new FakeSettingsService();
+        using var viewModel = new OverlayViewModel(settings);
+        Assert.False(viewModel.ChatInBubbles);
+
+        await viewModel.SetChatInBubblesAsync(true);
+        await viewModel.SetChatInBubblesAsync(true);
+
+        Assert.True(viewModel.ChatInBubbles);
+        Assert.True(settings.Current.Appearance.ChatInBubbles);
+        Assert.Equal(1, settings.SaveCount);
+    }
+
+    [Fact]
+    public void ToggleChatInBubblesCommand_FlipsTheChoice_AndTellsTheWindow()
+    {
+        var settings = new FakeSettingsService();
+        using var viewModel = new OverlayViewModel(settings);
+        var notifications = 0;
+        viewModel.PropertyChanged += (_, _) => notifications++;
+
+        viewModel.ToggleChatInBubblesCommand.Execute(null);
+        Assert.True(viewModel.ChatInBubbles);
+
+        viewModel.ToggleChatInBubblesCommand.Execute(null);
+        Assert.False(viewModel.ChatInBubbles);
+        Assert.Equal(2, notifications);
     }
 }

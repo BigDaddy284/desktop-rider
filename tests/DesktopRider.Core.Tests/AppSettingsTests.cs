@@ -16,8 +16,10 @@ public class AppSettingsTests
         Assert.True(settings.Appearance.AlwaysOnTop);
         Assert.True(settings.Appearance.CharacterVisible);
         Assert.False(settings.Appearance.ClickThrough);
+        Assert.False(settings.Appearance.ChatInBubbles);
         Assert.Null(settings.Appearance.Position);
         Assert.False(settings.Application.StartWithWindows);
+        Assert.False(settings.Application.TrayHintShown);
         Assert.False(settings.Application.CheckForUpdates); // No network requests unless the user opts in.
         Assert.Equal(1.0, settings.Appearance.Scale);
     }
