@@ -15,7 +15,7 @@ Audited on 13 November 2026 and updated the same day for the action set.
 | Jersey | Front, back, both sleeves laid flat, sleeves and cuffs while riding | Sides of the body under the arms |
 | Trousers | Front, back at a distance, left leg side while cornering | **Right side of the legs.** Close view of the back |
 | Boots | Front, back, inner side, outer side | Sole (minor) |
-| Gloves | Back of the hand while riding (action set) | Palm. **Which colour is correct** (see below) |
+| Gloves | Back of the hand while riding (action set). Sky blue and pink, confirmed by the owner | Palm |
 | Bike | Left side, right side, front, handlebars from above and in front, engine close-up on the left | **Straight from behind. From above (seat, tank top, rear mudguard). Both sides of the swingarm close up.** Underside (minor) |
 | Rider on the bike | Well covered by the action set: corners, straights, jumps, from front, side, behind and above (older kits); 3 riding photographs in the correct kit | Standing on the pegs side-on **in the correct kit**, any trick |
 
@@ -31,6 +31,8 @@ The three action photographs in the correct kit show four things the earlier pho
 2. **A black chest protector with shoulder cups is worn over the jersey** when riding. It hides most of the jersey front and the chest logo. The 3D rider currently has no chest protector.
 3. **The front number plate reads B28**: a class letter B sits before the 28.
 4. **The top of the helmet** is visible: sky blue, yellow and pink stripes radiating back from the peak, with a pink edge to the peak.
+
+**Owner's decisions (13 November 2026):** gloves are sky blue and pink; leave the chest protector off; the plate reads 28, not B28; use the helmet top as photographed.
 
 The bike in these photographs matches the later state already recorded (pink rims, pink ignition cover).
 
