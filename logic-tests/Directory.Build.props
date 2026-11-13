@@ -1,0 +1,7 @@
+<Project>
+  <!--
+    Deliberately empty. It stops these projects picking up the repository's own Directory.Build.props,
+    whose settings are for version 1 (newest C#, .NET 10). These projects must compile the way Unity does;
+    their settings are in their own project files.
+  -->
+</Project>

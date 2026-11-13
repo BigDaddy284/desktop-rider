@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "appearance": {
+    "scale": 1.25,
+    "opacity": 0.85,
+    "animationSpeed": 1.5,
+    "alwaysOnTop": false,
+    "characterVisible": true,
+    "chatInBubbles": true,
+    "clickThrough": true,
+    "position": {
+      "x": -320.5,
+      "y": 48,
+      "monitor": "\\\\.\\DISPLAY2"
+    }
+  },
+  "behaviour": {
+    "autonomousMovement": false,
+    "idleAnimations": true,
+    "animationFrequency": "frequent",
+    "proactiveComments": true,
+    "proactiveIntervalMinutes": 45,
+    "quietHoursEnabled": true,
+    "quietHoursStart": "21:30:00",
+    "quietHoursEnd": "07:15:00"
+  },
+  "ai": {
+    "provider": "Ollama",
+    "ollamaAddress": "http://192.168.1.20:11434",
+    "model": "llama3.2:3b",
+    "systemPrompt": "Be brief \u0026 \u003Ckind\u003E. Don\u0027t shout \u2014 it\u0027s rude.",
+    "tone": "serious",
+    "replyLength": "detailed",
+    "userName": "Zo\u00EB O\u0027Neil",
+    "temperature": 0.3,
+    "requestTimeoutSeconds": 45
+  },
+  "memory": {
+    "enabled": true,
+    "keepConversationHistory": true,
+    "retentionDays": 7
+  },
+  "application": {
+    "startWithWindows": true,
+    "minimiseToTray": false,
+    "checkForUpdates": false,
+    "trayHintShown": true
+  }
+}
