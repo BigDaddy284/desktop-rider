@@ -10,7 +10,7 @@ Audited on 13 November 2026 and updated the same day for the action set.
 
 | Item | Covered | Missing |
 |---|---|---|
-| Helmet | Front, back, left side, top (action set) | **Right side.** Underside of the peak |
+| Helmet | Front, back, left side, top (action set). Right side and all four sides of the pattern from a second-hand helmet of the same model (pattern only) | Underside of the peak |
 | Goggles | Front, strap from behind, front three-quarter while riding | Side view of the frame and strap |
 | Jersey | Front, back, both sleeves laid flat, sleeves and cuffs while riding | Sides of the body under the arms |
 | Trousers | Front, back at a distance, left leg side while cornering | **Right side of the legs.** Close view of the back |
@@ -33,6 +33,19 @@ The three action photographs in the correct kit show four things the earlier pho
 4. **The top of the helmet** is visible: sky blue, yellow and pink stripes radiating back from the peak, with a pink edge to the peak.
 
 **Owner's decisions (13 November 2026):** gloves are sky blue and pink; leave the chest protector off; the plate reads 28, not B28; use the helmet top as photographed.
+
+## Helmet pattern from a second-hand helmet of the same model (13 November 2026)
+
+The owner supplied four photographs of a second-hand Fox V1 with the same graphic: top, front, left side and right side. The two side views are large; the top and front are small thumbnails. **Use them for the pattern and layout only, not the colours.** That helmet is faded, so its pink looks salmon and its yellow pale. Take the colours from the owner's own left-side photograph and the correct-kit riding photographs: vivid magenta, sky blue, fluorescent yellow and black.
+
+What the right side shows that no earlier photograph did:
+
+- A **large white-outlined Fox head logo** on the back half of the shell, facing forward, over black. The left side has large black **FOX** letters in the same place instead, so the two sides differ.
+- A pink panel with black **V1** lettering on the side of the peak, near the peak screw.
+- Blue, yellow, pink and black stripes radiating back from the peak across the top, matching the top view.
+- The chin bar side has pink and yellow fine-line stripes on a pink base, like the left side.
+
+The left-side view of the second-hand helmet matches the owner's own left-side photograph, which confirms it is the same graphic.
 
 The bike in these photographs matches the later state already recorded (pink rims, pink ignition cover).
 
@@ -88,7 +101,7 @@ The graphics kit artwork (`References/Graphics-Kit/`) covers the printed panels 
 ## Notes for the 3D model
 
 - **Left and right are not mirror images** on the bike, the boots or the helmet. Do not mirror textures to fill a missing side.
-- **Helmet right side** is the largest unknown on the rider. The front and back photographs show that the pattern is not symmetrical.
+- **Helmet sides differ:** FOX letters on the left, a large Fox head logo on the right. Do not mirror one onto the other.
 - **Trouser sides** carry the brand lettering down the outer thigh on most kits of this type. The photographs do not show whether this kit has it.
 - **No photograph shows the rider standing on the pegs from the side in the correct kit.** The older-kit photographs cover the pose itself.
 - Two phone videos now exist (a start and a distant lap). Neither shows the correct kit.
