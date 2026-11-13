@@ -198,7 +198,7 @@ public class SpeechBubbleViewModelTests
     }
 
     [Fact]
-    public async Task WhileTheTypingBubbleIsOpen_AFinishedReplyStays_UntilItIsPutAway()
+    public async Task WhileTheTypingBubbleIsOpen_AFinishedReplyStays_AndGoesWhenItIsPutAway()
     {
         using var context = new ConversationViewModelTests.Context();
         using var bubble = new SpeechBubbleViewModel(context.Chat) { KeepOpen = true };
@@ -211,18 +211,35 @@ public class SpeechBubbleViewModelTests
         Assert.Equal("Hello.", bubble.Text);
         Assert.Null(bubble.HideAfter);
 
+        // Clicking the rider puts the typing bubble away, and the rider's answer goes with it.
         bubble.KeepOpen = false;
 
-        Assert.True(bubble.IsVisible);
-        Assert.Equal(SpeechBubbleViewModel.ReadingTime("Hello."), bubble.HideAfter);
+        Assert.False(bubble.IsVisible);
+        Assert.Null(bubble.HideAfter);
 
-        // Opening the typing bubble again while the reply is still showing holds it once more.
+        // Opening the typing bubble again does not bring the old answer back.
         bubble.KeepOpen = true;
+        Assert.False(bubble.IsVisible);
+    }
+
+    [Fact]
+    public async Task OpeningTheTypingBubble_WhileAnAnswerIsWaitingToFade_HoldsIt()
+    {
+        using var context = new ConversationViewModelTests.Context();
+        using var bubble = new SpeechBubbleViewModel(context.Chat);
+        context.Provider.Reply.Add("Hello.");
+        context.Chat.Draft = "Hi";
+        await context.Chat.SendAsync();
+        Assert.NotNull(bubble.HideAfter);
+
+        bubble.KeepOpen = true;
+
+        Assert.True(bubble.IsVisible);
         Assert.Null(bubble.HideAfter);
     }
 
     [Fact]
-    public async Task ClosingTheTypingBubbleMidReply_DoesNotStartTheWaitEarly()
+    public async Task ClosingTheTypingBubbleMidReply_LetsTheReplyFinish_ThenFadeByItself()
     {
         using var context = new ConversationViewModelTests.Context();
         using var bubble = new SpeechBubbleViewModel(context.Chat) { KeepOpen = true };
@@ -233,10 +250,12 @@ public class SpeechBubbleViewModelTests
         await context.Provider.FirstPieceSent.Task.WaitAsync(Patience);
 
         bubble.KeepOpen = false;
+        Assert.True(bubble.IsVisible);
         Assert.Null(bubble.HideAfter);
 
         context.Provider.Gate.SetResult();
         await sending.WaitAsync(Patience);
+        Assert.Equal("one two", bubble.Text);
         Assert.NotNull(bubble.HideAfter);
     }
 

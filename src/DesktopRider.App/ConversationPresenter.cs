@@ -216,7 +216,7 @@ internal sealed class ConversationPresenter : IDisposable
 
     private void OnChatVisibleChanged(object sender, DependencyPropertyChangedEventArgs e) => _bubble.ConversationOpen = ChatShowing;
 
-    // While the user is typing in the bubble, the rider's last reply stays up instead of fading away.
+    // While the typing bubble is open the rider's last reply stays up; putting the bubble away takes the reply with it.
     private void OnInputVisibleChanged(object sender, DependencyPropertyChangedEventArgs e) => _bubble.KeepOpen = InputShowing;
 
     private void OnExiting(object? sender, EventArgs e) => Dispose();

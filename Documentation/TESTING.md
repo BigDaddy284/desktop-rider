@@ -157,9 +157,9 @@ Status: the owner ran the 0.6.0 build on 12 November 2026 and reported that it w
 7. Right-click the rider and tick **Chat in bubbles**, then click the rider. **Expect:** instead of the window, a small dark typing bubble appears just below the rider with the cursor in it. (If the rider is right at the bottom of the screen with no room below, the bubble goes beside or above it.)
 8. Type a message and press Enter. **Expect:** the typing bubble empties, the rider thinks and then answers in the speech bubble above it. The answer stays up while the typing bubble is open.
 9. Send another message. **Expect:** the new answer replaces the old one, and the rider remembers the earlier message.
-10. Press Esc. **Expect:** the typing bubble goes; the answer fades away a few seconds later.
+10. Click the rider (or press Esc). **Expect:** the typing bubble and the rider's answer both go at once. If the rider was still answering, the answer carries on and fades a few seconds after it finishes.
 11. Click the rider to bring the typing bubble back, then click the small window button in it. **Expect:** the conversation window opens with everything said so far, and **Chat in bubbles** is no longer ticked. Press **Bubbles** in the window. **Expect:** back to the typing bubble.
 12. In bubble mode, click the speech bubble while it shows a reply. **Expect:** the conversation window opens with the whole conversation.
 13. Exit and start Desktop Rider again, then click the rider. **Expect:** the choice of bubbles or window was remembered.
 
-Status: **awaiting the owner's check on Windows 11** (0.6.1 build).
+Status: the owner ran the 0.6.1 build on 13 November 2026 and reported that it looks OK, with one problem: in bubble mode, clicking the rider hid the typing bubble but left the rider's answer showing. Fixed in 0.6.2 (step 10); **awaiting the owner's check of that fix.**

@@ -101,7 +101,8 @@ public sealed class SpeechBubbleViewModel : ViewModelBase, IDisposable
 
     /// <summary>
     /// Set while the typing bubble is showing. The user is in the middle of a chat, so a finished reply stays
-    /// until the next one instead of going away by itself.
+    /// until the next one instead of going away by itself. Putting the typing bubble away takes a finished
+    /// reply with it; a reply that is still arriving carries on and then goes away by itself as usual.
     /// </summary>
     public bool KeepOpen
     {
@@ -116,7 +117,14 @@ public sealed class SpeechBubbleViewModel : ViewModelBase, IDisposable
             _keepOpen = value;
             if (IsVisible && _complete)
             {
-                HideAfter = value ? null : ReadingTime(Text);
+                if (value)
+                {
+                    HideAfter = null;
+                }
+                else
+                {
+                    Dismiss();
+                }
             }
         }
     }
