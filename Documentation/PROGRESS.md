@@ -166,6 +166,8 @@ settings windows on top of `RiderServices`.
 - `DesktopRider_Tricks.fbx` exported with the 18 trick clips on copies of the two rigs, keyed for the right side. `Tools/Blender/export_models.py` and `Tools/Blender/verify_tricks.py` added.
 - At the owner's request the wheel hubs were made the kit's pink and the rims the kit's blue. The owner pointed out that the discs on the hub ends are brake discs, so they were painted as steel brake discs from the owner's reference photo. Texture change only; approved by the owner.
 - At the owner's request the swingarm was made black (the JS strips kept) and the rear shock spring steel grey. Texture change only; `verify_models.py` still 19 PASS, 0 FAIL.
+- At the owner's request the side-panel 28 was moved 4 cm forward and the swingarm strips were straightened onto the arm's centre line. Texture change only.
+- At the owner's request the upper fork tubes were extended to meet the fork lowers (64 vertices). `DesktopRider.fbx` exported again; `verify_models.py` 19 PASS, 0 FAIL, with the check now allowing only the listed fork vertices to differ from the master.
 
 #### Test results
 

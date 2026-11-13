@@ -52,16 +52,20 @@ The kit is the owner's vector design, `Harvey28_v2.pdf`. It is fitted to the pla
 
 | Panel | Graphic |
 |---|---|
-| Rear side panels | The kit's side art, with the large 28 on each side number plate. The rider's name was removed from the side panels at the owner's request. |
+| Rear side panels | The kit's side art, with the large 28 on each side number plate, moved 4 cm forward at the owner's request. The rider's name was removed from the side panels at the owner's request. |
 | Rear mudguard | The tail of the kit with its sponsor logos on top. Its thin side faces are white with the stripes. |
 | Radiator shrouds | Pink on the left, blue on the right, fitted to height and aligned at the front. |
 | Front number plate | Name across the top, 28 in the middle, team logo at the bottom. Fitted to width, with white above and below. |
 | Front mudguard | The rhino logo on top, pointing forward. |
-| Swingarm | Black, with the JS Financial Solutions strips: pink on the left, blue on the right. |
+| Swingarm | Black, with the JS Financial Solutions strips: pink on the left, blue on the right, each running along the arm's centre line (18.25°). |
 | Rear shock spring | Steel grey. |
 | Wheels | Hubs in the kit's pink (237, 26, 121), rims in the kit's blue (39, 170, 225). |
 | Brake discs | Brushed steel, painted from the owner's disc photo: a darker carrier with 6 black bolts, cut-out windows, slots and a wavy edge. Front disc on the left, rear on the right. The mesh discs are round, so the wave and the cut-outs are painted, not cut. |
 | Tank cover | No kit piece, so it keeps the earlier painted look. |
+
+## Bike shape change (owner's request, 13 November 2026)
+
+The big upper fork tubes stopped 6.8 cm above the pink fork lowers, leaving a thin section showing. At the owner's request the bottom end of each upper tube (32 vertices per leg, 64 in all) was moved 72.4 mm down the fork axis, so the tube now meets the lower. Vertex and face counts, UVs and weights (100% `steer`) are unchanged. Everything else on the bike is identical to the master. In a full wheelie the fork extends and a short piece of the inner tube shows again, as on a real fork. The list of moved vertices is `kit-fit-work\export\bike_changed_vertices.json` on the owner's PC, and their original positions are in `fork_original_vertices.json` beside it.
 
 ## Rider changes approved on 13 November 2026
 

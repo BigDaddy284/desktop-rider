@@ -1,6 +1,6 @@
 """Checks DesktopRider.fbx (and the prop FBX files) against the working .blend and the master .blend.
 
-    blender --background --factory-startup --python verify_models.py -- <Models dir> <working .blend> <master .blend> <out dir>
+    blender --background --factory-startup --python verify_models.py -- <Models dir> <working .blend> <master .blend> <out dir> [bike_changed_vertices.json]
 
 Nothing is saved; both .blend files are only read. Prints one PASS/FAIL line per check and writes verify_report.json
 and a textured check render into the out dir. Exits with status 1 if any check fails.
@@ -99,8 +99,16 @@ check("rider_rig is its own rig beside bike_rig (its transform is keyed to follo
 for r in RIGS: ob[r].data.pose_position = 'REST'
 bpy.context.view_layer.update()
 fb_rest = {m: world_mesh(ob[m]) for m in MESHES}
-d = max((a - b).length for a, b in zip(fb_rest["race_bike_youth"], master_rest["race_bike_youth"]))
-check("bike rest shape identical to master", d < 2e-6, "max deviation %.6f mm" % (d * 1000))
+# The bike may differ from the master only in the vertices listed in an optional JSON ({"fork": [indices]}), given as a
+# fifth argument: the bottom ends of the two upper fork tubes, which were extended to meet the fork lowers.
+bike_ok = set()
+if len(argv) > 4 and os.path.exists(argv[4]):
+    for lst in json.load(open(argv[4])).values(): bike_ok.update(lst)
+bd = [(a - b).length for a, b in zip(fb_rest["race_bike_youth"], master_rest["race_bike_youth"])]
+bchanged = {i for i, x in enumerate(bd) if x > 2e-6}
+check("bike rest shape identical to master outside the listed fork vertices", bchanged <= bike_ok,
+      "%d vertices differ from master, %d of them outside the %d listed vertices; max deviation elsewhere %.6f mm; largest listed move %.1f mm" % (
+          len(bchanged), len(bchanged - bike_ok), len(bike_ok), 1000 * max([x for i, x in enumerate(bd) if i not in bike_ok] or [0]), 1000 * max([bd[i] for i in bike_ok] or [0])))
 dv = [(a - b).length for a, b in zip(fb_rest["race_rider"], master_rest["race_rider"])]
 changed = {i for i, x in enumerate(dv) if x > 2e-6}
 check("rider rest shape identical to master outside the helmet", changed <= helmet, "%d vertices differ from master, %d of them outside the %d helmet vertices; max deviation outside %.6f mm" % (

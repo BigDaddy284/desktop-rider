@@ -54,7 +54,7 @@ Code coverage has not been measured. The requirement is that all applicable test
 The Unity models stay on the owner's PC, so these checks run there, in Blender, not on GitHub Actions:
 
 ```
-blender --background --factory-startup --python Tools/Blender/verify_models.py -- <Unity project>/Assets/DesktopRider/Models <working .blend> <master .blend> <output folder>
+blender --background --factory-startup --python Tools/Blender/verify_models.py -- <Unity project>/Assets/DesktopRider/Models <working .blend> <master .blend> <output folder> [bike_changed_vertices.json]
 ```
 
 The script re-imports `DesktopRider.fbx` and the nine prop files into an empty Blender. It compares them against the working and master Blender files and prints one PASS or FAIL line per check:
@@ -62,7 +62,7 @@ The script re-imports `DesktopRider.fbx` and the nine prop files into an empty B
 - mesh vertex and face counts
 - a UV map on each mesh, with no face that has area but no UV area
 - bone names and parents
-- the bike's shape identical to the master, and the rider's identical except the helmet
+- the bike's shape identical to the master except the fork-tube vertices listed in the optional fifth argument, and the rider's identical except the helmet
 - all 15 clips present, with the right lengths
 - bone positions and rotations, and every deformed vertex of both meshes, within 1 mm and 0.5° of the Blender scene at 5 frames per clip
 - the textures found
@@ -83,6 +83,8 @@ blender --background --factory-startup --python Tools/Blender/verify_tricks.py -
 The rigs-only file has no meshes to compare, so the same export is also made with meshes into a scratch folder. The script keys the 18 tricks fresh in memory and samples every 4th frame of every clip (556 frames). For both files it checks the objects, bone names and hierarchy, all 18 clips and their lengths, and bone positions and rotations within 1 mm and 0.5°. For the file with meshes it also checks every skinned vertex within 1 mm. Last, it checks that both files carry the same animation curves. It exits with status 1 if any check fails.
 
 Last run, 13 November 2026, on the owner's PC: **17 PASS, 0 FAIL**. Worst bone position 0.0026 mm, worst vertex 0.0032 mm, rotations 0.0000° (rotations up to 179° were in the samples, including the backflip).
+
+After the fork tubes were extended (13 November, 22:21) `DesktopRider.fbx` was exported again and `verify_models.py` gave **19 PASS, 0 FAIL**: 64 bike vertices differ from the master, none outside the listed ones. `DesktopRider_Tricks.fbx` holds rigs only and no bone changed, so it was not exported again.
 
 The wheel and brake-disc change of 13 November was a texture change only. The FBX files were not exported again, and `verify_models.py` was run again after the texture was replaced.
 
