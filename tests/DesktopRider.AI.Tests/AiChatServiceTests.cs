@@ -31,7 +31,7 @@ public class AiChatServiceTests
         Assert.Equal("picked-model", request.Model);
         Assert.Equal(0.3, request.Temperature);
         Assert.Equal(
-            [new ChatMessage(ChatRole.System, RiderPersonality.Compose(null)), new ChatMessage(ChatRole.User, "Hello")],
+            [new ChatMessage(ChatRole.System, RiderPersonality.Compose(new AiSettings())), new ChatMessage(ChatRole.User, "Hello")],
             request.Messages);
     }
 
@@ -45,8 +45,11 @@ public class AiChatServiceTests
 
         var messages = context.Provider.Requests[0].Messages;
         // The user's own personality replaces the built-in one, and the rider is still told how to move.
-        Assert.Equal(new ChatMessage(ChatRole.System, "Talk like a race commentator. " + RiderActions.Instructions), messages[0]);
-        Assert.DoesNotContain(RiderPersonality.DefaultSystemPrompt, messages[0].Content, StringComparison.Ordinal);
+        // It still may not pretend to see the screen, and it is still told how to move.
+        Assert.Equal(
+            new ChatMessage(ChatRole.System, $"Talk like a race commentator. {RiderPersonality.Honesty} {RiderPersonality.ShortReplies} {RiderActions.Instructions}"),
+            messages[0]);
+        Assert.DoesNotContain("cheeky", messages[0].Content, StringComparison.Ordinal);
         Assert.Single(messages, message => message.Role == ChatRole.System);
     }
 

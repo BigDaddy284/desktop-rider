@@ -29,6 +29,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AiMenuViewModel>();
         services.AddSingleton<ConversationViewModel>();
         services.AddSingleton<SpeechBubbleViewModel>();
+        services.AddSingleton<RiderSettingsViewModel>();
         services.AddSingleton<ITrayMenuContributor>(provider => provider.GetRequiredService<AiMenuViewModel>());
         return services;
     }

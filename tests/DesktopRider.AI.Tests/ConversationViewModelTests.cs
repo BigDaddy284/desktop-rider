@@ -1,3 +1,5 @@
+using DesktopRider.Core.Configuration;
+
 namespace DesktopRider.AI.Tests;
 
 public class ConversationViewModelTests
@@ -123,7 +125,7 @@ public class ConversationViewModelTests
 
         var sent = context.Provider.Requests[1].Messages;
         Assert.Equal(
-            [(ChatRole.System, RiderPersonality.Compose(null)), (ChatRole.User, "First question"), (ChatRole.Assistant, "First answer"), (ChatRole.User, "Second question")],
+            [(ChatRole.System, RiderPersonality.Compose(new AiSettings())), (ChatRole.User, "First question"), (ChatRole.Assistant, "First answer"), (ChatRole.User, "Second question")],
             sent.Select(message => (message.Role, message.Content)));
     }
 

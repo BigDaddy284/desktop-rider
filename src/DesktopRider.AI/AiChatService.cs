@@ -82,7 +82,7 @@ public sealed class AiChatService(AiProviderRegistry providers, ISettingsService
         }
 
         var provider = _providers.Get(ai.Provider);
-        var personality = RiderPersonality.Compose(ai.SystemPrompt);
+        var personality = RiderPersonality.Compose(ai);
         List<ChatMessage> messages = [new(ChatRole.System, personality), .. conversation.Where(message => message.Role != ChatRole.System)];
         var request = new ChatRequest(ai.Model, messages, ai.Temperature);
 

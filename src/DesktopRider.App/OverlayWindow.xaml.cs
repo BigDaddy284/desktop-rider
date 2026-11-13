@@ -59,6 +59,9 @@ public partial class OverlayWindow : Window
     /// <summary>Raised when the user clicks the rider or chooses "Talk to the rider" from its menu.</summary>
     internal event EventHandler? TalkRequested;
 
+    /// <summary>Raised when the user chooses "Rider settings" from the rider's menu.</summary>
+    internal event EventHandler? SettingsRequested;
+
     /// <summary>What the rider is doing in the conversation, so that its animation can follow.</summary>
     internal CharacterState CharacterState
     {
@@ -147,6 +150,8 @@ public partial class OverlayWindow : Window
     }
 
     private void OnCharacterClicked(object? sender, EventArgs e) => TalkRequested?.Invoke(this, EventArgs.Empty);
+
+    private void OnSettingsClick(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke(this, EventArgs.Empty);
 
     private void OnTalkClick(object sender, RoutedEventArgs e) => TalkRequested?.Invoke(this, EventArgs.Empty);
 

@@ -123,6 +123,45 @@ public class AppSettingsTests
         Assert.Equal(AiSettings.OllamaProvider, settings.Ai.Provider);
     }
 
+    [Fact]
+    public void Defaults_GiveTheStandardRider_WithNoNameForTheUser()
+    {
+        var ai = new AppSettings().Ai;
+
+        Assert.Equal(RiderTone.Cheeky, ai.Tone);
+        Assert.Equal(ReplyLength.Brief, ai.ReplyLength);
+        Assert.Null(ai.UserName);
+        Assert.Null(ai.SystemPrompt);
+    }
+
+    [Fact]
+    public void Normalize_TidiesThePersonalityChoices()
+    {
+        var settings = new AppSettings();
+        settings.Ai.Tone = (RiderTone)99;
+        settings.Ai.ReplyLength = (ReplyLength)(-1);
+        settings.Ai.UserName = "  " + new string('x', 60) + "  ";
+        settings.Ai.SystemPrompt = "  " + new string('y', 3000);
+
+        SettingsNormalizer.Normalize(settings);
+
+        Assert.Equal(RiderTone.Cheeky, settings.Ai.Tone);
+        Assert.Equal(ReplyLength.Brief, settings.Ai.ReplyLength);
+        Assert.Equal(new string('x', AiSettings.MaxUserNameLength), settings.Ai.UserName);
+        Assert.Equal(new string('y', AiSettings.MaxSystemPromptLength), settings.Ai.SystemPrompt);
+    }
+
+    [Fact]
+    public void Normalize_TreatsABlankNameAsNotSet_AndTrimsARealOne()
+    {
+        var settings = new AppSettings();
+        settings.Ai.UserName = "   ";
+        Assert.Null(SettingsNormalizer.Normalize(settings).Ai.UserName);
+
+        settings.Ai.UserName = "  Sam ";
+        Assert.Equal("Sam", SettingsNormalizer.Normalize(settings).Ai.UserName);
+    }
+
     [Theory]
     [InlineData(null, AiSettings.DefaultOllamaAddress)]
     [InlineData("", AiSettings.DefaultOllamaAddress)]

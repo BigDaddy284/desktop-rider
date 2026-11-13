@@ -25,6 +25,7 @@ public partial class App : Application
     private AiMenuViewModel? _aiMenu;
     private MessageWindow? _messageWindow;
     private ConversationPresenter? _conversation;
+    private SettingsWindow? _settingsWindow;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -91,6 +92,8 @@ public partial class App : Application
                 _services.GetRequiredService<SpeechBubbleViewModel>(),
                 _services.GetRequiredService<IScreenProvider>());
             _aiMenu.TalkRequested += OnTalkRequested;
+            _aiMenu.SettingsRequested += OnSettingsRequested;
+            window.SettingsRequested += OnSettingsRequested;
 
             window.ApplyVisibility();
             trayViewModel.AnnounceIfStartedHidden();
@@ -126,6 +129,13 @@ public partial class App : Application
             _aiMenu.ProgressChanged -= OnAiMessage;
             _aiMenu.MessageRequested -= OnAiMessage;
             _aiMenu.TalkRequested -= OnTalkRequested;
+            _aiMenu.SettingsRequested -= OnSettingsRequested;
+        }
+
+        if (_settingsWindow is not null)
+        {
+            _settingsWindow.ClosingForGood = true;
+            _settingsWindow.Close();
         }
 
         _conversation?.Dispose();
@@ -149,6 +159,18 @@ public partial class App : Application
     });
 
     private void OnTalkRequested(object? sender, EventArgs e) => Dispatcher.BeginInvoke(() => _conversation?.OpenConversation());
+
+    // The settings window is made the first time it is asked for, then kept so it opens at once.
+    private void OnSettingsRequested(object? sender, EventArgs e) => Dispatcher.BeginInvoke(() =>
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        _settingsWindow ??= new SettingsWindow(_services.GetRequiredService<RiderSettingsViewModel>());
+        _settingsWindow.Open();
+    });
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
