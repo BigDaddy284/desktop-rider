@@ -166,4 +166,4 @@ Status: the owner ran the 0.6.0 build on 12 November 2026 and reported that it w
 15. Ask "rev it" and then "go to sleep". **Expect:** the rider revs for a few seconds; then slumps asleep for a few seconds and sits back up by itself.
 16. Ask "what is a wheelie?". **Expect:** an answer in words. The rider may or may not do one, depending on the AI model; either is fine.
 
-Status: the owner ran the 0.6.1 build on 13 November 2026 and reported that it looks OK, with one problem: in bubble mode, clicking the rider hid the typing bubble but left the rider's answer showing. Fixed in 0.6.2 (step 10); **awaiting the owner's check of that fix and of steps 14 to 16, which are new in 0.6.2.**
+Status: the owner ran the 0.6.1 build on 13 November 2026 and reported that it looks OK, with one problem: in bubble mode, clicking the rider hid the typing bubble but left the rider's answer showing. Fixed in 0.6.2 (step 10). The owner ran the 0.6.2 build on 13 November 2026 and reported that it is working well, including the fix and tricks on request. The steps were not reported one by one.

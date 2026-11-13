@@ -4,7 +4,7 @@ Last updated: 12 November 2026
 
 ## Current task
 
-Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is built and tested automatically; manual check M6 on Windows 11 is awaiting the owner. Next is Phase 7: personality and memory.
+Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: built, tested automatically, and confirmed by the owner on Windows 11 with the 0.6.2 build, including the dark style, chat in bubbles and tricks on request. Next is Phase 7: personality and memory.
 
 ## Completed tasks
 
@@ -82,4 +82,4 @@ Recorded in ARCHITECTURE.md.
 
 ## Next task
 
-Phase 7: Personality and memory (configurable personality, local conversation history, optional memory, proactive behaviour controls). Before that, any problems the owner finds in manual check M6.
+Phase 7: Personality and memory (configurable personality, local conversation history, optional memory, proactive behaviour controls). 
