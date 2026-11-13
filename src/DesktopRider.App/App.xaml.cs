@@ -1,0 +1,239 @@
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Windows;
+using System.Windows.Threading;
+using DesktopRider.AI;
+using DesktopRider.Core;
+using DesktopRider.Core.Configuration;
+using DesktopRider.Core.Infrastructure;
+using DesktopRider.Core.Placement;
+using DesktopRider.Core.ViewModels;
+using DesktopRider.Desktop;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+namespace DesktopRider.App;
+
+/// <summary>Application entry point: starts the shared services, shows the character's window and shuts everything down cleanly.</summary>
+[SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable", Justification = "WPF owns the application lifetime; the fields are disposed in OnExit.")]
+public partial class App : Application
+{
+    private SingleInstanceGuard? _instanceGuard;
+    private ServiceProvider? _services;
+    private ILogger<App>? _logger;
+    private TrayIconController? _tray;
+    private AiMenuViewModel? _aiMenu;
+    private MessageWindow? _messageWindow;
+    private ConversationPresenter? _conversation;
+    private SettingsWindow? _settingsWindow;
+
+    protected override async void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+
+        _instanceGuard = new SingleInstanceGuard();
+        if (!_instanceGuard.IsFirstInstance)
+        {
+            MessageBox.Show(
+                $"{AppInfo.Name} is already running. Look for the rider on your desktop.\n\nIf you cannot see it, click the {AppInfo.Name} icon beside the clock (it may be behind the small arrow) and choose \"{TrayViewModel.ShowText}\".",
+                AppInfo.Name,
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
+
+        try
+        {
+            var paths = AppPaths.ForCurrentUser();
+            paths.EnsureDirectoriesExist();
+
+            var services = new ServiceCollection();
+            services.AddDesktopRiderCore(paths);
+            services.AddDesktopRiderAi();
+            services.AddSingleton<IScreenProvider, WindowsScreenProvider>();
+            services.AddSingleton<OverlayViewModel>();
+            services.AddSingleton<TrayViewModel>();
+            services.AddSingleton<OverlayWindow>();
+            _services = services.BuildServiceProvider();
+
+            _logger = _services.GetRequiredService<ILogger<App>>();
+            DispatcherUnhandledException += OnDispatcherUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+            Log.Starting(_logger, AppInfo.Version);
+
+            var settings = _services.GetRequiredService<ISettingsService>();
+            await settings.InitializeAsync();
+            Log.SettingsReady(_logger, settings.LoadStatus);
+
+            var window = _services.GetRequiredService<OverlayWindow>();
+            MainWindow = window;
+            window.Closed += (_, _) => Shutdown();
+
+            // Exit must work from the notification-area icon even when the rider is hidden and its window was never opened.
+            _services.GetRequiredService<OverlayViewModel>().ExitRequested += (_, _) => Shutdown();
+
+            var trayViewModel = _services.GetRequiredService<TrayViewModel>();
+            _tray = new TrayIconController(
+                trayViewModel,
+                TrayIconFactory.TryCreate(window.RiderPicture),
+                _services.GetRequiredService<ILogger<TrayIconController>>());
+            _tray.Show();
+
+            _aiMenu = _services.GetRequiredService<AiMenuViewModel>();
+            _aiMenu.ProgressChanged += OnAiMessage;
+            _aiMenu.MessageRequested += OnAiMessage;
+
+            // Brings back what the rider remembers and the conversation kept from last time. Nothing is sent anywhere.
+            await _services.GetRequiredService<RiderMemory>().LoadAsync();
+            await _services.GetRequiredService<ConversationViewModel>().RestoreAsync();
+
+            _conversation = new ConversationPresenter(
+                window,
+                _services.GetRequiredService<OverlayViewModel>(),
+                _services.GetRequiredService<ConversationViewModel>(),
+                _services.GetRequiredService<SpeechBubbleViewModel>(),
+                _services.GetRequiredService<IScreenProvider>());
+            _aiMenu.TalkRequested += OnTalkRequested;
+            _aiMenu.SettingsRequested += OnSettingsRequested;
+            window.SettingsRequested += OnSettingsRequested;
+
+            // The rider only ever speaks first if the user has switched that on; until then this sets no timer.
+            var comments = _services.GetRequiredService<ProactiveComments>();
+            window.QuietChoice = () => comments.MuteChoiceText;
+            window.QuietToggleRequested += (_, _) => comments.ToggleMute();
+            comments.Start();
+
+            // While the rider may start conversations it also does a trick or a gesture by itself now and then.
+            var animations = _services.GetRequiredService<ProactiveAnimations>();
+            animations.ActionRequested += (_, e) => window.Perform(e.Action.Animation);
+            animations.Start();
+
+            window.ApplyVisibility();
+            trayViewModel.AnnounceIfStartedHidden();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            if (_logger is not null)
+            {
+                Log.StartupFailed(_logger, ex);
+            }
+
+            MessageBox.Show(
+                $"{AppInfo.Name} could not start.\n\n{ex.Message}\n\nPlease try again. If this keeps happening, restart your computer.",
+                AppInfo.Name,
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(1);
+        }
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        if (_logger is not null)
+        {
+            Log.Exiting(_logger, e.ApplicationExitCode);
+        }
+
+        DispatcherUnhandledException -= OnDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException -= OnDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+        if (_aiMenu is not null)
+        {
+            _aiMenu.ProgressChanged -= OnAiMessage;
+            _aiMenu.MessageRequested -= OnAiMessage;
+            _aiMenu.TalkRequested -= OnTalkRequested;
+            _aiMenu.SettingsRequested -= OnSettingsRequested;
+        }
+
+        if (_settingsWindow is not null)
+        {
+            _settingsWindow.ClosingForGood = true;
+            _settingsWindow.Close();
+        }
+
+        _conversation?.Dispose();
+
+        _tray?.Dispose();
+        _services?.Dispose();
+        _instanceGuard?.Dispose();
+        base.OnExit(e);
+    }
+
+    // AI messages arrive from background work, so the window is only touched from the interface thread.
+    private void OnAiMessage(object? sender, AiMessageEventArgs e) => Dispatcher.BeginInvoke(() =>
+    {
+        if (_messageWindow is null)
+        {
+            _messageWindow = new MessageWindow();
+            _messageWindow.Closed += (_, _) => _messageWindow = null;
+        }
+
+        _messageWindow.ShowMessage(e.Title, e.Message);
+    });
+
+    private void OnTalkRequested(object? sender, EventArgs e) => Dispatcher.BeginInvoke(() => _conversation?.OpenConversation());
+
+    // The settings window is made the first time it is asked for, then kept so it opens at once.
+    private void OnSettingsRequested(object? sender, EventArgs e) => Dispatcher.BeginInvoke(() =>
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        _settingsWindow ??= new SettingsWindow(_services.GetRequiredService<RiderSettingsViewModel>());
+        _settingsWindow.Open();
+    });
+
+    private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        // Keep the rider running after an unexpected problem in the interface; the details go to the log file.
+        if (_logger is not null)
+        {
+            Log.UnexpectedError(_logger, e.Exception);
+        }
+
+        e.Handled = true;
+    }
+
+    private void OnDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (_logger is not null && e.ExceptionObject is Exception exception)
+        {
+            Log.FatalError(_logger, exception);
+        }
+    }
+
+    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        if (_logger is not null)
+        {
+            Log.UnexpectedError(_logger, e.Exception);
+        }
+
+        e.SetObserved();
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage(Level = LogLevel.Information, Message = "Desktop Rider {Version} is starting.")]
+        public static partial void Starting(ILogger logger, string version);
+
+        [LoggerMessage(Level = LogLevel.Information, Message = "Settings are ready ({Status}).")]
+        public static partial void SettingsReady(ILogger logger, SettingsLoadStatus status);
+
+        [LoggerMessage(Level = LogLevel.Information, Message = "Desktop Rider is closing with exit code {ExitCode}.")]
+        public static partial void Exiting(ILogger logger, int exitCode);
+
+        [LoggerMessage(Level = LogLevel.Critical, Message = "Desktop Rider could not start.")]
+        public static partial void StartupFailed(ILogger logger, Exception exception);
+
+        [LoggerMessage(Level = LogLevel.Error, Message = "An unexpected problem occurred. Desktop Rider is carrying on.")]
+        public static partial void UnexpectedError(ILogger logger, Exception exception);
+
+        [LoggerMessage(Level = LogLevel.Critical, Message = "A fatal problem occurred.")]
+        public static partial void FatalError(ILogger logger, Exception exception);
+    }
+}
