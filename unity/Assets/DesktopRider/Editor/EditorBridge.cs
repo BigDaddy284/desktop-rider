@@ -108,9 +108,9 @@ namespace DesktopRider.EditorTools
             if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp)
             {
                 urp.supportsHDR = false;
-                urp.msaaSampleCount = 4;
+                urp.msaaSampleCount = 2;
                 EditorUtility.SetDirty(urp);
-                log.AppendLine("render settings: " + urp.name + " HDR off, MSAA 4");
+                log.AppendLine("render settings: " + urp.name + " HDR off, MSAA 2");
             }
 
             var camera = Camera.main != null ? Camera.main : UnityEngine.Object.FindFirstObjectByType<Camera>();
@@ -128,6 +128,14 @@ namespace DesktopRider.EditorTools
             cameraData.renderPostProcessing = false;
             cameraData.antialiasing = AntialiasingMode.None;
             EditorUtility.SetDirty(camera);
+
+            // The bike carries its own soft shadow, so the light's real-time shadow map (redrawn every frame) is not needed.
+            foreach (var light in UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+            {
+                light.shadows = LightShadows.None;
+                EditorUtility.SetDirty(light);
+            }
+            log.AppendLine("light shadows off");
 
             var volume = GameObject.Find("Global Volume");
             if (volume != null) volume.SetActive(false);

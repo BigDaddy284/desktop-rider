@@ -43,6 +43,9 @@ namespace DesktopRider.Riding
         void Start()
         {
             QualitySettings.vSyncCount = 0;
+            // For measuring: "-movingFps 30 -restingFps 10" on the command line overrides the frame rates.
+            movingFrameRate = CommandLineInt("-movingFps", movingFrameRate);
+            restingFrameRate = CommandLineInt("-restingFps", restingFrameRate);
             if (viewCamera == null) viewCamera = Camera.main;
             PickTarget();
         }
@@ -135,6 +138,14 @@ namespace DesktopRider.Riding
             if (modelAnimation == null || clip == playing || modelAnimation.GetClip(clip) == null) return;
             modelAnimation.CrossFade(clip, 0.25f);
             playing = clip;
+        }
+
+        static int CommandLineInt(string name, int fallback)
+        {
+            var args = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i + 1 < args.Length; i++)
+                if (args[i] == name && int.TryParse(args[i + 1], out int value) && value > 0) return value;
+            return fallback;
         }
 
         static void SetFrameRate(int rate)
