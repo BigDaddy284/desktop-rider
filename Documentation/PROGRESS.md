@@ -169,6 +169,7 @@ settings windows on top of `RiderServices`.
 - At the owner's request the side-panel 28 was moved 4 cm forward and the swingarm strips were straightened onto the arm's centre line. Texture change only.
 - At the owner's request the upper fork tubes were extended to meet the fork lowers (64 vertices). `DesktopRider.fbx` exported again; `verify_models.py` 19 PASS, 0 FAIL, with the check now allowing only the listed fork vertices to differ from the master.
 - At the owner's request the fork lowers were made grey down to the axle, with the pink kept only on the front of each guard. Texture change only; 19 PASS, 0 FAIL.
+- At the owner's request the fork was remodelled into full-length tubes with front-only guards, and the chain was closed round both sprockets with its top run straightened. `DesktopRider.fbx` exported again; 19 PASS, 0 FAIL.
 
 #### Test results
 

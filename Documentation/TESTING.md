@@ -62,7 +62,7 @@ The script re-imports `DesktopRider.fbx` and the nine prop files into an empty B
 - mesh vertex and face counts
 - a UV map on each mesh, with no face that has area but no UV area
 - bone names and parents
-- the bike's shape identical to the master except the fork-tube vertices listed in the optional fifth argument, and the rider's identical except the helmet
+- the bike's shape identical to the master except the fork and chain vertices listed in the optional fifth argument, and only the listed number of vertices and faces added, and the rider's identical except the helmet
 - all 15 clips present, with the right lengths
 - bone positions and rotations, and every deformed vertex of both meshes, within 1 mm and 0.5° of the Blender scene at 5 frames per clip
 - the textures found
@@ -85,6 +85,8 @@ The rigs-only file has no meshes to compare, so the same export is also made wit
 Last run, 13 November 2026, on the owner's PC: **17 PASS, 0 FAIL**. Worst bone position 0.0026 mm, worst vertex 0.0032 mm, rotations 0.0000° (rotations up to 179° were in the samples, including the backflip).
 
 After the fork tubes were extended (13 November, 22:21) `DesktopRider.fbx` was exported again and `verify_models.py` gave **19 PASS, 0 FAIL**: 64 bike vertices differ from the master, none outside the listed ones. `DesktopRider_Tricks.fbx` holds rigs only and no bone changed, so it was not exported again.
+
+After the fork legs were remodelled and the chain closed (13 November, 22:41) `DesktopRider.fbx` was exported again: **19 PASS, 0 FAIL**. 232 bike vertices differ from the master, none outside the listed ones, with 112 vertices and 208 faces added as listed.
 
 The wheel and brake-disc change of 13 November was a texture change only. The FBX files were not exported again, and `verify_models.py` was run again after the texture was replaced.
 

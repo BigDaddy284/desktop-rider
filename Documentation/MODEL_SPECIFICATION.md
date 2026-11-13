@@ -17,7 +17,7 @@ Version 2.0 shows the owner's own 3D bike and rider in Unity instead of pre-rend
 
 | File | Contents |
 |---|---|
-| `DesktopRider.fbx` | Meshes `race_bike_youth` (8,444 vertices, 4,540 faces) and `race_rider` (6,726 vertices, 3,596 faces); rigs `bike_rig` (11 bones) and `rider_rig` (14 bones); 15 clips. |
+| `DesktopRider.fbx` | Meshes `race_bike_youth` (8,556 vertices, 4,748 faces; the master has 8,444 and 4,540) and `race_rider` (6,726 vertices, 3,596 faces); rigs `bike_rig` (11 bones) and `rider_rig` (14 bones); 15 clips. |
 | `Textures/DesktopRider_Bike.png` | 4096 × 4096 bike texture, with the owner's race-kit graphics. Referenced by the FBX, not embedded. |
 | `Textures/DesktopRider_Rider.png` | 4096 × 4096 rider texture. Referenced by the FBX, not embedded. |
 | `DesktopRider_Tricks.fbx` | The same two rigs (no meshes) with the 18 trick clips. |
@@ -65,7 +65,11 @@ The kit is the owner's vector design, `Harvey28_v2.pdf`. It is fitted to the pla
 
 ## Bike shape change (owner's request, 13 November 2026)
 
-The big upper fork tubes stopped 6.8 cm above the pink fork lowers, leaving a thin section showing. At the owner's request the bottom end of each upper tube (32 vertices per leg, 64 in all) was moved 72.4 mm down the fork axis, so the tube now meets the lower. Vertex and face counts, UVs and weights (100% `steer`) are unchanged. Everything else on the bike is identical to the master. In a full wheelie the fork extends and a short piece of the inner tube shows again, as on a real fork. Then, also at the owner's request, the fork was made to read as grey fork legs running down to the axle with a pink guard on the front only. This was done in the texture: the inner lower legs and the back half of each guard shell are painted the tube's grey (201, 203, 206). Stretching the upper tube to the axle was not done, because the upper tube moves with the steering and the lower legs slide with the suspension, so a rigid tube across that joint would poke out or gap whenever the fork moves. The list of moved vertices is `kit-fit-work\export\bike_changed_vertices.json` on the owner's PC, and their original positions are in `fork_original_vertices.json` beside it.
+The big upper fork tubes stopped 6.8 cm above the pink fork lowers, leaving a thin section showing. At the owner's request the bottom end of each upper tube (32 vertices per leg, 64 in all) was moved 72.4 mm down the fork axis, so the tube now meets the lower. Vertex and face counts, UVs and weights (100% `steer`) are unchanged. Everything else on the bike is identical to the master. In a full wheelie the fork extends and a short piece of the inner tube shows again, as on a real fork. Then, also at the owner's request, the fork was made to read as grey fork legs running down to the axle with a pink guard on the front only. This was done in the texture: the inner lower legs and the back half of each guard shell are painted the tube's grey (201, 203, 206). Stretching the upper tube to the axle was not done, because the upper tube moves with the steering and the lower legs slide with the suspension, so a rigid tube across that joint would poke out or gap whenever the fork moves. Then the owner asked for the fork to be a real full-length tube. The lower legs were moved onto the upper tubes' axis and widened to 97% of their radius, so they slide inside the upper tubes. At full extension 93.5 mm stays inside (about 73 mm in the tricks), and at the deepest compression (the stoppie) the leg still shows, so there is never a gap. The back half of each pink shell was flattened, so it is now a front guard. 120 vertices moved, no faces added or removed.
+
+The chain was also closed at the owner's request. A curved section wraps the back of the rear sprocket (83 mm pitch radius) and another the front sprocket. The top run is now straight from the rear sprocket to the front, 10 mm above the swingarm's top edge. All chain parts follow the `swingarm` bone. The bike now has 8,556 vertices and 4,748 faces (112 vertices and 208 faces added, after the master's own).
+
+The list of moved vertices is `kit-fit-work\export\bike_changed_vertices.json` on the owner's PC, and their original positions are in `fork_original_vertices.json` beside it.
 
 ## Rider changes approved on 13 November 2026
 

@@ -49,6 +49,7 @@ bpy.ops.wm.open_mainfile(filepath=MASTER)
 for r in RIGS: bpy.data.objects[r].data.pose_position = 'REST'
 bpy.context.view_layer.update()
 master_rest = {m: world_mesh(bpy.data.objects[m]) for m in MESHES}
+master_faces = len(bpy.data.objects["race_bike_youth"].data.polygons)
 
 # ------------------------------------------------------------------ reference 2: the working scene
 bpy.ops.wm.open_mainfile(filepath=WORK)
@@ -99,16 +100,25 @@ check("rider_rig is its own rig beside bike_rig (its transform is keyed to follo
 for r in RIGS: ob[r].data.pose_position = 'REST'
 bpy.context.view_layer.update()
 fb_rest = {m: world_mesh(ob[m]) for m in MESHES}
-# The bike may differ from the master only in the vertices listed in an optional JSON ({"fork": [indices]}), given as a
-# fifth argument: the bottom ends of the two upper fork tubes, which were extended to meet the fork lowers.
-bike_ok = set()
+# The bike may differ from the master only in the vertices listed in an optional JSON, given as a fifth argument:
+#   {"fork": [indices], "chain_runs": [indices], "added": {"vertices": n, "faces": n}}
+# These are the owner's requested changes: the fork tubes and lower legs reshaped, the chain runs moved, and the two
+# chain wraps round the sprockets added. Added geometry is appended after the master's vertices, so indices still match.
+bike_ok = set(); added = dict(vertices=0, faces=0)
 if len(argv) > 4 and os.path.exists(argv[4]):
-    for lst in json.load(open(argv[4])).values(): bike_ok.update(lst)
+    for key, lst in json.load(open(argv[4])).items():
+        if key == "added": added = lst
+        else: bike_ok.update(lst)
+n_master = len(master_rest["race_bike_youth"]); n_fbx = len(fb_rest["race_bike_youth"])
+n_faces = len(ob["race_bike_youth"].data.polygons)
 bd = [(a - b).length for a, b in zip(fb_rest["race_bike_youth"], master_rest["race_bike_youth"])]
 bchanged = {i for i, x in enumerate(bd) if x > 2e-6}
-check("bike rest shape identical to master outside the listed fork vertices", bchanged <= bike_ok,
-      "%d vertices differ from master, %d of them outside the %d listed vertices; max deviation elsewhere %.6f mm; largest listed move %.1f mm" % (
-          len(bchanged), len(bchanged - bike_ok), len(bike_ok), 1000 * max([x for i, x in enumerate(bd) if i not in bike_ok] or [0]), 1000 * max([bd[i] for i in bike_ok] or [0])))
+check("bike rest shape identical to master outside the listed vertices; only the listed geometry added",
+      bchanged <= bike_ok and n_fbx == n_master + added["vertices"] and n_faces == master_faces + added["faces"],
+      "%d vertices differ from master, %d of them outside the %d listed; max deviation elsewhere %.6f mm; largest listed move %.1f mm; "
+      "vertices %d (master %d + %d added), faces %d (master %d + %d added)" % (
+          len(bchanged), len(bchanged - bike_ok), len(bike_ok), 1000 * max([x for i, x in enumerate(bd) if i not in bike_ok] or [0]),
+          1000 * max([bd[i] for i in bike_ok] or [0]), n_fbx, n_master, added["vertices"], n_faces, master_faces, added["faces"]))
 dv = [(a - b).length for a, b in zip(fb_rest["race_rider"], master_rest["race_rider"])]
 changed = {i for i, x in enumerate(dv) if x > 2e-6}
 check("rider rest shape identical to master outside the helmet", changed <= helmet, "%d vertices differ from master, %d of them outside the %d helmet vertices; max deviation outside %.6f mm" % (
