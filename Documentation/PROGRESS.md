@@ -171,6 +171,7 @@ settings windows on top of `RiderServices`.
 - At the owner's request the fork lowers were made grey down to the axle, with the pink kept only on the front of each guard. Texture change only; 19 PASS, 0 FAIL.
 - At the owner's request the fork was remodelled into full-length tubes with front-only guards, and the chain was closed round both sprockets with its top run straightened. `DesktopRider.fbx` exported again; 19 PASS, 0 FAIL.
 - At the owner's request the grey back of each fork guard was deleted so the fork tube shows. `DesktopRider.fbx` exported again; 19 PASS, 0 FAIL.
+- The slim tube was then centred, and the fat tube's bottom ring straightened so the gap is an even 6.1 mm all round. The owner approved the bike as it now stands (13 Nov 2026, 23:22). An approved copy of the Blender file, models and textures is kept on the owner's PC.
 - At the owner's request the fork steps down to a slimmer lower tube (80% of the upper) from just above the guards. `DesktopRider.fbx` exported again; 19 PASS, 0 FAIL.
 
 #### Test results

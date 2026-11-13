@@ -52,7 +52,7 @@ Version 2.0 uses the owner's 3D bike and rider directly in Unity. The models, te
 
 | Asset | Source | Status |
 |---|---|---|
-| `DesktopRider.fbx`: bike and rider meshes, both rigs, 15 clips | The owner's models, with UV maps added. The rider's helmet was reshaped by the owner in Blender. | **Approved by the owner** (13 Nov 2026, after 9-angle renders). Verified: 19 of 19 checks pass. |
+| `DesktopRider.fbx`: bike and rider meshes, both rigs, 15 clips | The owner's models, with UV maps added. The rider's helmet was reshaped by the owner in Blender. | **Approved by the owner** (13 Nov 2026, after 9-angle renders). The owner's later fork and chain changes were approved the same night (23:22). Verified: 19 of 19 checks pass. |
 | `DesktopRider_Bike.png` | The owner's kit `Harvey28_v2.pdf` fitted to the plastics, with the JS Financial Solutions strips on the swingarm. The rider's name is off the side panels. Hubs in the kit's pink, rims in the kit's blue, and steel brake discs painted from the owner's disc reference photo. | **Approved by the owner** (13 Nov 2026; wheels and discs approved the same evening) |
 | `DesktopRider_Rider.png` | The earlier painted look, plus sky blue and pink gloves, the striped helmet top and a pink peak edge, taken from the correct-kit riding photographs | **Approved by the owner** (13 Nov 2026). The helmet's right side is still the earlier look. An update from the photographs of the same helmet model is being prepared for the owner's approval. |
 | `Props/DR_Prop_*.fbx` (9) | Rebuilt from the version 1 props as clean single meshes, with the same outlines and colours | Developer-made, as in version 1. Not yet seen by the owner. |
