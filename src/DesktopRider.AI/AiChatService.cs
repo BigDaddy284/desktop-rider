@@ -18,7 +18,7 @@ public sealed record AiConnectionReport(IReadOnlyList<AiModelInfo> Models, strin
 
 /// <summary>
 /// What the rest of Desktop Rider uses to talk to the AI. It applies the user's settings (provider, model,
-/// personality, temperature) so callers only supply the conversation.
+/// personality, what the rider remembers, temperature) so callers only supply the conversation.
 /// </summary>
 public interface IAiChatService
 {
@@ -35,7 +35,7 @@ public interface IAiChatService
     IAsyncEnumerable<string> StreamReplyAsync(IReadOnlyList<ChatMessage> conversation, CancellationToken cancellationToken = default);
 }
 
-public sealed class AiChatService(AiProviderRegistry providers, ISettingsService settings) : IAiChatService, IDisposable
+public sealed class AiChatService(AiProviderRegistry providers, ISettingsService settings, RiderMemory? memory = null) : IAiChatService, IDisposable
 {
     private readonly AiProviderRegistry _providers = providers ?? throw new ArgumentNullException(nameof(providers));
     private readonly ISettingsService _settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -82,7 +82,7 @@ public sealed class AiChatService(AiProviderRegistry providers, ISettingsService
         }
 
         var provider = _providers.Get(ai.Provider);
-        var personality = RiderPersonality.Compose(ai);
+        var personality = RiderPersonality.Compose(ai, memory?.ForConversation());
         List<ChatMessage> messages = [new(ChatRole.System, personality), .. conversation.Where(message => message.Role != ChatRole.System)];
         var request = new ChatRequest(ai.Model, messages, ai.Temperature);
 

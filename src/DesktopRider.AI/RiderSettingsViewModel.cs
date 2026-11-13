@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using DesktopRider.Core.Configuration;
 using DesktopRider.Core.ViewModels;
@@ -5,6 +6,16 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DesktopRider.AI;
+
+/// <summary>One thing the rider remembers, as shown in the settings with its own "Forget" button.</summary>
+public sealed class MemoryNoteItem(MemoryNote note, ICommand forgetCommand)
+{
+    public MemoryNote Note { get; } = note;
+
+    public string Text => Note.Text;
+
+    public ICommand ForgetCommand { get; } = forgetCommand;
+}
 
 /// <summary>
 /// The rider's settings: its personality and what it keeps between sessions. Every choice takes effect and is saved the moment it is made, so there
@@ -15,19 +26,37 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
     public const string SaveFailedText = "Desktop Rider could not save that change. It applies until Desktop Rider is closed.";
 
     public const string ConversationDeletedText = "The conversation has been deleted.";
+    public const string EverythingForgottenText = "The rider has forgotten everything.";
+    public const string AlreadyRememberedText = "The rider already remembers that.";
+    public const string MemoryFullText = "The rider's memory is full. Delete something to make room.";
+    public const string MemoryOffText = "Switch on the rider's memory first.";
+    public const string MemoryNotSavedText = "That change could not be saved. It applies until Desktop Rider is closed.";
 
     private readonly ISettingsService _settings;
     private readonly ConversationViewModel _conversation;
+    private readonly RiderMemory _memory;
     private readonly ILogger<RiderSettingsViewModel> _logger;
     private string _problem = string.Empty;
     private string _conversationMessage = string.Empty;
+    private string _memoryMessage = string.Empty;
+    private string _newNote = string.Empty;
 
-    public RiderSettingsViewModel(ISettingsService settings, ConversationViewModel conversation, ILogger<RiderSettingsViewModel>? logger = null)
+    public RiderSettingsViewModel(
+        ISettingsService settings,
+        ConversationViewModel conversation,
+        RiderMemory memory,
+        ILogger<RiderSettingsViewModel>? logger = null)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _conversation = conversation ?? throw new ArgumentNullException(nameof(conversation));
+        _memory = memory ?? throw new ArgumentNullException(nameof(memory));
         _logger = logger ?? NullLogger<RiderSettingsViewModel>.Instance;
         _settings.Changed += OnSettingsChanged;
+        _memory.Changed += OnMemoryChanged;
+        ShowNotes();
+
+        AddNoteCommand = new RelayCommand(() => _ = AddNoteAsync());
+        ForgetEverythingCommand = new RelayCommand(() => _ = ForgetEverythingAsync());
 
         UseBuiltInPersonalityCommand = new RelayCommand(() => OwnPersonality = string.Empty);
         DeleteConversationCommand = new RelayCommand(() => _ = DeleteConversationAsync());
@@ -159,6 +188,84 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
         ConversationMessage = ConversationDeletedText;
     }
 
+    /// <summary>Remembers what is typed in <see cref="NewNote"/>.</summary>
+    public ICommand AddNoteCommand { get; }
+
+    /// <summary>Deletes everything the rider remembers about the user.</summary>
+    public ICommand ForgetEverythingCommand { get; }
+
+    /// <summary>Everything the rider remembers about the user, oldest first.</summary>
+    public ObservableCollection<MemoryNoteItem> Notes { get; } = [];
+
+    public bool HasNotes => Notes.Count > 0;
+
+    public bool HasNoNotes => Notes.Count == 0;
+
+    /// <summary>Whether the rider uses, and adds to, what it remembers about the user.</summary>
+    public bool RememberThings
+    {
+        get => Memory.Enabled;
+        set
+        {
+            if (value != Memory.Enabled)
+            {
+                MemoryMessage = string.Empty;
+                _ = ChangeAsync(s => s.Memory.Enabled = value);
+            }
+        }
+    }
+
+    /// <summary>Something the user is typing for the rider to remember.</summary>
+    public string NewNote
+    {
+        get => _newNote;
+        set
+        {
+            value ??= string.Empty;
+            if (_newNote != value)
+            {
+                _newNote = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>What happened to the last change to the rider's memory, when there is something to say.</summary>
+    public string MemoryMessage
+    {
+        get => _memoryMessage;
+        private set
+        {
+            if (_memoryMessage != value)
+            {
+                _memoryMessage = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Remembers what is typed in <see cref="NewNote"/> and empties the box.</summary>
+    public async Task AddNoteAsync()
+    {
+        var result = await _memory.RememberAsync(NewNote);
+        MemoryMessage = result switch
+        {
+            RememberResult.AlreadyRemembered => AlreadyRememberedText,
+            RememberResult.Full => MemoryFullText,
+            RememberResult.SwitchedOff => MemoryOffText,
+            RememberResult.NotSaved => MemoryNotSavedText,
+            _ => string.Empty,
+        };
+        if (result is RememberResult.Remembered or RememberResult.NotSaved or RememberResult.AlreadyRemembered)
+        {
+            NewNote = string.Empty;
+        }
+    }
+
+    /// <summary>Deletes everything the rider remembers about the user.</summary>
+    public async Task ForgetEverythingAsync() =>
+        MemoryMessage = await _memory.ForgetEverythingAsync() ? EverythingForgottenText : MemoryNotSavedText;
+
     /// <summary>Words explaining that a change could not be saved. Empty when all is well.</summary>
     public string Problem
     {
@@ -180,7 +287,28 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
 
     private MemorySettings Memory => _settings.Current.Memory;
 
-    public void Dispose() => _settings.Changed -= OnSettingsChanged;
+    public void Dispose()
+    {
+        _settings.Changed -= OnSettingsChanged;
+        _memory.Changed -= OnMemoryChanged;
+    }
+
+    private async Task ForgetAsync(MemoryNote note) =>
+        MemoryMessage = await _memory.ForgetAsync(note) ? string.Empty : MemoryNotSavedText;
+
+    private void OnMemoryChanged(object? sender, EventArgs e) => ShowNotes();
+
+    private void ShowNotes()
+    {
+        Notes.Clear();
+        foreach (var note in _memory.Notes)
+        {
+            Notes.Add(new MemoryNoteItem(note, new RelayCommand(() => _ = ForgetAsync(note))));
+        }
+
+        OnPropertyChanged(nameof(HasNotes));
+        OnPropertyChanged(nameof(HasNoNotes));
+    }
 
     // A radio button reports both the one switched on and the one switched off; only the first is a choice.
     private void Choose(bool selected, RiderTone tone)

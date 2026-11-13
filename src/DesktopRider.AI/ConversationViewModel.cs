@@ -92,6 +92,11 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
     public const string SaveFailedAdvice = "Desktop Rider could not save your choice of AI model. Please try again.";
     public const string ThinkingText = "The rider is thinking…";
     public const string TalkingText = "The rider is answering…";
+    public const string RememberedNotice = "The rider will remember that. You can see or delete what it remembers in Rider settings.";
+    public const string AlreadyRememberedNotice = "The rider already remembers that.";
+    public const string MemoryOffNotice = "The rider's memory is switched off, so it will not remember that next time. You can switch it on in Rider settings.";
+    public const string MemoryFullNotice = "The rider's memory is full. Delete something it remembers in Rider settings to make room.";
+    public const string MemoryNotSavedNotice = "The rider will remember that until Desktop Rider closes, but it could not be saved for next time.";
     public const string HistoryNotSavedNotice = "Desktop Rider could not save this conversation, so it will be forgotten when Desktop Rider closes.";
 
     /// <summary>The most lines sent to the AI with each message, so a long chat does not slow every reply down.</summary>
@@ -108,6 +113,7 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
     private readonly ILogger<ConversationViewModel> _logger;
     private readonly IConversationStore? _store;
     private readonly TimeProvider _time;
+    private readonly RiderMemory? _memory;
     private CancellationTokenSource? _reply;
     private bool _saveProblemTold;
     private ConversationState _state;
@@ -124,8 +130,10 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
         ISettingsService settings,
         ILogger<ConversationViewModel>? logger = null,
         IConversationStore? store = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        RiderMemory? memory = null)
     {
+        _memory = memory;
         _chat = chat ?? throw new ArgumentNullException(nameof(chat));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _logger = logger ?? NullLogger<ConversationViewModel>.Instance;
@@ -312,6 +320,13 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
         var asked = RiderActions.FromRequest(text);
         try
         {
+            // "Remember that…" is kept before the message goes to the AI, so the rider's answer already knows it.
+            await RememberIfAskedAsync(text);
+            if (!ReferenceEquals(_reply, stop))
+            {
+                return;
+            }
+
             await foreach (var piece in _chat.StreamReplyAsync(history, stop.Token))
             {
                 if (!ReferenceEquals(_reply, stop))
@@ -621,6 +636,30 @@ public sealed partial class ConversationViewModel : ViewModelBase, IDisposable
         catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
         {
             // Desktop Rider is closing.
+        }
+    }
+
+    // The outcome is written into the conversation by Desktop Rider itself, so the user can trust that it happened
+    // (or did not) whatever the AI goes on to say. It is not shown in the speech bubble, which is for the rider's answer.
+    private async Task RememberIfAskedAsync(string message)
+    {
+        if (_memory is null || RiderMemory.FactToRemember(message) is not { } fact)
+        {
+            return;
+        }
+
+        var notice = await _memory.RememberAsync(fact) switch
+        {
+            RememberResult.Remembered => RememberedNotice,
+            RememberResult.AlreadyRemembered => AlreadyRememberedNotice,
+            RememberResult.SwitchedOff => MemoryOffNotice,
+            RememberResult.Full => MemoryFullNotice,
+            RememberResult.NotSaved => MemoryNotSavedNotice,
+            _ => null,
+        };
+        if (notice is not null)
+        {
+            Add(new ConversationLine(Speaker.Notice, notice, _time.GetUtcNow()));
         }
     }
 

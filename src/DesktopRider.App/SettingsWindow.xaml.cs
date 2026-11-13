@@ -79,6 +79,16 @@ public partial class SettingsWindow : Window
         }
     }
 
+    // Enter in the "remember this" box adds it, the same as the Add button.
+    private void OnNewNoteKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key is Key.Enter or Key.Return && DataContext is RiderSettingsViewModel settings)
+        {
+            e.Handled = true;
+            settings.AddNoteCommand.Execute(null);
+        }
+    }
+
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape)

@@ -526,9 +526,14 @@ public class ConversationViewModelTests
         public Context(string? model = "picked-model")
         {
             Settings.Current.Ai.Model = model;
-            Service = new AiChatService(new AiProviderRegistry([Provider]), Settings);
-            Chat = new ConversationViewModel(Service, Settings, store: Store, timeProvider: Clock);
+            Memory = new RiderMemory(MemoryStore, Settings, Clock);
+            Service = new AiChatService(new AiProviderRegistry([Provider]), Settings, Memory);
+            Chat = new ConversationViewModel(Service, Settings, store: Store, timeProvider: Clock, memory: Memory);
         }
+
+        public FakeMemoryStore MemoryStore { get; } = new();
+
+        public RiderMemory Memory { get; }
 
         public FakeConversationStore Store { get; } = new();
 

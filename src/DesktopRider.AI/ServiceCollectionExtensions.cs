@@ -26,6 +26,11 @@ public static class ServiceCollectionExtensions
             return new OllamaProvider(http, () => ConnectionFrom(settings.Current.Ai), provider.GetRequiredService<ILogger<OllamaProvider>>());
         });
         services.AddSingleton<AiProviderRegistry>();
+        services.AddSingleton<IMemoryStore>(provider => new JsonMemoryStore(
+            provider.GetRequiredService<AppPaths>(),
+            provider.GetRequiredService<ILogger<JsonMemoryStore>>(),
+            provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<RiderMemory>();
         services.AddSingleton<IAiChatService, AiChatService>();
         services.AddSingleton<AiMenuViewModel>();
         services.AddSingleton<IConversationStore>(provider => new JsonConversationStore(
@@ -37,7 +42,8 @@ public static class ServiceCollectionExtensions
             provider.GetRequiredService<ISettingsService>(),
             provider.GetRequiredService<ILogger<ConversationViewModel>>(),
             provider.GetRequiredService<IConversationStore>(),
-            provider.GetRequiredService<TimeProvider>()));
+            provider.GetRequiredService<TimeProvider>(),
+            provider.GetRequiredService<RiderMemory>()));
         services.AddSingleton<SpeechBubbleViewModel>();
         services.AddSingleton<RiderSettingsViewModel>();
         services.AddSingleton<ITrayMenuContributor>(provider => provider.GetRequiredService<AiMenuViewModel>());

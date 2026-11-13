@@ -221,15 +221,161 @@ public class RiderSettingsViewModelTests
         Assert.Equal(RiderSettingsViewModel.ConversationDeletedText, context.View.ConversationMessage);
     }
 
+    [Fact]
+    public void AtFirst_MemoryIsOn_AndEmpty()
+    {
+        using var context = new Context();
+
+        Assert.True(context.View.RememberThings);
+        Assert.Empty(context.View.Notes);
+        Assert.False(context.View.HasNotes);
+        Assert.True(context.View.HasNoNotes);
+        Assert.Equal(string.Empty, context.View.MemoryMessage);
+    }
+
+    [Fact]
+    public async Task AddingSomethingToRemember_ShowsIt_SavesIt_AndEmptiesTheBox()
+    {
+        using var context = new Context();
+        context.View.NewNote = "  My bike is a 250 two-stroke.  ";
+
+        await context.View.AddNoteAsync();
+
+        Assert.Equal(["My bike is a 250 two-stroke"], context.View.Notes.Select(note => note.Text));
+        Assert.Equal(["My bike is a 250 two-stroke"], context.MemoryStore.Saved.Select(note => note.Text));
+        Assert.Equal(string.Empty, context.View.NewNote);
+        Assert.True(context.View.HasNotes);
+        Assert.Equal(string.Empty, context.View.MemoryMessage);
+    }
+
+    [Fact]
+    public async Task AddingTheSameThingTwice_KeepsOne_AndSaysSo()
+    {
+        using var context = new Context();
+        context.View.NewNote = "I race on Sundays";
+        await context.View.AddNoteAsync();
+        context.View.NewNote = "i race on sundays";
+
+        await context.View.AddNoteAsync();
+
+        Assert.Single(context.View.Notes);
+        Assert.Equal(RiderSettingsViewModel.AlreadyRememberedText, context.View.MemoryMessage);
+    }
+
+    [Fact]
+    public async Task AddingNothing_DoesNothing()
+    {
+        using var context = new Context();
+        context.View.NewNote = "   ";
+
+        context.View.AddNoteCommand.Execute(null);
+        await Task.Yield();
+
+        Assert.Empty(context.View.Notes);
+        Assert.Equal(string.Empty, context.View.MemoryMessage);
+    }
+
+    [Fact]
+    public async Task ForgetOnOneThing_RemovesOnlyThat()
+    {
+        using var context = new Context();
+        foreach (var note in new[] { "one thing", "another thing" })
+        {
+            context.View.NewNote = note;
+            await context.View.AddNoteAsync();
+        }
+
+        context.View.Notes[0].ForgetCommand.Execute(null);
+
+        Assert.Equal(["another thing"], context.View.Notes.Select(note => note.Text));
+        Assert.Equal(["another thing"], context.MemoryStore.Saved.Select(note => note.Text));
+    }
+
+    [Fact]
+    public async Task ForgetEverything_EmptiesTheMemory_RemovesTheFile_AndSaysSo()
+    {
+        using var context = new Context();
+        context.View.NewNote = "one thing";
+        await context.View.AddNoteAsync();
+
+        context.View.ForgetEverythingCommand.Execute(null);
+
+        Assert.Empty(context.View.Notes);
+        Assert.Empty(context.MemoryStore.Saved);
+        Assert.Equal(1, context.MemoryStore.DeleteCount);
+        Assert.Equal(RiderSettingsViewModel.EverythingForgottenText, context.View.MemoryMessage);
+    }
+
+    [Fact]
+    public async Task SwitchingMemoryOff_KeepsTheNotes_ButTheRiderStopsUsingThem_AndNothingCanBeAdded()
+    {
+        using var context = new Context();
+        context.View.NewNote = "My dog is called Diesel";
+        await context.View.AddNoteAsync();
+
+        context.View.RememberThings = false;
+
+        Assert.False(context.Settings.Current.Memory.Enabled);
+        Assert.Single(context.View.Notes);
+        Assert.Empty(context.Memory.ForConversation());
+
+        context.View.NewNote = "something else";
+        await context.View.AddNoteAsync();
+
+        Assert.Single(context.View.Notes);
+        Assert.Equal(RiderSettingsViewModel.MemoryOffText, context.View.MemoryMessage);
+        Assert.Equal("something else", context.View.NewNote);
+
+        context.View.RememberThings = true;
+
+        Assert.Equal(["My dog is called Diesel"], context.Memory.ForConversation());
+        Assert.Equal(string.Empty, context.View.MemoryMessage);
+    }
+
+    [Fact]
+    public async Task WhenTheMemoryCannotBeSaved_TheChangeStillShows_AndTheUserIsTold()
+    {
+        using var context = new Context();
+        context.MemoryStore.FailSaves = true;
+        context.View.NewNote = "one thing";
+
+        await context.View.AddNoteAsync();
+
+        Assert.Single(context.View.Notes);
+        Assert.Equal(RiderSettingsViewModel.MemoryNotSavedText, context.View.MemoryMessage);
+
+        await context.View.ForgetEverythingAsync();
+
+        Assert.Empty(context.View.Notes);
+        Assert.Equal(RiderSettingsViewModel.MemoryNotSavedText, context.View.MemoryMessage);
+    }
+
+    [Fact]
+    public async Task SomethingRememberedInConversation_AppearsInTheSettings()
+    {
+        using var context = new Context();
+        context.Provider.Reply.Add("Got it!");
+        context.Chat.Draft = "Remember that my race number is 284";
+
+        await context.Chat.SendAsync();
+
+        Assert.Equal(["my race number is 284"], context.View.Notes.Select(note => note.Text));
+    }
+
     private sealed class Context : IDisposable
     {
         public Context()
         {
             Settings.Current.Ai.Model = "picked-model";
-            Service = new AiChatService(new AiProviderRegistry([Provider]), Settings);
-            Chat = new ConversationViewModel(Service, Settings, store: Store, timeProvider: Clock);
-            View = new RiderSettingsViewModel(Settings, Chat);
+            Memory = new RiderMemory(MemoryStore, Settings, Clock);
+            Service = new AiChatService(new AiProviderRegistry([Provider]), Settings, Memory);
+            Chat = new ConversationViewModel(Service, Settings, store: Store, timeProvider: Clock, memory: Memory);
+            View = new RiderSettingsViewModel(Settings, Chat, Memory);
         }
+
+        public FakeMemoryStore MemoryStore { get; } = new();
+
+        public RiderMemory Memory { get; }
 
         public FakeSettingsService Settings { get; } = new();
 

@@ -258,3 +258,39 @@ internal sealed class ManualClock(DateTimeOffset now) : TimeProvider
         }
     }
 }
+
+/// <summary>A memory store held in memory, with a switch to make saving fail.</summary>
+internal sealed class FakeMemoryStore : IMemoryStore
+{
+    public List<MemoryNote> Saved { get; set; } = [];
+
+    public bool FailSaves { get; set; }
+
+    public int DeleteCount { get; private set; }
+
+    public Task<IReadOnlyList<MemoryNote>> LoadAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MemoryNote>>([.. Saved]);
+
+    public Task SaveAsync(IReadOnlyList<MemoryNote> notes, CancellationToken cancellationToken = default)
+    {
+        if (FailSaves)
+        {
+            return Task.FromException(new IOException("The disk is full."));
+        }
+
+        Saved = [.. notes];
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(CancellationToken cancellationToken = default)
+    {
+        if (FailSaves)
+        {
+            return Task.FromException(new IOException("The disk is full."));
+        }
+
+        DeleteCount++;
+        Saved = [];
+        return Task.CompletedTask;
+    }
+}

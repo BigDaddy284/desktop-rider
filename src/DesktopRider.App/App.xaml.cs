@@ -85,7 +85,8 @@ public partial class App : Application
             _aiMenu.ProgressChanged += OnAiMessage;
             _aiMenu.MessageRequested += OnAiMessage;
 
-            // Brings back the conversation kept from last time, if the user allows that. Nothing is sent anywhere.
+            // Brings back what the rider remembers and the conversation kept from last time. Nothing is sent anywhere.
+            await _services.GetRequiredService<RiderMemory>().LoadAsync();
             await _services.GetRequiredService<ConversationViewModel>().RestoreAsync();
 
             _conversation = new ConversationPresenter(
