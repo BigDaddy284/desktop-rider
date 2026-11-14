@@ -66,7 +66,10 @@ namespace DesktopRider.Tricks
         public IReadOnlyList<TrickPropPlacement> Props { get; }
 
         /// <summary>How long the trick takes at normal speed.</summary>
-        public TimeSpan Duration => TimeSpan.FromSeconds(Frames / FramesPerSecond);
+        public TimeSpan Duration => TimeSpan.FromTicks((long)Math.Round(Seconds * TimeSpan.TicksPerSecond));
+
+        /// <summary>The same as <see cref="Duration"/> but exact (Unity's TimeSpan.FromSeconds rounds to milliseconds).</summary>
+        public double Seconds => Frames / FramesPerSecond;
 
         /// <summary>How far the bike has gone when the trick ends, in metres.</summary>
         public double Distance => _travel[_travel.Length - 1];

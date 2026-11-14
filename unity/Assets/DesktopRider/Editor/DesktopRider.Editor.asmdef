@@ -1,7 +1,7 @@
 {
   "name": "DesktopRider.Editor",
   "rootNamespace": "DesktopRider.EditorTools",
-  "references": ["DesktopRider.Runtime", "Unity.RenderPipelines.Universal.Runtime", "Unity.RenderPipelines.Core.Runtime", "UnityEditor.TestRunner", "UnityEngine.TestRunner"],
+  "references": ["DesktopRider.Runtime", "DesktopRider.Logic", "Unity.RenderPipelines.Universal.Runtime", "Unity.RenderPipelines.Core.Runtime", "UnityEditor.TestRunner", "UnityEngine.TestRunner"],
   "includePlatforms": ["Editor"],
   "versionDefines": [{ "name": "com.unity.test-framework", "expression": "", "define": "DR_HAS_TEST_FRAMEWORK" }]
 }

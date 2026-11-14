@@ -179,7 +179,7 @@ namespace DesktopRider.EditorTools
                 model.name = "Model";
                 model.transform.SetParent(lean.transform, false);
                 model.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);    // Blender +X (the bike's nose) becomes Unity -X; turn it to face +Z
-                free.modelAnimation = model.GetComponent<Animation>();
+                free.modelAnimation = model.GetComponent<UnityEngine.Animation>();
                 var clips = AnimationUtility.GetAnimationClips(model).Select(c => c.name).ToArray();
                 // The bike and rider rigs are separate roots under this one object; moving the object moves both.
                 log.AppendLine("model placed: " + AssetDatabase.GetAssetPath(prefab) + "; clips: " + string.Join(", ", clips));
@@ -228,7 +228,7 @@ namespace DesktopRider.EditorTools
             var store = (GameObject)PrefabUtility.InstantiatePrefab(tricks);
             store.name = "TrickClips";
             store.transform.SetParent(rider.transform, false);
-            runner.tricksModel = store.GetComponent<Animation>();
+            runner.tricksModel = store.GetComponent<UnityEngine.Animation>();
             log.AppendLine("trick clips: " + string.Join(", ", AnimationUtility.GetAnimationClips(store).Select(c => c.name)));
         }
 

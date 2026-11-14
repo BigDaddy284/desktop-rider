@@ -52,12 +52,12 @@ namespace DesktopRider.Tricks
         public double Speed { get; set; } = 1.0;
 
         /// <summary>Seconds into the clip.</summary>
-        public double ClipTime => Math.Min(_seconds, Animation.Duration.TotalSeconds);
+        public double ClipTime => Math.Min(_seconds, Animation.Seconds);
 
-        public bool IsFinished => _seconds >= Animation.Duration.TotalSeconds;
+        public bool IsFinished => _seconds >= Animation.Seconds;
 
         /// <summary>From 0 at the start to 1 when done.</summary>
-        public double Progress => Animation.Duration.TotalSeconds <= 0 ? 1.0 : ClipTime / Animation.Duration.TotalSeconds;
+        public double Progress => Animation.Seconds <= 0 ? 1.0 : ClipTime / Animation.Seconds;
 
         /// <summary>Where the bike is now.</summary>
         public Vector2 Position => Start + Forward * (float)(Animation.TravelAt(ClipTime) - Animation.TravelAt(0));
@@ -65,10 +65,16 @@ namespace DesktopRider.Tricks
         /// <summary>Where the bike will be when the trick is over.</summary>
         public Vector2 End => Start + Forward * (float)(Animation.Distance - Animation.TravelAt(0));
 
-        public void Advance(TimeSpan elapsed)
+        public void Advance(TimeSpan elapsed) => Advance(elapsed.TotalSeconds);
+
+        /// <summary>
+        /// Moves time on by a number of seconds. Prefer this to the TimeSpan form for frame times: Unity's
+        /// TimeSpan.FromSeconds rounds to whole milliseconds, which would make tricks run slow or fast.
+        /// </summary>
+        public void Advance(double seconds)
         {
-            if (elapsed <= TimeSpan.Zero) return;
-            _seconds += elapsed.TotalSeconds * Math.Max(0.0, Speed);
+            if (!(seconds > 0)) return;
+            _seconds += seconds * Math.Max(0.0, Speed);
         }
 
         /// <summary>The ground direction for a heading: 0 is +Y, 90 is +X.</summary>

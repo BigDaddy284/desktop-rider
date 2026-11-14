@@ -48,7 +48,8 @@ namespace DesktopRider.Tricks.Tests
             Assert.Equal(2, jump.Props.Count);
             Assert.Equal(4.0, jump.Props[1].X, 6);
             Assert.Equal(6.0, jump.Distance, 6);
-            Assert.Equal(TimeSpan.FromSeconds(4 / 24.0), jump.Duration);
+            Assert.Equal(4 / 24.0, jump.Seconds, 9);
+            Assert.Equal(4 / 24.0, jump.Duration.TotalSeconds, 6);
             Assert.Null(layout.Find("Backflip"));
         }
 
@@ -121,12 +122,12 @@ namespace DesktopRider.Tricks.Tests
             Assert.False(run.IsFinished);
             Assert.Equal(0.0, run.Position.Y, 6);
 
-            run.Advance(TimeSpan.FromSeconds(2 / 24.0));
+            run.Advance(2 / 24.0);
             Assert.Equal(1.5, run.Position.Y, 4);
             Assert.Equal(0.0, run.Position.X, 4);
             Assert.Equal(0.5, run.Progress, 4);
 
-            run.Advance(TimeSpan.FromSeconds(1));
+            run.Advance(TimeSpan.FromSeconds(1));      // the TimeSpan form works too
             Assert.True(run.IsFinished);
             Assert.Equal(6.0, run.Position.Y, 4);
             Assert.Equal(run.End.Y, run.Position.Y, 4);
@@ -137,9 +138,10 @@ namespace DesktopRider.Tricks.Tests
         public void PlaysFasterOrSlowerWithTheAnimationSpeed()
         {
             var run = new TrickRun(Jump, Vector2.Zero, 0f) { Speed = 2.0 };
-            run.Advance(TimeSpan.FromSeconds(1 / 24.0));
+            run.Advance(1 / 24.0);
             Assert.Equal(1.5, run.Position.Y, 4);
             run.Advance(TimeSpan.FromSeconds(-1));
+            run.Advance(double.NaN);
             Assert.Equal(1.5, run.Position.Y, 4);
         }
 

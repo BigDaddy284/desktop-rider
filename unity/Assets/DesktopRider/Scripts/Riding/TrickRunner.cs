@@ -136,7 +136,7 @@ namespace DesktopRider.Riding
         {
             if (run == null) return;
             run.Speed = rider.Director.Speed;
-            run.Advance(TimeSpan.FromSeconds(Time.deltaTime));
+            run.Advance(Time.deltaTime);
             var p = run.Position;
             rider.PlaceForTrick(new Vector3(p.X, rider.transform.position.y, p.Y), run.Heading);
             if (run.IsFinished) Stop();

@@ -301,7 +301,8 @@ namespace DesktopRider.Riding
 
         void Animate(bool moving)
         {
-            Director.Advance(TimeSpan.FromSeconds(Time.deltaTime), moving);
+            // FromTicks, not FromSeconds: Unity's FromSeconds rounds to whole milliseconds, which slows the clips slightly.
+            Director.Advance(TimeSpan.FromTicks((long)(Time.deltaTime * TimeSpan.TicksPerSecond)), moving);
             if (Director.Starts == playedStarts || modelAnimation == null) return;
             playedStarts = Director.Starts;
             var state = modelAnimation[Director.Clip];
