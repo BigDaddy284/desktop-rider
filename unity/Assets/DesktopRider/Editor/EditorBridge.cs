@@ -88,6 +88,8 @@ namespace DesktopRider.EditorTools
                 case "endplay": EditorApplication.isPlaying = false; return "leaving play mode";
                 case "view": return View(argument);
                 case "prop": return PropView(argument);
+                case "trickcheck": return TrickViewer.CheckAll();
+                case "trickframes": return TrickViewer.SaveFrames(argument);
                 default: throw new ArgumentException("Unknown command " + command);
             }
         }

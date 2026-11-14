@@ -58,10 +58,16 @@ namespace DesktopRider.Overlay
             if (instance != null) instance.MoveTo(corner);
         }
 
-        /// <summary>Changes the window's width and height, in pixels, keeping its centre where it is.</summary>
-        public static void Resize(int size)
+        /// <summary>Makes the window a square of this many pixels, keeping its centre where it is.</summary>
+        public static void Resize(int size) => Resize(size, size);
+
+        /// <summary>
+        /// Changes the window's width and height, in pixels, keeping its centre where it is. A trick uses a window the
+        /// shape of the trick, so a long jump does not need a square taller than the screen.
+        /// </summary>
+        public static void Resize(int width, int height)
         {
-            if (instance != null) instance.SetSize(Mathf.Max(64, size));
+            if (instance != null) instance.SetSize(new Vector2Int(Mathf.Max(64, width), Mathf.Max(64, height)));
         }
 
         /// <summary>Hides or shows the window. While hidden nothing is drawn and no clicks are taken.</summary>
@@ -131,7 +137,7 @@ namespace DesktopRider.Overlay
 
         IntPtr window;
         bool clickThrough, visible = true, topmost = true;
-        int size;
+        Vector2Int size;
         Vector2Int placed = new Vector2Int(int.MinValue, int.MinValue);
         PixelPoint offset;   // add to a Windows position to get a desktop pixel
 
@@ -139,8 +145,8 @@ namespace DesktopRider.Overlay
         {
             Application.runInBackground = true;
             window = GetActiveWindow();
-            if (size == 0) size = SizeFor(1f);
-            Screen.SetResolution(size, size, FullScreenMode.Windowed);
+            if (size.x == 0) size = new Vector2Int(SizeFor(1f), SizeFor(1f));
+            Screen.SetResolution(size.x, size.y, FullScreenMode.Windowed);
             yield return null;
             yield return null;
 
@@ -148,11 +154,11 @@ namespace DesktopRider.Overlay
             clickThrough = true;
             ApplyExtendedStyle();
             var centre = Area.MainCentre;
-            var corner = new Vector2Int(Mathf.RoundToInt(centre.X) - size / 2, Mathf.RoundToInt(centre.Y) - size / 2);
-            SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, corner.x - offset.X, corner.y - offset.Y, size, size,
+            var corner = new Vector2Int(Mathf.RoundToInt(centre.X) - size.x / 2, Mathf.RoundToInt(centre.Y) - size.y / 2);
+            SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, corner.x - offset.X, corner.y - offset.Y, size.x, size.y,
                 SWP_FRAMECHANGED | (visible ? SWP_SHOWWINDOW : 0) | SWP_NOACTIVATE);
             placed = corner;
-            WindowRect = new RectInt(corner.x, corner.y, size, size);
+            WindowRect = new RectInt(corner.x, corner.y, size.x, size.y);
             IsActive = true;
             if (!visible) ShowWindow(window, SW_HIDE);
         }
@@ -176,7 +182,7 @@ namespace DesktopRider.Overlay
             yield return null;
             ApplyWindowStyle(visible);
             ApplyExtendedStyle();
-            SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, placed.x - offset.X, placed.y - offset.Y, size, size,
+            SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, placed.x - offset.X, placed.y - offset.Y, size.x, size.y,
                 SWP_FRAMECHANGED | SWP_NOACTIVATE);
             if (visible) ApplyTopmost(topmost);
             restyle = null;
@@ -214,26 +220,26 @@ namespace DesktopRider.Overlay
             if (!IsActive || (!force && corner == placed)) return;
             SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, corner.x - offset.X, corner.y - offset.Y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
             placed = corner;
-            WindowRect = new RectInt(corner.x, corner.y, size, size);
+            WindowRect = new RectInt(corner.x, corner.y, size.x, size.y);
         }
 
-        void SetSize(int newSize)
+        void SetSize(Vector2Int newSize)
         {
             if (newSize == size) return;
             var centre = WindowRect.center;
             size = newSize;
             if (!IsActive)
             {
-                Screen.SetResolution(size, size, FullScreenMode.Windowed);
+                Screen.SetResolution(size.x, size.y, FullScreenMode.Windowed);
                 return;
             }
             // Resize the window directly. Unity follows (the player is built with a resizable window) and keeps the
             // see-through, borderless, always-on-top style. Screen.SetResolution would instead turn the window back into
             // an ordinary opaque one for a few frames, which flashes up as a white box.
-            var corner = new Vector2Int(Mathf.RoundToInt(centre.x) - size / 2, Mathf.RoundToInt(centre.y) - size / 2);
-            SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, corner.x - offset.X, corner.y - offset.Y, size, size, SWP_NOACTIVATE);
+            var corner = new Vector2Int(Mathf.RoundToInt(centre.x) - size.x / 2, Mathf.RoundToInt(centre.y) - size.y / 2);
+            SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, corner.x - offset.X, corner.y - offset.Y, size.x, size.y, SWP_NOACTIVATE);
             placed = corner;
-            WindowRect = new RectInt(corner.x, corner.y, size, size);
+            WindowRect = new RectInt(corner.x, corner.y, size.x, size.y);
             if (restyle != null) StopCoroutine(restyle);
             restyle = StartCoroutine(CheckResize());
         }
@@ -244,10 +250,10 @@ namespace DesktopRider.Overlay
         /// </summary>
         IEnumerator CheckResize()
         {
-            for (int i = 0; i < 10 && (Screen.width != size || Screen.height != size); i++) yield return null;
-            if (Screen.width == size && Screen.height == size) { restyle = null; yield break; }
+            for (int i = 0; i < 10 && (Screen.width != size.x || Screen.height != size.y); i++) yield return null;
+            if (Screen.width == size.x && Screen.height == size.y) { restyle = null; yield break; }
             Debug.LogWarning("Desktop Rider's window did not resize directly; asking Unity to resize it instead.");
-            Screen.SetResolution(size, size, FullScreenMode.Windowed);
+            Screen.SetResolution(size.x, size.y, FullScreenMode.Windowed);
             restyle = StartCoroutine(RestyleAfterResize());
         }
 
@@ -289,7 +295,7 @@ namespace DesktopRider.Overlay
         }
 #else
         void MoveTo(Vector2Int corner) { }
-        void SetSize(int newSize) { }
+        void SetSize(Vector2Int newSize) { }
         void ApplyVisible(bool show) { }
         void ApplyTopmost(bool onTop) { }
         void ReadScreens() { }

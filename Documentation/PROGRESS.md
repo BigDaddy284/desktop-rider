@@ -309,6 +309,17 @@ Ollama; to be discussed when it is reached), then settings and the final check.
       faded edges (`dirt_bake.py`);
     - smooth-shaded mounds with lumpy, rain-rilled sides (`prop_detail.py`).
   - Python tests: 59 passed (`python3 -m unittest discover -s Tools/Blender/tests`).
+  - Riding style from the owner's photographs and videos (`Tools/Blender/riding_style.py`, exported as
+    `DesktopRider_Style.fbx`): seated at the front of the seat, a ride-off clip when setting off, and corner poses with
+    the inside leg out, blended in by the turn still to come (`CornerBlend`) so the leg comes out as the turn starts, not
+    half way through. Dirt spray and blue smoke at the rear wheel when setting off (`StartEffects`). Boss had the
+    feet-down rest and start poses taken out.
+  - Tricks cut off at the edge of their window (Boss: the front wheel at the end, the helmet at the top of jumps). Two
+    causes: the room above the bike was a fixed 1.8 m (tricks reach up to 3.9 m), and the window was a square as big as
+    the longest side, which for a long jump is taller than a 1080-pixel screen, so Windows cut it short. Now each trick's
+    room is measured from its clip, frame by frame (`TrickExtents`), and the window is the shape of the trick, kept on the
+    desktop (`FreeRider.TrickWindow`). All 18 tricks checked frame by frame with the new Trick Viewer: nothing outside.
+  - Unity tests: 754 passed, 0 failed. Build succeeded.
 
 #### Still to do in this phase
 

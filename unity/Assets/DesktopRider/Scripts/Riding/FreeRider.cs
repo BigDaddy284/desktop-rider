@@ -268,10 +268,12 @@ namespace DesktopRider.Riding
             var window = OverlayWindow.WindowRect;
             if (OverlayWindow.IsActive && Framing is Rect frame)
             {
-                // A square window over the whole trick; most of it is see-through and lets clicks pass.
-                int size = Mathf.CeilToInt(Mathf.Max(frame.width, frame.height));
-                if (window.width != size) OverlayWindow.Resize(size);
-                OverlayWindow.PlaceWindow(new Vector2Int(Mathf.RoundToInt(frame.center.x - size * 0.5f), Mathf.RoundToInt(frame.center.y - size * 0.5f)));
+                // A window the shape of the whole trick, cut to the desktop (nothing shows past its edge anyway); most of
+                // it is see-through and lets clicks pass. A square one was taller than the screen for long jumps, and
+                // Windows then cut the window short, which cut off the front wheel or the helmet.
+                var fit = TrickWindow(frame, OverlayWindow.Area.Size.Width, OverlayWindow.Area.Size.Height);
+                if (window.width != fit.width || window.height != fit.height) OverlayWindow.Resize(fit.width, fit.height);
+                OverlayWindow.PlaceWindow(fit.position);
                 window = OverlayWindow.WindowRect;
             }
             else if (OverlayWindow.IsActive)
@@ -287,6 +289,14 @@ namespace DesktopRider.Riding
             viewCamera.orthographic = true;
             viewCamera.orthographicSize = window.height / (2f * view.PixelsPerMetre);
             viewCamera.transform.SetPositionAndRotation(view.CameraFor(windowCentre), view.Rotation);
+        }
+
+        /// <summary>The window for a trick: the trick's frame in whole pixels, kept inside the desktop.</summary>
+        public static RectInt TrickWindow(Rect frame, int desktopWidth, int desktopHeight)
+        {
+            int left = Mathf.Max(0, Mathf.FloorToInt(frame.xMin)), top = Mathf.Max(0, Mathf.FloorToInt(frame.yMin));
+            int right = Mathf.Min(desktopWidth, Mathf.CeilToInt(frame.xMax)), bottom = Mathf.Min(desktopHeight, Mathf.CeilToInt(frame.yMax));
+            return new RectInt(left, top, Mathf.Max(64, right - left), Mathf.Max(64, bottom - top));
         }
 
         void UpdateMouse()
