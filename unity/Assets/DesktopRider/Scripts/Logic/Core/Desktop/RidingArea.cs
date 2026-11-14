@@ -102,6 +102,19 @@ namespace DesktopRider.Core.Desktop
             return best;
         }
 
+        /// <summary>True if the point is on a screen and at least <paramref name="margin"/> pixels in from its edges.</summary>
+        public bool IsOnScreen(Vector2 point, float margin = 0f)
+        {
+            foreach (var s in _screens)
+            {
+                if (point.X >= s.X + margin && point.X <= s.X + s.Width - margin &&
+                    point.Y >= s.Y + margin && point.Y <= s.Y + s.Height - margin)
+                    return true;
+            }
+
+            return false;
+        }
+
         /// <summary>The point itself if it is on a screen, otherwise the nearest point that is.</summary>
         public Vector2 KeepOnScreen(Vector2 point) => Clamp(point, _screens[ScreenAt(point)]);
 

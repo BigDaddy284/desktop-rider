@@ -406,3 +406,17 @@ limitation for now.
 thread, builds the tray view model with its menu contributors (free riding, start with Windows), and applies settings
 to the scene on the main thread through `MainThread.Post`. The tray icon is plain Windows calls (`TrayIcon`), because
 Unity has no tray support and Unity's class library has no Windows Forms or registry access.
+
+### Tricks and ramps (version 2.0, prepared for phase 4)
+
+- The tricks model (`DesktopRider_Tricks.fbx`) holds only takes. `TrickRunner` adds them to the rider's own `Animation`,
+  because both models have the same bones.
+- The bones never move forward. Each frame's forward distance comes from `props_layout.json`. `TrickRun` (Logic) turns
+  that into a ground position, and `TrickRunner` moves the whole rider there.
+- The props are separate objects left on the ground. They are placed once at the start, in the direction the trick is
+  ridden. `TrickRun.PickHeading` turns the trick as little as possible to keep the props, the path and the air above
+  them on a screen.
+- While a trick runs, `FreeRider` stops steering and changing clips (`InTrick`). It also grows the window to cover the
+  whole trick (`Framing`), so the landing is not cut off. Picking the rider up ends the trick.
+- The prop shapes come from `Tools/Blender/terrain_shapes.py`, following `References/Terrain/README.md`.
+

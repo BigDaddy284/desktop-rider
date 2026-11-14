@@ -26,6 +26,8 @@ namespace DesktopRider.EditorTools
         const string ModelPath = "Assets/DesktopRider/Models/DesktopRider.fbx";            // textured model from Blender (kept off GitHub)
         const string ProofModelPath = "Assets/DesktopRider/Models/Proof/RiderProof.fbx";   // rough stand-in if the textured one is missing
         const string ArtFolder = "Assets/DesktopRider/Art/Proof";
+        const string TricksModelPath = "Assets/DesktopRider/Models/DesktopRider_Tricks.fbx";   // trick takes, rigs only (kept off GitHub)
+        const string PropsFolder = "Assets/DesktopRider/Models/Props";                          // ramps, landings, whoops and props_layout.json
         static readonly string Root = Directory.GetParent(Application.dataPath).FullName;
         static readonly string Folder = Path.Combine(Root, "Bridge");
         static readonly string BuildFolder = Path.Combine(Root, "Builds", "Proof");
@@ -80,6 +82,7 @@ namespace DesktopRider.EditorTools
                 case "stop": File.WriteAllText(Path.Combine(BuildFolder, "quit.txt"), "quit"); return "asked the rider to close";
                 case "test": return RunTests(id);
                 case "snapshot": return Snapshot(argument);
+                case "trick": return Trick(argument);
                 default: throw new ArgumentException("Unknown command " + command);
             }
         }
@@ -194,6 +197,7 @@ namespace DesktopRider.EditorTools
             host.viewCamera = camera;
             host.overlayWindow = overlay.GetComponent<OverlayWindow>();
             log.AppendLine("app host added (settings, tray icon, menu)");
+            AddTricks(rider, free, overlay.GetComponent<OverlayWindow>(), log);
 
             var scene = EditorSceneManager.GetActiveScene();
             EditorSceneManager.MarkSceneDirty(scene);
@@ -201,6 +205,43 @@ namespace DesktopRider.EditorTools
             AssetDatabase.SaveAssets();
             log.AppendLine("scene saved: " + scene.path);
             return log.ToString();
+        }
+
+        /// <summary>Adds the trick runner with its layout, props and the tricks model's takes, if they have been imported.</summary>
+        static void AddTricks(GameObject rider, FreeRider free, OverlayWindow window, StringBuilder log)
+        {
+            var runner = rider.AddComponent<TrickRunner>();
+            runner.rider = free;
+            runner.overlayWindow = window;
+            runner.layoutFile = AssetDatabase.LoadAssetAtPath<TextAsset>(PropsFolder + "/props_layout.json");
+            if (runner.layoutFile == null) log.AppendLine("TRICKS: no props_layout.json in " + PropsFolder + "; tricks stay off");
+            runner.propModels = !AssetDatabase.IsValidFolder(PropsFolder) ? Array.Empty<GameObject>() : AssetDatabase.FindAssets("t:GameObject", new[] { PropsFolder })
+                .Select(guid => AssetDatabase.GUIDToAssetPath(guid))
+                .Where(path => path.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase))
+                .Select(path => AssetDatabase.LoadAssetAtPath<GameObject>(path))
+                .Where(model => model != null)
+                .ToArray();
+            log.AppendLine("trick props: " + runner.propModels.Length + " (" + string.Join(", ", runner.propModels.Select(m => m.name)) + ")");
+
+            var tricks = AssetDatabase.LoadAssetAtPath<GameObject>(TricksModelPath);
+            if (tricks == null) { log.AppendLine("TRICKS: model missing at " + TricksModelPath); return; }
+            var store = (GameObject)PrefabUtility.InstantiatePrefab(tricks);
+            store.name = "TrickClips";
+            store.transform.SetParent(rider.transform, false);
+            runner.tricksModel = store.GetComponent<Animation>();
+            log.AppendLine("trick clips: " + string.Join(", ", AnimationUtility.GetAnimationClips(store).Select(c => c.name)));
+        }
+
+        /// <summary>In play mode: rides the named trick, or a random one with no name. Says why if it cannot.</summary>
+        static string Trick(string argument)
+        {
+            if (!EditorApplication.isPlaying) return "ERROR the editor is not playing; tricks only run in play mode";
+            var runner = UnityEngine.Object.FindFirstObjectByType<TrickRunner>();
+            if (runner == null) return "ERROR no trick runner in the scene; send setup first";
+            var available = runner.Available.Select(a => a.Name).ToArray();
+            if (available.Length == 0) return "ERROR no tricks available (layout, props or clips missing)";
+            bool started = runner.TryPerform(string.IsNullOrWhiteSpace(argument) ? null : argument.Trim());
+            return (started ? "started " + runner.Current : "not started (busy, unknown trick or no room)") + "\navailable: " + string.Join(", ", available);
         }
 
         /// <summary>

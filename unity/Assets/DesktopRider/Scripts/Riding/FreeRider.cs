@@ -63,6 +63,24 @@ namespace DesktopRider.Riding
         /// <summary>Where the rider's wheels touch the desktop, in desktop pixels.</summary>
         public Vector2 DesktopPosition => View.ToDesktop(transform.position);
 
+        /// <summary>True while a trick is being ridden; the trick moves the rider and plays its own clip.</summary>
+        public bool InTrick { get; private set; }
+
+        /// <summary>Raised when the user picks the rider up in the middle of a trick, so the trick can be packed away.</summary>
+        public event Action TrickInterrupted;
+
+        /// <summary>
+        /// While set, the window covers this part of the desktop (in desktop pixels) instead of a small square around the
+        /// rider, so ramps and landings ahead of the bike are not cut off.
+        /// </summary>
+        public Rect? Framing { get; set; }
+
+        /// <summary>The rider size setting (1 is normal).</summary>
+        public float SizeScale => sizeScale;
+
+        /// <summary>How the ground maps to desktop pixels at the moment.</summary>
+        public DesktopView CurrentView => View;
+
         Vector3 target;
         float speed, restUntil, lean, sizeScale = 1f;
         bool roaming = true, dragging;
@@ -112,10 +130,39 @@ namespace DesktopRider.Riding
             if (View.ToGround(aim, out var newTarget)) target = newTarget;
         }
 
+        /// <summary>Stops riding about so a trick can take over: no steering, no lean, no clip changes.</summary>
+        public void BeginTrick()
+        {
+            InTrick = true;
+            speed = 0f;
+            lean = 0f;
+            if (leanPivot != null) leanPivot.localRotation = Quaternion.identity;
+        }
+
+        /// <summary>Puts the rider on a ground point during a trick, facing <paramref name="heading"/> degrees.</summary>
+        public void PlaceForTrick(Vector3 ground, float heading)
+        {
+            transform.SetPositionAndRotation(ground, Quaternion.Euler(0f, heading, 0f));
+        }
+
+        /// <summary>Hands the rider back after a trick: it rests a moment where it stopped, then carries on.</summary>
+        public void EndTrick()
+        {
+            if (!InTrick) return;
+            InTrick = false;
+            Framing = null;
+            speed = 0f;
+            restUntil = Time.time + restSeconds.x;
+            playedStarts = -1;                         // start the resting clip afresh
+            if (roaming) PickTarget(); else target = transform.position;
+        }
+
         void Update()
         {
             UpdateMouse();
+            if (dragging && InTrick) TrickInterrupted?.Invoke();
             if (dragging) { Animate(false); SetFrameRate(movingFrameRate); return; }
+            if (InTrick) { SetFrameRate(movingFrameRate); return; }
 
             bool resting = !roaming || Time.time < restUntil;
             float distance = RiderSteering.FlatDistance(transform.position, target);
@@ -159,7 +206,15 @@ namespace DesktopRider.Riding
             if (viewCamera == null) return;
             var view = View;
             var window = OverlayWindow.WindowRect;
-            if (OverlayWindow.IsActive)
+            if (OverlayWindow.IsActive && Framing is Rect frame)
+            {
+                // A square window over the whole trick; most of it is see-through and lets clicks pass.
+                int size = Mathf.CeilToInt(Mathf.Max(frame.width, frame.height));
+                if (window.width != size) OverlayWindow.Resize(size);
+                OverlayWindow.PlaceWindow(new Vector2Int(Mathf.RoundToInt(frame.center.x - size * 0.5f), Mathf.RoundToInt(frame.center.y - size * 0.5f)));
+                window = OverlayWindow.WindowRect;
+            }
+            else if (OverlayWindow.IsActive)
             {
                 var centre = view.ToDesktop(transform.position + Vector3.up * framingHeight);
                 var corner = OverlayWindow.Area.WindowCorner(new Numerics.Vector2(centre.x, centre.y),

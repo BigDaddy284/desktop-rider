@@ -271,6 +271,28 @@ Ollama; to be discussed when it is reached), then settings and the final check.
   and sleep through its start and end clips. While the bike moves the riding loop plays. The idle-animations and
   animation-speed settings apply. Logic tests: 678 passed, 0 failed.
 
+- Ready for phase 4 (tricks and ramps), written while the PC was off:
+  - `References/Terrain/README.md`: research on real motocross and freestyle jumps and track terrain, with sources, scaled to
+    the KTM 50 world. Its key findings:
+    - A 30° face gives the rider's own "about a wheel's height" of air.
+    - Take-offs use a tightening curve, a straight face and a lip.
+    - Landings have a flat deck, a rounded knuckle, a 10–20° face and a run-out.
+    - Dirt jumps have sloping sides, never vertical walls.
+    - Whoops are cupped and uneven.
+    - The ground needs ruts, braking bumps, damp and dry dirt, clods and roost.
+  - `Tools/Blender/terrain_shapes.py`: the shapes behind those findings, as plain maths the prop builder can use, with 27
+    tests.
+  - `Logic/Tricks`: reading props_layout.json, placing the props ahead of the rider, moving the rider by each frame's
+    travel, choosing a heading that keeps the whole trick on a screen, and choosing the next trick.
+  - Unity: `TrickRunner` adds the tricks model's takes to the rider's clips, puts the props down, plays the trick and
+    widens the window over the trick while it runs. `FreeRider` hands control to it and takes it back.
+  - The bridge has a new `trick [name]` command for testing in play mode.
+  - Logic tests: 695 passed, 0 failed.
+  - Still to do in phase 4:
+    - Rebuild the props with the new shapes in Blender.
+    - Run the manual check in TESTING §10.
+    - Decide with Boss when tricks happen by themselves.
+
 #### Still to do in this phase
 
 - Compile and run the Unity tests on the PC, build, and check by hand: tray menu, hide and show, always on top,

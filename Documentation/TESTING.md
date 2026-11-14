@@ -461,3 +461,35 @@ Status on 14 November 2026: not yet run (written with the PC off).
 
 The Unity scripts can be compile-checked outside Unity by building them against the `UnityEngine.Modules` 2021.3.33
 reference package with `UNITY_STANDALONE_WIN` defined. This catches most mistakes but is not a substitute for Unity 6.
+
+### 10. Terrain shapes and the trick runner (ready for phase 4)
+
+**Automated.**
+
+- `python -m unittest discover -s Tools/Blender/tests` runs 27 tests of `Tools/Blender/terrain_shapes.py`. They need plain
+  Python only, no Blender, and also run in CI. They check:
+  - The take-off leaves at its face angle and height, its curve tightens as it rises, and its back slopes at the dirt angle.
+  - The landing has a flat deck, a rounded knuckle, a face that steepens a little and a smooth run-out.
+  - The tabletop parts come in order. The whoops vary, have a steeper back side and cupped tops.
+  - The braking bumps grow, the wobble is small and repeatable, and the cross-section has sloped sides, a tyre groove and banking.
+  - The jump distances match References/Terrain.
+- Logic tests for `TrickLayout`, `TrickRun` and `TrickPicker` cover:
+  - Reading props_layout.json and explaining a broken file.
+  - Travel between frames.
+  - Prop placement in the way the rider faces.
+  - Speed, and finishing.
+  - Turning as little as possible to keep a trick on screen, turning round at a wall, and giving up when nothing fits.
+  - Never the same trick twice in a row.
+- A `RidingArea.IsOnScreen` test covers the gaps between screens and the margin.
+
+**Manual, in the editor** (after `setup`, with the props and tricks model imported, in play mode):
+
+1. Send `trick` through the bridge. A random trick starts, and the answer lists the tricks available.
+2. Send `trick Jump`. The ramp and landing appear ahead of the rider, the bike rides over them, and the ramp and
+   landing disappear at the end. Nothing is cut off at the window's edge.
+3. Put the rider near a screen edge, facing it, and send `trick Jump`. The trick turns away from the edge.
+4. Pick the rider up mid-trick. The props disappear and the rider is carried as normal.
+5. After a trick the rider rests, then carries on riding (free riding on) or stays parked (off).
+
+Status on 14 November 2026: automated parts pass in the cloud. The Unity side is compile-checked outside Unity only.
+The manual check is not yet run.

@@ -169,5 +169,18 @@ namespace DesktopRider.Core.Tests
 
             Assert.Equal(new Vector2(1280 + 960, 520), area.MainCentre);
         }
+
+        [Test]
+        public void IsOnScreen_KnowsTheGapsAndKeepsAMargin()
+        {
+            var area = new RidingArea(new[] { new PixelRect(0, 0, 1000, 800), new PixelRect(1000, 200, 800, 600) });
+
+            Assert.True(area.IsOnScreen(new Vector2(500, 400)));
+            Assert.True(area.IsOnScreen(new Vector2(1400, 500)));
+            Assert.False(area.IsOnScreen(new Vector2(1400, 100)));      // above the shorter right-hand screen
+            Assert.False(area.IsOnScreen(new Vector2(-1, 400)));
+            Assert.True(area.IsOnScreen(new Vector2(10, 400)));
+            Assert.False(area.IsOnScreen(new Vector2(10, 400), margin: 20));
+        }
     }
 }
