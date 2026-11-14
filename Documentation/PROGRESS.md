@@ -246,6 +246,10 @@ Order of the remaining phases, as Boss set it on 14 November 2026: desktop basic
 the free-riding setting, the riding style, tricks and ramps, the chat (Boss has a different idea for it, still using
 Ollama; to be discussed when it is reached), then settings and the final check.
 
+Update, 14 November 2026: Boss is building a separate project that the chat will use when it is ready, so the chat
+phase is on hold. The existing Ollama chat code stays in place untouched, and work moves on to settings and the final
+check, with no chat options in the settings window for now.
+
 #### Done so far (written overnight with the PC off; Unity side not yet compiled in Unity)
 
 - `RidingArea` (Logic/Core/Desktop): every screen's work area in desktop pixels, starting at 0,0 even when a screen is
