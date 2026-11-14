@@ -3,8 +3,7 @@
 Based on References/Tricks/RIDER_STYLE.md (the owner's photographs and videos). It keys five clips on the bike and
 rider rigs, using the same machinery as the trick animations (trick_core.py):
 
-    Idle        resting with both feet on the ground, seated forward, as at the start gate
-    RideOff     the start: feet down and skimming the ground for balance, up on the pegs by about one second
+    RideOff     the start: seated and forward, the rear squatting as it drives, the nose lifting a little
     RidingLoop  seated right at the front of the seat, chest low over the bars, head low, looking ahead
     CornerLeft  the corner pose for a left turn: inside (left) leg straight out ahead beside the front wheel, toe up,
                 head turned into the corner, the body held more upright than the bike leans
@@ -14,7 +13,9 @@ In the app, CornerLeft and CornerRight are blended over RidingLoop by how hard t
 whole bike comes from the app, so the corner clips only hold the rider's part of it (the leg, the head, and the body
 staying nearer upright than the bike).
 
-The clips replace the model's own Idle, RideOff and RidingLoop in the app; the rest of its clips stay as they are.
+The clips replace the model's own RideOff and RidingLoop in the app; the rest of its clips stay as they are.
+Boss tried a feet-down resting pose and feet dabbing the ground at the start (from the start-gate video) on 14 November
+2026 and asked for both to be taken out, so the model's own resting pose (feet on the pegs) stays.
 Like the trick animations, they are keyed only in a throwaway background session for export (export_models.py with
 anims=riding_style); the owner's .blend file is never changed or saved.
 
@@ -29,15 +30,12 @@ import trick_core as C
 # ----------------------------------------------------------------- poses (see trick_core.pose for the keys)
 # Hip offsets are metres in the bike's axes (x forward, y left, z up); rotations are degrees (X roll, Y forward, Z turn).
 SEAT_FRONT = dict(hips=(0.075, 0, -0.015), hipsrot=(0, 8, 0), spine=(0, 26, 0), head=(0, -20, 0))
-# Feet on the ground beside the bike, a little ahead of the pegs; a small rider is on tiptoe.
-FEET_DOWN = dict(pegL=(-0.03, 0.15, -0.27), pegR=(-0.03, -0.15, -0.27))
 # The inside foot for a corner: straight out ahead, beside the front wheel, level with the axle, held off the ground.
 LEG_OUT = (0.40, 0.13, 0.03)
 LEAN_BACK = 14.0          # degrees the body stays more upright than the bike at full lean
 HEAD_TURN = 24.0          # degrees the head turns into the corner
 
 RIDE_FRAMES = 24          # one second at 24 a second
-IDLE_FRAMES = 48
 START_FRAMES = 30
 
 
@@ -99,22 +97,9 @@ def corner(side):
     return out
 
 
-def idle():
-    out = []
-    for i in range(IDLE_FRAMES + 1):
-        u = 2 * math.pi * i / IDLE_FRAMES
-        d = state()
-        breathe = math.sin(u)
-        extra = dict(FEET_DOWN)
-        extra.update(spine=(0, 20 + 1.5 * breathe, 0), head=(0, -12 - 1.5 * breathe + 2 * math.sin(u * 0.5), 0),
-                     hips=(0.07, 0, -0.02 + 0.003 * breathe))
-        out.append(apply_pose(d, seated(extra)))
-    return out
-
-
 def ride_off():
-    """The start, from the start-gate video: feet down and revving, the bike launches, the feet skim the ground for
-    balance, and are up on the pegs by about one second. The rider stays seated and forward throughout."""
+    """The start: the bike launches, the rear squats and the nose lifts a little while the rider tucks forward into
+    the seated riding position. The feet stay on the pegs (Boss's choice; the video's feet-down start was taken out)."""
     dt = 1.0 / FPS
     out = []
     wr = wf = 0.0
@@ -128,12 +113,7 @@ def ride_off():
         d['wr'], d['wf'] = wr, wf
         d['squat'] = 0.03 * bump(t, 0.0, 0.1, 0.25, 0.6)                                  # the rear squats as it drives
         d['pitch'] = -2.0 * bump(t, 0.0, 0.12, 0.3, 0.7)                                  # and the nose lifts a little
-        feet_up = sm(t, 0.55, 1.0)
-        lift = 1 - feet_up
-        skim = 0.02 * math.sin(t * 25) * bump(t, 0.2, 0.3, 0.5, 0.6)                      # dabbing the ground
         extra = {
-            'pegL': tuple(x * lift for x in FEET_DOWN['pegL'][:2]) + (FEET_DOWN['pegL'][2] * lift + skim,),
-            'pegR': tuple(x * lift for x in FEET_DOWN['pegR'][:2]) + (FEET_DOWN['pegR'][2] * lift - skim,),
             'spine': (0, 20 + 8 * go, 0),
             'head': (0, -12 - 8 * go, 0),
             'hips': (0.07 + 0.005 * go, 0, -0.02 + 0.005 * go),
@@ -144,7 +124,6 @@ def ride_off():
 
 def animations():
     return [
-        dict(name='Idle', loop=True, build=idle),
         dict(name='RideOff', loop=False, build=ride_off),
         dict(name='RidingLoop', loop=True, build=riding_loop),
         dict(name='CornerLeft', loop=True, build=lambda: corner(+1)),
