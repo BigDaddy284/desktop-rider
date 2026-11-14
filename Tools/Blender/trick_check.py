@@ -21,6 +21,24 @@ VIEWS = {
 }
 
 
+def jerks(frames, bone='chassis', points=(Vector((1.088, 0, 0)), Vector((0, 0, 0)))):
+    """The worst sudden change of motion, in mm, of the front and rear axles (second difference between frames): a
+    jump between two frames shows up here as a spike far above the smooth motion around it."""
+    sc = bpy.context.scene; b = bpy.data.objects['bike_rig']
+    pos = []
+    for f in frames:
+        sc.frame_set(f)
+        m = b.matrix_world @ b.pose.bones[bone].matrix
+        pos.append([m @ p for p in points])
+    worst = (0.0, 0)
+    for i in range(1, len(pos) - 1):
+        for k in range(len(points)):
+            v = (pos[i + 1][k] - 2 * pos[i][k] + pos[i - 1][k]).length
+            if v > worst[0]:
+                worst = (v, i)
+    return round(worst[0] * 1000), worst[1]
+
+
 def gaps(frames):
     sc = bpy.context.scene
     b = bpy.data.objects['bike_rig']; r = bpy.data.objects['rider_rig']
@@ -64,6 +82,7 @@ def main(argv):
         frames = list(range(a['start'], a['end'] + 1))
         g = gaps(frames)
         report[a['name']] = {k: (round(v * 1000), f - a['start']) for k, (v, f) in g.items()}
+        report[a['name']]['jerk'] = jerks(frames)
         print('CHECK %s %s' % (a['name'], json.dumps(report[a['name']])))
         d = os.path.join(out, a['name']); os.makedirs(d, exist_ok=True)
         lo, hi = 0, a['frames']

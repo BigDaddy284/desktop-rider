@@ -337,6 +337,12 @@ Ollama; to be discussed when it is reached), then settings and the final check.
     uses the Whip's jump and props, coming in 38% faster with about half the height. NacNac rebuilt from Boss's video
     and photos: the bike swings nearly side-on (72°) under a rider who keeps facing forward. WhoopsWheelie: the first
     whoop kicks the front up and the rear wheel bounces from top to top.
+  - Third review (14 November): Whip and Scrub now throw the back end out to the high side, away from the lean (Boss's
+    picture with the green line); checked by measuring the rear axle against the rider's lean at every frame. The
+    Scrub's jump between frames at the lip is gone: it now turns about its tyres the whole way and its lean eases in
+    and out (trick_check.py prints the worst frame-to-frame change of axle motion as "jerk"; mid-air spikes went from
+    61 to 16 mm). WhoopsWheelie: the rear wheel lands on the face of each whoop about 8 cm below the top and the
+    suspension soaks each hit. Unity tests 755/755, every trick inside its window, build OK.
 
 #### Still to do in this phase
 
