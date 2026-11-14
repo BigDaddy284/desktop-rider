@@ -90,6 +90,18 @@ namespace DesktopRider.Tricks.Tests
         }
 
         [Test]
+        public void A_settings_file_from_before_the_setting_existed_reads_as_sometimes()
+        {
+            var json = "{\"schemaVersion\":1,\"behaviour\":{\"freeRiding\":true,\"animationFrequency\":\"normal\"}}";
+            var settings = DesktopRider.Core.Infrastructure.JsonText.Read<AppSettings>(json, DesktopRider.Core.Infrastructure.JsonText.LocalFileSettings);
+            Assert.NotNull(settings);
+            Assert.True(settings!.Behaviour.FreeRiding);
+            Assert.Equal(TrickFrequency.Sometimes, SettingsNormalizer.Normalize(settings).Behaviour.TricksByHimself);
+            var back = DesktopRider.Core.Infrastructure.JsonText.Write(settings, DesktopRider.Core.Infrastructure.JsonText.LocalFileSettings);
+            Assert.Contains("\"tricksByHimself\": \"sometimes\"", back);
+        }
+
+        [Test]
         public void New_settings_start_at_sometimes_and_a_bad_value_is_put_right()
         {
             Assert.Equal(TrickFrequency.Sometimes, new AppSettings().Behaviour.TricksByHimself);

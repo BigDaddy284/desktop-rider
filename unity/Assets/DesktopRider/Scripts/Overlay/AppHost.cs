@@ -37,6 +37,8 @@ namespace DesktopRider.Overlay
         OverlayViewModel overlay;
         TrayViewModel trayMenu;
         TrayIcon trayIcon;
+        SettingsPanel settingsPanel;
+        SettingsWindow settingsWindow;
         readonly OwnTrickTimer ownTricks = new OwnTrickTimer();
         float nextOwnTrickCheck;
         ILogger<AppHost> log;
@@ -68,6 +70,8 @@ namespace DesktopRider.Overlay
             ApplySettings();
             if (rider != null) rider.Dropped += SavePositionSoon;
             ready = true;
+            // "DesktopRider3D.exe --open-settings" opens the settings window straight away (handy for a shortcut, and for checks).
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "--open-settings") >= 0) { Debug.Log("Opening the settings window (--open-settings)."); OpenSettings(); }
         }
 
         void BuildMenu()
@@ -85,7 +89,9 @@ namespace DesktopRider.Overlay
             var freeRiding = new FreeRidingMenu(settings, Logger<FreeRidingMenu>());
             var trickMenu = new TrickMenu(() => tricks != null && tricks.HasTricks);
             trickMenu.Requested += (s, e) => MainThread.Post(DoATrick);
-            trayMenu = new TrayViewModel(overlay, settings, new ITrayMenuContributor[] { trickMenu, freeRiding, startup }, Logger<TrayViewModel>());
+            settingsPanel = new SettingsPanel(settings, startup, Logger<SettingsPanel>());
+            settingsPanel.Requested += (s, e) => MainThread.Post(OpenSettings);
+            trayMenu = new TrayViewModel(overlay, settings, new ITrayMenuContributor[] { trickMenu, freeRiding, startup, settingsPanel }, Logger<TrayViewModel>());
 
             // The tray icon and the sign-in list are only for the real program, not while working in the editor.
             if (Application.isEditor) return;
@@ -125,7 +131,21 @@ namespace DesktopRider.Overlay
 
         void OnOverlayChanged(object sender, PropertyChangedEventArgs e) => MainThread.Post(ApplySettings);
 
-        void OnSettingsChanged(object sender, EventArgs e) => MainThread.Post(ApplySettings);
+        void OnSettingsChanged(object sender, EventArgs e) => MainThread.Post(() => { ApplySettings(); settingsWindow?.Refresh(); });
+
+        /// <summary>Opens the settings window, or brings it to the front if it is already open.</summary>
+        void OpenSettings()
+        {
+            if (settingsPanel == null) return;
+            if (settingsWindow == null)
+            {
+                settingsWindow = new SettingsWindow(settingsPanel, trayIcon != null ? trayIcon.Image : IntPtr.Zero);
+                settingsWindow.ResetRequested += MoveToMiddle;
+                settingsWindow.CommandFailed += ex => Log(LogLevel.Error, "A change in the settings window failed.", ex);
+            }
+            settingsWindow.Open();
+            Debug.Log(settingsWindow.IsOpen ? "The settings window is open." : "The settings window did not open.");
+        }
 
         /// <summary>Makes the rider and its window match the settings. Safe to call any number of times.</summary>
         void ApplySettings()
@@ -194,12 +214,16 @@ namespace DesktopRider.Overlay
                 try { SavePositionAsync().Wait(TimeSpan.FromSeconds(1)); }
                 catch (AggregateException ex) { Log(LogLevel.Warning, "The rider's position could not be saved on exit.", ex); }
             }
+            settingsWindow?.Dispose();
+            settingsWindow = null;
             trayIcon?.Dispose();
             trayIcon = null;
         }
 
         void OnDestroy()
         {
+            settingsWindow?.Dispose();
+            settingsWindow = null;
             trayIcon?.Dispose();
             trayIcon = null;
             if (overlay != null) { overlay.PropertyChanged -= OnOverlayChanged; overlay.Dispose(); }

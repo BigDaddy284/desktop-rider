@@ -28,6 +28,8 @@ namespace DesktopRider.Riding
         public float maxLean = 38f;
         public float arriveDistance = 0.6f;
         public Vector2 restSeconds = new Vector2(2f, 6f);
+        [Tooltip("How many places he rides through, one after another without stopping, before he stops for a rest (Boss, 14 November: three to five times the distance, fewer stops).")]
+        public Vector2Int legsPerRide = new Vector2Int(3, 5);
         [Range(0.02f, 0.3f)] public float screenMargin = 0.12f;
         [Tooltip("Chance that the next place to ride to is on another screen, when there is more than one.")]
         [Range(0f, 1f)] public float otherScreenChance = 0.25f;
@@ -217,6 +219,14 @@ namespace DesktopRider.Riding
                 target = approachEnd;
                 distance = RiderSteering.FlatDistance(transform.position, target);
             }
+            // Riding on through a place on the way: pick the next one before he starts to slow down, so he flows on.
+            float flowAhead = arriveDistance + (cruiseSpeed * cruiseSpeed) / (2f * Mathf.Max(0.01f, braking)) + 0.3f;
+            if (!Approaching && roaming && !resting && legsLeft > 1 && distance < flowAhead)
+            {
+                legsLeft--;
+                PickTarget(flowing: true);
+                distance = RiderSteering.FlatDistance(transform.position, target);
+            }
             float wantedSpeed = resting ? 0f : RiderSteering.SpeedFor(distance, cruiseSpeed, braking, arriveDistance);
             speed = Mathf.MoveTowards(speed, wantedSpeed, (wantedSpeed > speed ? acceleration : braking) * Time.deltaTime);
 
@@ -250,6 +260,7 @@ namespace DesktopRider.Riding
             if (!Approaching && roaming && !resting && distance < arriveDistance && speed < 0.3f)
             {
                 restUntil = Time.time + Mathf.Lerp(restSeconds.x, restSeconds.y, (float)random.NextDouble());
+                NewRide();
                 PickTarget();
             }
 
@@ -355,12 +366,28 @@ namespace DesktopRider.Riding
             if (roaming) PickTarget(); else target = transform.position;
         }
 
-        void PickTarget()
+        int legsLeft = 1;
+
+        /// <summary>The next ride goes through a few places before it stops.</summary>
+        void NewRide() => legsLeft = random.Next(Mathf.Max(1, legsPerRide.x), Mathf.Max(legsPerRide.x, legsPerRide.y) + 1);
+
+        /// <param name="flowing">Riding on without stopping: of a few places, prefer the farthest one that needs no sharp turn.</param>
+        void PickTarget(bool flowing = false)
         {
+            if (legsLeft < 1) NewRide();
             var view = View;
             var from = view.ToDesktop(transform.position);
-            var pixel = OverlayWindow.Area.PickTarget(new Numerics.Vector2(from.x, from.y), random, screenMargin, otherScreenChance);
-            if (view.ToGround(new Vector2(pixel.X, pixel.Y), out Vector3 point)) target = point;
+            Vector3? best = null;
+            float bestScore = float.MinValue;
+            for (int i = 0; i < (flowing ? 8 : 1); i++)
+            {
+                var pixel = OverlayWindow.Area.PickTarget(new Numerics.Vector2(from.x, from.y), random, screenMargin, otherScreenChance);
+                if (!view.ToGround(new Vector2(pixel.X, pixel.Y), out Vector3 point)) continue;
+                float turn = Mathf.Abs(RiderSteering.ShortestTurn(transform.eulerAngles.y, RiderSteering.HeadingTo(transform.position, point)));
+                float score = RiderSteering.FlatDistance(transform.position, point) - (turn > 100f ? 100f : 0f) - turn * 0.01f;
+                if (score > bestScore) { bestScore = score; best = point; }
+            }
+            if (best is Vector3 chosen) target = chosen;
         }
 
         /// <summary>Plays clips at this speed (1 is normal), for the animation-speed setting.</summary>

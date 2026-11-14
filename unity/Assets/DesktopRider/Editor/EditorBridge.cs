@@ -90,6 +90,9 @@ namespace DesktopRider.EditorTools
                 case "prop": return PropView(argument);
                 case "trickcheck": return TrickViewer.CheckAll();
                 case "trickframes": return TrickViewer.SaveFrames(argument);
+                case "capture": return DesktopRider.EditorTools.WindowCapture.Capture(argument, Path.Combine(Folder, "capture-" + id + ".png"));
+                case "winclick": return DesktopRider.EditorTools.WindowCapture.Click(argument);
+                case "playerlog": return PlayerLog();
                 default: throw new ArgumentException("Unknown command " + command);
             }
         }
@@ -516,6 +519,23 @@ namespace DesktopRider.EditorTools
                 foreach (var message in step.messages)
                     if (message.type == LogType.Error || message.type == LogType.Exception) text.AppendLine(message.content);
             return text.ToString();
+        }
+
+        /// <summary>Whether the built program is running, and the end of its Unity log (where a crash or exception would show).</summary>
+        static string PlayerLog()
+        {
+            var running = Process.GetProcessesByName("DesktopRider3D").Select(p => p.Id.ToString()).ToArray();
+            string log = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow",
+                                      PlayerSettings.companyName, PlayerSettings.productName, "Player.log");
+            string tail = "(no log at " + log + ")";
+            if (File.Exists(log))
+            {
+                // The running program keeps its log open, so read it while letting it carry on writing.
+                using var stream = new FileStream(log, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                using var reader = new StreamReader(stream);
+                tail = string.Join("\n", reader.ReadToEnd().Split('\n').Reverse().Take(40).Reverse());
+            }
+            return "running: " + (running.Length == 0 ? "no" : string.Join(", ", running)) + "\n" + tail;
         }
 
         static string Launch(string arguments)

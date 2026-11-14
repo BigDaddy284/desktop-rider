@@ -105,7 +105,7 @@ namespace DesktopRider.Overlay
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
         const int GWL_STYLE = -16, GWL_EXSTYLE = -20;
         const uint WS_POPUP = 0x80000000, WS_VISIBLE = 0x10000000;
-        const uint WS_EX_LAYERED = 0x00080000, WS_EX_TRANSPARENT = 0x00000020, WS_EX_TOOLWINDOW = 0x00000080, WS_EX_NOACTIVATE = 0x08000000;
+        const uint WS_EX_TOPMOST = 0x00000008, WS_EX_LAYERED = 0x00080000, WS_EX_TRANSPARENT = 0x00000020, WS_EX_TOOLWINDOW = 0x00000080, WS_EX_NOACTIVATE = 0x08000000;
         const uint SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOACTIVATE = 0x0010, SWP_FRAMECHANGED = 0x0020, SWP_SHOWWINDOW = 0x0040;
         const int SW_HIDE = 0, SW_SHOWNOACTIVATE = 4, VK_LBUTTON = 0x01;
         const uint MONITORINFOF_PRIMARY = 1;
@@ -161,6 +161,13 @@ namespace DesktopRider.Overlay
             WindowRect = new RectInt(corner.x, corner.y, size.x, size.y);
             IsActive = true;
             if (!visible) ShowWindow(window, SW_HIDE);
+            // Unity can still move its window back into the ordinary window order while it finishes starting up, which
+            // left "Always on top" ticked but not working until it was switched off and on (Boss, 14 November). Put the
+            // window's place back once things have settled.
+            yield return new WaitForSecondsRealtime(1f);
+            if (visible) ApplyTopmost(topmost);
+            yield return new WaitForSecondsRealtime(4f);
+            if (visible) ApplyTopmost(topmost);
         }
 
         /// <summary>No border or title bar, and a see-through background.</summary>
@@ -228,11 +235,10 @@ namespace DesktopRider.Overlay
             if (newSize == size) return;
             var centre = WindowRect.center;
             size = newSize;
-            if (!IsActive)
-            {
-                Screen.SetResolution(size.x, size.y, FullScreenMode.Windowed);
-                return;
-            }
+            // Before the window is set up, only remember the size: Start sizes the window with it. Asking Unity to resize
+            // here (as before) could land after Start had made the window always-on-top, and Unity's resize puts the
+            // window back into the ordinary window order.
+            if (!IsActive) return;
             // Resize the window directly. Unity follows (the player is built with a resizable window) and keeps the
             // see-through, borderless, always-on-top style. Screen.SetResolution would instead turn the window back into
             // an ordinary opaque one for a few frames, which flashes up as a white box.
@@ -277,6 +283,7 @@ namespace DesktopRider.Overlay
         {
             uint style = WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
             if (clickThrough) style |= WS_EX_TRANSPARENT;
+            if (topmost) style |= WS_EX_TOPMOST;      // keep the always-on-top mark this replaces
             SetWindowLongPtr(window, GWL_EXSTYLE, new IntPtr(unchecked((int)style)));
         }
 

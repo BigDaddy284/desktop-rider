@@ -250,6 +250,29 @@ Update, 14 November 2026: Boss is building a separate project that the chat will
 phase is on hold. The existing Ollama chat code stays in place untouched, and work moves on to settings and the final
 check, with no chat options in the settings window for now.
 
+#### Settings and final check (started 14 November 2026)
+
+- Tricks by himself (Boss chose a setting): Never, Sometimes (one every 5 to 10 minutes, the default) or Often (2 to 4
+  minutes). `OwnTrickTimer` (Logic/Tricks) times them; AppHost looks once a second and retries 20 s later when he is
+  hidden, held, busy or short of room. A trick asked for from the menu restarts the wait.
+- Settings window ("Settings..." in the tray menu, or `DesktopRider3D.exe --open-settings`): size, animation speed, ride
+  around freely, tricks by himself, little movements at rest, always on top, start with Windows, and "Move him back to
+  the corner". Changes apply at once; no Save button. `SettingsPanel` (the lines) and `SettingsLayout` (where everything
+  goes, hit testing, sliders) are plain logic with tests; `SettingsWindow` (Overlay) draws it with Windows' own calls
+  in the dark Windows 11 style (GDI+ for smooth shapes, ClearType words, dark title bar, round corners), sized for the
+  screen's scaling. Seen on Boss's PC through the new editor-bridge `capture` command (PrintWindow).
+- Always on top was ticked at start-up but not working until switched off and on (Boss). Cause: a resize asked for
+  before the window was set up went through Unity, and Unity's resize puts the window back in the ordinary window order
+  after it had been made always-on-top; also the click-through switch rewrote the window's extended style without the
+  always-on-top mark. Fixed both, and the place is put back 1 s and 5 s after start-up.
+- Free riding flows (Boss: three to five times the distance, fewer stops): each ride now goes through 3 to 5 places
+  without stopping, picking the next one before he would start braking and preferring one that needs no sharp turn,
+  then he rests.
+- Editor bridge: `capture <window title>`, `winclick <title>|x|y`, `playerlog` (is the program running, and the end of
+  its Unity log).
+- Seen in the player log: Unity's own cloud services try to connect at start-up (and fail on this PC). To check in
+  the final check: turn off Unity's analytics and diagnostics in the build so nothing leaves the PC.
+
 #### Done so far (written overnight with the PC off; Unity side not yet compiled in Unity)
 
 - `RidingArea` (Logic/Core/Desktop): every screen's work area in desktop pixels, starting at 0,0 even when a screen is
