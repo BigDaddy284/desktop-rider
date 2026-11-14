@@ -16,8 +16,6 @@ namespace DesktopRider.Riding
         public Camera viewCamera;
         public Transform leanPivot;
         public UnityEngine.Animation modelAnimation;
-        public string ridingClip = "RidingLoop";
-        public string idleClip = "Idle";
 
         [Header("Riding")]
         public float cruiseSpeed = 2.6f;          // metres a second
@@ -56,6 +54,9 @@ namespace DesktopRider.Riding
             }
         }
 
+        /// <summary>Chooses the clip: riding while moving, otherwise rest, idle movements, talking and tricks as in version 1.</summary>
+        public DesktopRider.Animation.ModelAnimationDirector Director { get; } = new DesktopRider.Animation.ModelAnimationDirector();
+
         /// <summary>Raised when the user lets go of the rider after dragging it.</summary>
         public event Action Dropped;
 
@@ -66,7 +67,8 @@ namespace DesktopRider.Riding
         float speed, restUntil, lean, sizeScale = 1f;
         bool roaming = true, dragging;
         Vector3 dragOffset;
-        string playing;
+        int playedStarts = -1;
+        float animationSpeed = 1f;
         readonly System.Random random = new System.Random();
 
         void Start()
@@ -113,7 +115,7 @@ namespace DesktopRider.Riding
         void Update()
         {
             UpdateMouse();
-            if (dragging) { Play(idleClip); SetFrameRate(movingFrameRate); return; }
+            if (dragging) { Animate(false); SetFrameRate(movingFrameRate); return; }
 
             bool resting = !roaming || Time.time < restUntil;
             float distance = RiderSteering.FlatDistance(transform.position, target);
@@ -143,7 +145,7 @@ namespace DesktopRider.Riding
             }
 
             bool moving = speed > 0.05f;
-            Play(moving ? ridingClip : idleClip);
+            Animate(moving);
             SetFrameRate(moving ? movingFrameRate : restingFrameRate);
         }
 
@@ -233,11 +235,26 @@ namespace DesktopRider.Riding
             if (view.ToGround(new Vector2(pixel.X, pixel.Y), out Vector3 point)) target = point;
         }
 
-        void Play(string clip)
+        /// <summary>Plays clips at this speed (1 is normal), for the animation-speed setting.</summary>
+        public void SetAnimationSpeed(float speed)
         {
-            if (modelAnimation == null || clip == playing || modelAnimation.GetClip(clip) == null) return;
-            modelAnimation.CrossFade(clip, 0.25f);
-            playing = clip;
+            animationSpeed = Mathf.Clamp(speed, 0.25f, 4f);
+            Director.Speed = animationSpeed;
+            if (modelAnimation == null) return;
+            foreach (AnimationState state in modelAnimation) state.speed = animationSpeed;
+        }
+
+        void Animate(bool moving)
+        {
+            Director.Advance(TimeSpan.FromSeconds(Time.deltaTime), moving);
+            if (Director.Starts == playedStarts || modelAnimation == null) return;
+            playedStarts = Director.Starts;
+            var state = modelAnimation[Director.Clip];
+            if (state == null) return;
+            // A clip that plays once starts from its beginning each time it is asked for.
+            if (state.wrapMode != WrapMode.Loop) state.time = 0f;
+            state.speed = animationSpeed;
+            modelAnimation.CrossFade(Director.Clip, 0.25f);
         }
 
         static int CommandLineInt(string name, int fallback)

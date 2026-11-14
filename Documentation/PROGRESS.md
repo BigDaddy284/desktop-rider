@@ -265,6 +265,12 @@ Ollama; to be discussed when it is reached), then settings and the final check.
 - Logic tests: 667 passed, 0 failed (`dotnet test` in `logic-tests`). The Unity scripts compile against the Unity
   2021.3 module references outside Unity; the real check in Unity 6 is still to do.
 
+- Parked mode: with free riding off the rider stays where it was put. At rest (parked, or stopped between rides)
+  `ModelAnimationDirector` (Logic/Animation) picks the 3D clips with version 1's rules: the resting loop, a small
+  movement every 8 to 20 seconds (IdleVariation, LookLeft, LookRight), thinking and talking, tricks one after another,
+  and sleep through its start and end clips. While the bike moves the riding loop plays. The idle-animations and
+  animation-speed settings apply. Logic tests: 678 passed, 0 failed.
+
 #### Still to do in this phase
 
 - Compile and run the Unity tests on the PC, build, and check by hand: tray menu, hide and show, always on top,

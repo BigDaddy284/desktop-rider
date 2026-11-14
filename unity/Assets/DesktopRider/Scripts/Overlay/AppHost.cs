@@ -108,6 +108,8 @@ namespace DesktopRider.Overlay
                 rider.enabled = visible;
                 rider.Roaming = settings.Current.Behaviour.FreeRiding;
                 rider.SetSizeScale((float)appearance.Scale);
+                rider.SetAnimationSpeed((float)appearance.AnimationSpeed);
+                rider.Director.IdleAnimations = settings.Current.Behaviour.IdleAnimations;
             }
             if (overlayWindow != null) OverlayWindow.Resize(overlayWindow.SizeFor((float)appearance.Scale));
             // The rider sets its own frame rate while shown; hidden, nothing is drawn, so tick over slowly.
