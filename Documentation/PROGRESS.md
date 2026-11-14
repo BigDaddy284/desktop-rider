@@ -300,8 +300,15 @@ check, with no chat options in the settings window for now.
 - `trick.txt` beside the proof build starts a trick (checked every 5 s by `ProofStats`), for checks from the bridge.
 - Editor bridge: `capture <window title>`, `winclick <title>|x|y`, `playerlog`, `screengrab <title>|count|ms`; `trick` also lists the clips playing (is the program running, and the end of
   its Unity log).
-- Seen in the player log: Unity's own cloud services try to connect at start-up (and fail on this PC). To check in
-  the final check: turn off Unity's analytics and diagnostics in the build so nothing leaves the PC.
+- Nothing leaves the PC (final check): the player log showed Unity's own cloud services trying to reach
+  cdp.cloud.unity3d.com and config.uca.cloud.unity3d.com at every start. `EditorBridge.KeepEverythingLocal` (run by set-up
+  and before every build) turns off the hardware statistics, Unity's connect services, engine diagnostics and crash
+  reports. Checked: a fresh run's log has no connection attempts.
+- The checking hooks in `ProofStats` (stats file, quit.txt, trick.txt, Ctrl+Shift+Q) only switch on with `--proof`,
+  which the bridge's `run` passes. A copy started any other way (double-click, Start with Windows) has none.
+- Final check by hand: 150% scaling is Boss's everyday setting, so everything Boss has tried was at 150%. Two screens:
+  Boss has one, so only the automated tests (RidingArea, overlay placement) cover it; not checked by hand.
+  Bridge command `startup` shows Desktop Rider's line in Windows' sign-in list.
 
 #### Done so far (written overnight with the PC off; Unity side not yet compiled in Unity)
 

@@ -6,7 +6,7 @@ using UnityEngine;
 namespace DesktopRider.Overlay
 {
     /// <summary>
-    /// Phase 1 measurement: every few seconds writes frame rate, memory and processor use to proof-stats.txt
+    /// Checks only (runs started with --proof). Phase 1 measurement: every few seconds writes frame rate, memory and processor use to proof-stats.txt
     /// beside the program. Also closes the program when a file called quit.txt appears there, or on Ctrl+Shift+Q, and starts a
     /// trick when trick.txt appears (for checks from the editor bridge).
     /// </summary>
@@ -22,8 +22,15 @@ namespace DesktopRider.Overlay
         DateTime lastWall;
         Process process;
 
+        /// <summary>
+        /// Only for runs started from the editor bridge (which passes --proof): a copy started any other way has no stats
+        /// file, no test files and no Ctrl+Shift+Q, so the program people use carries none of the checking hooks.
+        /// </summary>
+        static readonly bool ForChecks = Array.IndexOf(Environment.GetCommandLineArgs(), "--proof") >= 0;
+
         void Start()
         {
+            if (!ForChecks && !Application.isEditor) { enabled = false; return; }
             folder = Path.GetDirectoryName(Application.dataPath);
             process = Process.GetCurrentProcess();
             lastCpu = process.TotalProcessorTime;

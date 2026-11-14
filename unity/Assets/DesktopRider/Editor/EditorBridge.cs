@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -94,6 +95,13 @@ namespace DesktopRider.EditorTools
                 case "screengrab": return DesktopRider.EditorTools.WindowCapture.ScreenGrab(argument, Path.Combine(Folder, "grab-" + id));
                 case "winclick": return DesktopRider.EditorTools.WindowCapture.Click(argument);
                 case "playerlog": return PlayerLog();
+                case "startup":
+                    // Desktop Rider's line in Windows' sign-in list (Start with Windows), and whether its program exists.
+                    using (var run = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))
+                    {
+                        var line = run?.GetValue("Desktop Rider 3D") as string;
+                        return line == null ? "no Desktop Rider line" : line + " (program " + (File.Exists(line.Trim('"')) ? "exists" : "MISSING") + ")";
+                    }
                 default: throw new ArgumentException("Unknown command " + command);
             }
         }
@@ -119,6 +127,7 @@ namespace DesktopRider.EditorTools
             PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
             PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64, new[] { GraphicsDeviceType.Direct3D11 });
             try { PlayerSettings.SplashScreen.show = false; } catch (Exception e) { log.AppendLine("splash: " + e.Message); }
+            log.AppendLine(KeepEverythingLocal());
             log.AppendLine("player settings applied");
 
             if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp)
@@ -504,9 +513,46 @@ namespace DesktopRider.EditorTools
             log.AppendLine("shadow added");
         }
 
+        /// <summary>
+        /// Nothing leaves the PC: turns off Unity's own cloud services in the built program (its start-up "hardware
+        /// statistics" and engine events to Unity, engine diagnostics, crash reports). The player log showed it trying to
+        /// reach cdp.cloud.unity3d.com and config.uca.cloud.unity3d.com at every start. Run before every build.
+        /// </summary>
+        static string KeepEverythingLocal()
+        {
+            var changed = new List<string>();
+            PlayerSettings.enableCrashReportAPI = false;
+            var player = Unsupported.GetSerializedAssetInterfaceSingleton("PlayerSettings");
+            if (player != null) SetBool(new SerializedObject(player), "submitAnalytics", false, changed);
+            var connect = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/UnityConnectSettings.asset");
+            if (connect.Length > 0)
+            {
+                var settings = new SerializedObject(connect[0]);
+                SetBool(settings, "m_Enabled", false, changed);
+                SetBool(settings, "InsightsSettings.m_EngineDiagnosticsEnabled", false, changed);
+                SetBool(settings, "InsightsSettings.m_Enabled", false, changed);
+                SetBool(settings, "CrashReportingSettings.m_EnableCloudDiagnosticsReporting", false, changed);
+                SetBool(settings, "UnityAnalyticsSettings.m_Enabled", false, changed);
+                SetBool(settings, "PerformanceReportingSettings.m_Enabled", false, changed);
+            }
+            AssetDatabase.SaveAssets();
+            return "cloud services off" + (changed.Count > 0 ? " (changed " + string.Join(", ", changed) + ")" : " (already)");
+        }
+
+        static void SetBool(SerializedObject target, string path, bool value, List<string> changed)
+        {
+            var property = target.FindProperty(path);
+            if (property == null) { changed.Add(path + " NOT FOUND"); return; }
+            if (property.boolValue == value) return;
+            property.boolValue = value;
+            target.ApplyModifiedPropertiesWithoutUndo();
+            changed.Add(path);
+        }
+
         // ------------------------------------------------------------------ build and run
         static string Build()
         {
+            string local = KeepEverythingLocal();
             var scene = EditorSceneManager.GetActiveScene();
             if (scene.isDirty) EditorSceneManager.SaveScene(scene);
             var options = new BuildPlayerOptions
@@ -521,6 +567,7 @@ namespace DesktopRider.EditorTools
             var text = new StringBuilder();
             text.AppendLine("result=" + s.result + " errors=" + s.totalErrors + " warnings=" + s.totalWarnings + " sizeMB=" + (s.totalSize / 1048576.0).ToString("F1") + " seconds=" + s.totalTime.TotalSeconds.ToString("F0"));
             text.AppendLine("output=" + s.outputPath);
+            text.AppendLine(local);
             foreach (var step in report.steps)
                 foreach (var message in step.messages)
                     if (message.type == LogType.Error || message.type == LogType.Exception) text.AppendLine(message.content);
@@ -549,6 +596,7 @@ namespace DesktopRider.EditorTools
             if (!File.Exists(Exe)) throw new FileNotFoundException("Build first.", Exe);
             string quit = Path.Combine(BuildFolder, "quit.txt");
             if (File.Exists(quit)) File.Delete(quit);
+            arguments = ("--proof " + arguments).Trim();                 // turns on ProofStats (stats, test files)
             var process = Process.Start(new ProcessStartInfo(Exe, arguments) { WorkingDirectory = BuildFolder, UseShellExecute = false });
             return "started process " + process.Id;
         }
