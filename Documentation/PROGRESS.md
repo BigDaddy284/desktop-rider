@@ -418,3 +418,18 @@ check, with no chat options in the settings window for now.
 
 - Compile and run the Unity tests on the PC, build, and check by hand: tray menu, hide and show, always on top,
   two screens, 150% scaling, start with Windows, position kept after a restart.
+
+
+## Version 2 without AI, to share (14 November 2026)
+
+Boss: copy what we have to a v3.0 branch, then take Ollama out of v2.0 so the rider just rides freely with no AI, and
+build v2.0 into a Windows program to share with the kids.
+
+- `v3.0` branch made from v2.0 at e6f7704 (the merge of PR #16). The chat and AI work carries on there.
+- Removed from the Unity app on v2.0: the whole `Scripts/Logic/AI` folder (Ollama provider, chat service,
+  conversation and memory stores, personality, proactive comments, speech-bubble and menu view models) and its tests;
+  the AI, memory, chat-in-bubbles, proactive-comment and quiet-hours settings; the conversation and memory file paths.
+  Nothing in the running app used them (chat was already hidden), so the rider behaves exactly as before. A settings
+  file from a version with chat still loads (new test); its chat parts are ignored.
+- The version 1 desktop program under `src/` (WPF) is left as it was; it is not what is built or shared.
+- Logic tests: 332 pass (the 404 removed were the AI tests and AI settings checks).

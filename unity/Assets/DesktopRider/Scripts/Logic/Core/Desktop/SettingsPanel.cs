@@ -67,8 +67,8 @@ namespace DesktopRider.Core.Desktop
 
     /// <summary>
     /// The settings window's content, apart from how it is drawn: the lines it shows, grouped under a few headings, each
-    /// reading and changing the saved settings directly, so a change applies at once and there is no Save button. The chat
-    /// has no lines here yet (Boss, 14 November 2026: the chat will come from a separate project). Also adds
+    /// reading and changing the saved settings directly, so a change applies at once and there is no Save button. Version 2
+    /// has no chat or AI at all (Boss, 14 November 2026: they carry on in version 3). Also adds
     /// "Settings..." to the tray menu, which raises <see cref="Requested"/>.
     /// </summary>
     public sealed class SettingsPanel : ITrayMenuContributor

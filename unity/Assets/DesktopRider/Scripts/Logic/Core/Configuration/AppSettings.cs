@@ -4,8 +4,8 @@
 namespace DesktopRider.Core.Configuration
 {
     /// <summary>
-    /// Everything the user can configure. The sections mirror the settings screen:
-    /// Appearance, Behaviour, AI, Memory and Application.
+    /// Everything the user can configure: Appearance, Behaviour and Application. Version 2 has no chat or AI (they
+    /// carry on in version 3); a settings file from a version that had them still loads, and their parts are ignored.
     /// </summary>
     public sealed class AppSettings
     {
@@ -16,10 +16,6 @@ namespace DesktopRider.Core.Configuration
         public AppearanceSettings Appearance { get; set; } = new();
 
         public BehaviourSettings Behaviour { get; set; } = new();
-
-        public AiSettings Ai { get; set; } = new();
-
-        public MemorySettings Memory { get; set; } = new();
 
         public ApplicationSettings Application { get; set; } = new();
     }
@@ -44,12 +40,6 @@ namespace DesktopRider.Core.Configuration
 
         public bool CharacterVisible { get; set; } = true;
 
-        /// <summary>
-        /// How the user talks to the rider. False opens the conversation window. True shows a small typing bubble
-        /// below the rider and the rider answers in its speech bubble.
-        /// </summary>
-        public bool ChatInBubbles { get; set; }
-
         /// <summary>Lets clicks pass through the character to the windows behind it.</summary>
         public bool ClickThrough { get; set; }
 
@@ -70,9 +60,6 @@ namespace DesktopRider.Core.Configuration
 
     public sealed class BehaviourSettings
     {
-        public const int MinProactiveIntervalMinutes = 5;
-        public const int MaxProactiveIntervalMinutes = 240;
-
         public bool AutonomousMovement { get; set; } = true;
 
         public bool IdleAnimations { get; set; } = true;
@@ -91,16 +78,6 @@ namespace DesktopRider.Core.Configuration
         /// </summary>
         public TrickFrequency TricksByHimself { get; set; } = TrickFrequency.Sometimes;
 
-        /// <summary>The rider only starts conversations when the user has switched this on.</summary>
-        public bool ProactiveComments { get; set; }
-
-        public int ProactiveIntervalMinutes { get; set; } = 30;
-
-        public bool QuietHoursEnabled { get; set; }
-
-        public TimeOnly QuietHoursStart { get; set; } = new(22, 0);
-
-        public TimeOnly QuietHoursEnd { get; set; } = new(8, 0);
     }
 
     /// <summary>How often the rider does a trick by himself.</summary>
@@ -116,76 +93,6 @@ namespace DesktopRider.Core.Configuration
         Rare,
         Normal,
         Frequent,
-    }
-
-    public sealed class AiSettings
-    {
-        public const string OllamaProvider = "Ollama";
-        public const string DefaultOllamaAddress = "http://localhost:11434";
-        public const double MinTemperature = 0.0;
-        public const double MaxTemperature = 2.0;
-        public const int MinTimeoutSeconds = 5;
-        public const int MaxTimeoutSeconds = 600;
-        public const int MaxUserNameLength = 40;
-        public const int MaxSystemPromptLength = 2000;
-
-        public string Provider { get; set; } = OllamaProvider;
-
-        public string OllamaAddress { get; set; } = DefaultOllamaAddress;
-
-        /// <summary>The model the user picked. Null until they choose one; no model name is ever assumed.</summary>
-        public string? Model { get; set; }
-
-        /// <summary>The user's own description of the rider. Null means the built-in rider personality is used.</summary>
-        public string? SystemPrompt { get; set; }
-
-        /// <summary>How the built-in personality talks. Not used when the user has written their own description.</summary>
-        public RiderTone Tone { get; set; } = RiderTone.Cheeky;
-
-        public ReplyLength ReplyLength { get; set; } = ReplyLength.Brief;
-
-        /// <summary>What the rider calls the user. Null until the user gives a name; none is ever assumed.</summary>
-        public string? UserName { get; set; }
-
-        public double Temperature { get; set; } = 0.8;
-
-        public int RequestTimeoutSeconds { get; set; } = 120;
-    }
-
-    /// <summary>How the rider's built-in personality talks.</summary>
-    public enum RiderTone
-    {
-        /// <summary>Friendly and slightly cheeky, with the occasional joke. The standard rider.</summary>
-        Cheeky,
-
-        /// <summary>Warm and encouraging, without the cheek.</summary>
-        Friendly,
-
-        /// <summary>Calm and to the point, without jokes.</summary>
-        Serious,
-    }
-
-    /// <summary>How much the rider says in each reply.</summary>
-    public enum ReplyLength
-    {
-        /// <summary>A sentence or two, to fit the speech bubble.</summary>
-        Brief,
-
-        /// <summary>Fuller answers with explanation.</summary>
-        Detailed,
-    }
-
-    public sealed class MemorySettings
-    {
-        public const int MinRetentionDays = 1;
-        public const int MaxRetentionDays = 365;
-
-        public bool Enabled { get; set; } = true;
-
-        /// <summary>Keep conversations between sessions. Always stored on this computer only.</summary>
-        public bool KeepConversationHistory { get; set; } = true;
-
-        public int RetentionDays { get; set; } = 30;
     }
 
     public sealed class ApplicationSettings

@@ -39,7 +39,7 @@ namespace DesktopRider.Core.Tests
             var result = await _store.LoadAsync();
 
             Assert.Equal(SettingsLoadStatus.Defaults, result.Status);
-            Assert.Equal(AiSettings.DefaultOllamaAddress, result.Settings.Ai.OllamaAddress);
+            Assert.True(result.Settings.Appearance.AlwaysOnTop);
             Assert.False(File.Exists(_paths.SettingsFile));
         }
 
@@ -51,19 +51,10 @@ namespace DesktopRider.Core.Tests
             settings.Appearance.Opacity = 0.7;
             settings.Appearance.AlwaysOnTop = false;
             settings.Appearance.ClickThrough = true;
-            settings.Appearance.ChatInBubbles = true;
             settings.Appearance.Position = new SavedPosition { X = -320.5, Y = 48, Monitor = @"\\.\DISPLAY2" };
-            settings.Behaviour.ProactiveComments = true;
-            settings.Behaviour.ProactiveIntervalMinutes = 45;
             settings.Behaviour.AnimationFrequency = AnimationFrequency.Frequent;
-            settings.Behaviour.QuietHoursEnabled = true;
-            settings.Behaviour.QuietHoursStart = new TimeOnly(21, 30);
-            settings.Ai.OllamaAddress = "http://192.168.1.20:11434";
-            settings.Ai.Model = "some-model:latest";
-            settings.Ai.SystemPrompt = "Be brief.";
-            settings.Ai.Temperature = 0.3;
-            settings.Memory.Enabled = false;
-            settings.Memory.RetentionDays = 7;
+            settings.Behaviour.FreeRiding = true;
+            settings.Behaviour.TricksByHimself = TrickFrequency.Often;
             settings.Application.StartWithWindows = true;
             settings.Application.TrayHintShown = true;
 
@@ -76,21 +67,12 @@ namespace DesktopRider.Core.Tests
             Assert.Equal(0.7, loaded.Appearance.Opacity);
             Assert.False(loaded.Appearance.AlwaysOnTop);
             Assert.True(loaded.Appearance.ClickThrough);
-            Assert.True(loaded.Appearance.ChatInBubbles);
             Assert.Equal(-320.5, loaded.Appearance.Position!.X);
             Assert.Equal(48, loaded.Appearance.Position.Y);
             Assert.Equal(@"\\.\DISPLAY2", loaded.Appearance.Position.Monitor);
-            Assert.True(loaded.Behaviour.ProactiveComments);
-            Assert.Equal(45, loaded.Behaviour.ProactiveIntervalMinutes);
             Assert.Equal(AnimationFrequency.Frequent, loaded.Behaviour.AnimationFrequency);
-            Assert.True(loaded.Behaviour.QuietHoursEnabled);
-            Assert.Equal(new TimeOnly(21, 30), loaded.Behaviour.QuietHoursStart);
-            Assert.Equal("http://192.168.1.20:11434", loaded.Ai.OllamaAddress);
-            Assert.Equal("some-model:latest", loaded.Ai.Model);
-            Assert.Equal("Be brief.", loaded.Ai.SystemPrompt);
-            Assert.Equal(0.3, loaded.Ai.Temperature);
-            Assert.False(loaded.Memory.Enabled);
-            Assert.Equal(7, loaded.Memory.RetentionDays);
+            Assert.True(loaded.Behaviour.FreeRiding);
+            Assert.Equal(TrickFrequency.Often, loaded.Behaviour.TricksByHimself);
             Assert.True(loaded.Application.StartWithWindows);
             Assert.True(loaded.Application.TrayHintShown);
         }
@@ -113,7 +95,8 @@ namespace DesktopRider.Core.Tests
             await _store.SaveAsync(settings);
             var json = await File.ReadAllTextAsync(_paths.SettingsFile);
 
-            Assert.Contains("\"ollamaAddress\": \"http://localhost:11434\"", json, StringComparison.Ordinal);
+            Assert.Contains("\"alwaysOnTop\": true", json, StringComparison.Ordinal);
+            Assert.DoesNotContain("ollama", json, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("\"animationFrequency\": \"rare\"", json, StringComparison.Ordinal);
             Assert.Contains(Environment.NewLine, json, StringComparison.Ordinal);
         }
@@ -156,7 +139,6 @@ namespace DesktopRider.Core.Tests
 
             Assert.Equal(SettingsLoadStatus.Loaded, result.Status);
             Assert.Equal(1.2, result.Settings.Appearance.Scale);
-            Assert.Equal(AiSettings.DefaultOllamaAddress, result.Settings.Ai.OllamaAddress);
             Assert.True(result.Settings.Appearance.AlwaysOnTop);
         }
 
@@ -169,14 +151,32 @@ namespace DesktopRider.Core.Tests
                 @"{
   // edited by hand
   ""somethingFromTheFuture"": true,
-  ""ai"": { ""temperature"": 99, ""ollamaAddress"": ""nonsense"", },
+  ""appearance"": { ""scale"": 99, },
 }");
 
             var result = await _store.LoadAsync();
 
             Assert.Equal(SettingsLoadStatus.Loaded, result.Status);
-            Assert.Equal(AiSettings.MaxTemperature, result.Settings.Ai.Temperature);
-            Assert.Equal(AiSettings.DefaultOllamaAddress, result.Settings.Ai.OllamaAddress);
+            Assert.Equal(AppearanceSettings.MaxScale, result.Settings.Appearance.Scale);
+        }
+
+        [Test]
+        public async Task Load_AFileFromAVersionWithChat_StillLoads_AndKeepsTheRidersSettings()
+        {
+            // Version 2 has no chat or AI; a file written by a version that had them (version 1, or version 3 later) must
+            // still load, its chat parts simply ignored.
+            Directory.CreateDirectory(_paths.DataDirectory);
+            await File.WriteAllTextAsync(_paths.SettingsFile,
+                "{ \"appearance\": { \"scale\": 1.3, \"chatInBubbles\": true },"
+                + " \"behaviour\": { \"freeRiding\": true, \"proactiveComments\": true, \"proactiveIntervalMinutes\": 45 },"
+                + " \"ai\": { \"ollamaAddress\": \"http://localhost:11434\", \"model\": \"some-model\" },"
+                + " \"memory\": { \"retentionDays\": 7 } }");
+
+            var result = await _store.LoadAsync();
+
+            Assert.Equal(SettingsLoadStatus.Loaded, result.Status);
+            Assert.Equal(1.3, result.Settings.Appearance.Scale);
+            Assert.True(result.Settings.Behaviour.FreeRiding);
         }
 
         [Test]
@@ -184,10 +184,10 @@ namespace DesktopRider.Core.Tests
         {
             var settings = new AppSettings();
             await _store.SaveAsync(settings);
-            settings.Ai.Model = "second";
+            settings.Appearance.Scale = 1.7;
             await _store.SaveAsync(settings);
 
-            Assert.Equal("second", (await _store.LoadAsync()).Settings.Ai.Model);
+            Assert.Equal(1.7, (await _store.LoadAsync()).Settings.Appearance.Scale);
         }
 
         [Test]
@@ -196,7 +196,7 @@ namespace DesktopRider.Core.Tests
             var saves = Enumerable.Range(0, 25).Select(i =>
             {
                 var settings = new AppSettings();
-                settings.Ai.Model = $"model-{i}";
+                settings.Appearance.Scale = 0.5 + i * 0.05;
                 return _store.SaveAsync(settings);
             });
 
@@ -204,7 +204,7 @@ namespace DesktopRider.Core.Tests
             var result = await _store.LoadAsync();
 
             Assert.Equal(SettingsLoadStatus.Loaded, result.Status);
-            Assert.StartsWith("model-", result.Settings.Ai.Model, StringComparison.Ordinal);
+            Assert.InRange(result.Settings.Appearance.Scale, 0.5, 0.5 + 24 * 0.05 + 1e-9);
         }
 
         [Test]

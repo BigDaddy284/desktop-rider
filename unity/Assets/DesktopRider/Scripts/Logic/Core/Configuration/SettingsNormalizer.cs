@@ -16,8 +16,6 @@ namespace DesktopRider.Core.Configuration
             settings.SchemaVersion = AppSettings.CurrentSchemaVersion;
             settings.Appearance ??= new AppearanceSettings();
             settings.Behaviour ??= new BehaviourSettings();
-            settings.Ai ??= new AiSettings();
-            settings.Memory ??= new MemorySettings();
             settings.Application ??= new ApplicationSettings();
 
             var appearance = settings.Appearance;
@@ -30,10 +28,6 @@ namespace DesktopRider.Core.Configuration
             }
 
             var behaviour = settings.Behaviour;
-            behaviour.ProactiveIntervalMinutes = Math.Clamp(
-                behaviour.ProactiveIntervalMinutes,
-                BehaviourSettings.MinProactiveIntervalMinutes,
-                BehaviourSettings.MaxProactiveIntervalMinutes);
             if (!Enum.IsDefined(typeof(AnimationFrequency), behaviour.AnimationFrequency))
             {
                 behaviour.AnimationFrequency = AnimationFrequency.Normal;
@@ -44,61 +38,7 @@ namespace DesktopRider.Core.Configuration
                 behaviour.TricksByHimself = TrickFrequency.Sometimes;
             }
 
-            var ai = settings.Ai;
-            if (string.IsNullOrWhiteSpace(ai.Provider))
-            {
-                ai.Provider = AiSettings.OllamaProvider;
-            }
-
-            ai.OllamaAddress = NormalizeAddress(ai.OllamaAddress);
-            ai.Model = string.IsNullOrWhiteSpace(ai.Model) ? null : ai.Model.Trim();
-            ai.SystemPrompt = Tidy(ai.SystemPrompt, AiSettings.MaxSystemPromptLength);
-            ai.UserName = Tidy(ai.UserName, AiSettings.MaxUserNameLength);
-            if (!Enum.IsDefined(typeof(RiderTone), ai.Tone))
-            {
-                ai.Tone = RiderTone.Cheeky;
-            }
-
-            if (!Enum.IsDefined(typeof(ReplyLength), ai.ReplyLength))
-            {
-                ai.ReplyLength = ReplyLength.Brief;
-            }
-
-            ai.Temperature = Clamp(ai.Temperature, AiSettings.MinTemperature, AiSettings.MaxTemperature, 0.8);
-            ai.RequestTimeoutSeconds = Math.Clamp(ai.RequestTimeoutSeconds, AiSettings.MinTimeoutSeconds, AiSettings.MaxTimeoutSeconds);
-
-            settings.Memory.RetentionDays = Math.Clamp(
-                settings.Memory.RetentionDays,
-                MemorySettings.MinRetentionDays,
-                MemorySettings.MaxRetentionDays);
-
             return settings;
-        }
-
-        /// <summary>Returns a usable http/https address, falling back to the standard local Ollama address.</summary>
-        public static string NormalizeAddress(string? address)
-        {
-            var trimmed = address?.Trim().TrimEnd('/');
-            if (!string.IsNullOrEmpty(trimmed)
-                && Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
-                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
-            {
-                return trimmed;
-            }
-
-            return AiSettings.DefaultOllamaAddress;
-        }
-
-        // Text the user typed: no stray spaces, never longer than allowed, and null when there is nothing there.
-        private static string? Tidy(string? text, int maxLength)
-        {
-            var trimmed = text?.Trim();
-            if (string.IsNullOrEmpty(trimmed))
-            {
-                return null;
-            }
-
-            return trimmed.Length > maxLength ? trimmed[..maxLength].TrimEnd() : trimmed;
         }
 
         private static double Clamp(double value, double min, double max, double fallback) =>

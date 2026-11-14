@@ -24,7 +24,6 @@ namespace DesktopRider.Core.ViewModels
             ToggleAlwaysOnTopCommand = new RelayCommand(() => _ = SetAlwaysOnTopAsync(!AlwaysOnTop));
             ShowCommand = new RelayCommand(() => _ = SetCharacterVisibleAsync(true));
             HideCommand = new RelayCommand(() => _ = SetCharacterVisibleAsync(false));
-            ToggleChatInBubblesCommand = new RelayCommand(() => _ = SetChatInBubblesAsync(!ChatInBubbles));
             ToggleVisibilityCommand = new RelayCommand(() => _ = SetCharacterVisibleAsync(!CharacterVisible));
             ResetPositionCommand = new RelayCommand(() => ResetPositionRequested?.Invoke(this, EventArgs.Empty));
             ExitCommand = new RelayCommand(() => ExitRequested?.Invoke(this, EventArgs.Empty));
@@ -43,14 +42,9 @@ namespace DesktopRider.Core.ViewModels
         /// <summary>False while the user has the rider hidden. Desktop Rider keeps running in the notification area.</summary>
         public bool CharacterVisible => _settings.Current.Appearance.CharacterVisible;
 
-        /// <summary>True when the user talks to the rider through bubbles beside it instead of the conversation window.</summary>
-        public bool ChatInBubbles => _settings.Current.Appearance.ChatInBubbles;
-
         public double CharacterOpacity => _settings.Current.Appearance.Opacity;
 
         public ICommand ToggleAlwaysOnTopCommand { get; }
-
-        public ICommand ToggleChatInBubblesCommand { get; }
 
         public ICommand ShowCommand { get; }
 
@@ -63,10 +57,6 @@ namespace DesktopRider.Core.ViewModels
         public ICommand ExitCommand { get; }
 
         public Task SetAlwaysOnTopAsync(bool value) => ChangeAsync(s => s.Appearance.AlwaysOnTop = value);
-
-        /// <summary>Chooses between the conversation window and bubbles beside the rider, and remembers the choice.</summary>
-        public Task SetChatInBubblesAsync(bool value) =>
-            value == ChatInBubbles ? Task.CompletedTask : ChangeAsync(s => s.Appearance.ChatInBubbles = value);
 
         /// <summary>Shows or hides the rider and remembers the choice for next time.</summary>
         public Task SetCharacterVisibleAsync(bool value) =>

@@ -87,14 +87,13 @@ namespace DesktopRider.Core.Tests
         public async Task FreeRiding_MissingFromAnOlderSettingsFile_IsOff_AndTheOtherChoicesAreKept()
         {
             Directory.CreateDirectory(_paths.DataDirectory);
-            await File.WriteAllTextAsync(_paths.SettingsFile, "{ \"behaviour\": { \"idleAnimations\": false, \"proactiveIntervalMinutes\": 60 } }");
+            await File.WriteAllTextAsync(_paths.SettingsFile, "{ \"behaviour\": { \"idleAnimations\": false } }");
 
             var result = await _store.LoadAsync();
 
             Assert.Equal(SettingsLoadStatus.Loaded, result.Status);
             Assert.False(result.Settings.Behaviour.FreeRiding);
             Assert.False(result.Settings.Behaviour.IdleAnimations);
-            Assert.Equal(60, result.Settings.Behaviour.ProactiveIntervalMinutes);
         }
 
         [Test]
