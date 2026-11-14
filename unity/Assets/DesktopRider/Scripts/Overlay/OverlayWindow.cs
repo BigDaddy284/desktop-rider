@@ -144,9 +144,7 @@ namespace DesktopRider.Overlay
             yield return null;
             yield return null;
 
-            SetWindowLongPtr(window, GWL_STYLE, new IntPtr(unchecked((int)(WS_POPUP | WS_VISIBLE))));
-            var margins = new MARGINS { left = -1, right = -1, top = -1, bottom = -1 };
-            DwmExtendFrameIntoClientArea(window, ref margins);
+            ApplyWindowStyle();
             clickThrough = true;
             ApplyExtendedStyle();
             var centre = Area.MainCentre;
@@ -158,6 +156,32 @@ namespace DesktopRider.Overlay
             IsActive = true;
             if (!visible) ShowWindow(window, SW_HIDE);
         }
+
+        /// <summary>No border or title bar, and a see-through background.</summary>
+        void ApplyWindowStyle()
+        {
+            SetWindowLongPtr(window, GWL_STYLE, new IntPtr(unchecked((int)(WS_POPUP | (visible ? WS_VISIBLE : 0)))));
+            var margins = new MARGINS { left = -1, right = -1, top = -1, bottom = -1 };
+            DwmExtendFrameIntoClientArea(window, ref margins);
+        }
+
+        /// <summary>
+        /// Unity resizes the window at the end of the frame and, while doing so, gives it back a normal title bar and
+        /// border, an opaque background and an ordinary place in the window order. Once it has finished, put the
+        /// see-through, borderless, always-on-top window back, at the size and place it should have.
+        /// </summary>
+        IEnumerator RestyleAfterResize()
+        {
+            yield return null;
+            yield return null;
+            ApplyWindowStyle();
+            ApplyExtendedStyle();
+            SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, placed.x - offset.X, placed.y - offset.Y, size, size,
+                SWP_FRAMECHANGED | SWP_NOACTIVATE | (visible ? SWP_SHOWWINDOW : 0));
+            restyle = null;
+        }
+
+        Coroutine restyle;
 
         void ReadScreens()
         {
@@ -203,6 +227,8 @@ namespace DesktopRider.Overlay
             SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, corner.x - offset.X, corner.y - offset.Y, size, size, SWP_NOACTIVATE);
             placed = corner;
             WindowRect = new RectInt(corner.x, corner.y, size, size);
+            if (restyle != null) StopCoroutine(restyle);
+            restyle = StartCoroutine(RestyleAfterResize());
         }
 
         void ApplyVisible(bool show)
