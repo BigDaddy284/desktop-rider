@@ -41,11 +41,12 @@ namespace DesktopRider.Riding
 
         TrickLayout layout;
         TrickRun run;
+        TrickAnimation pending;              // the trick the rider is riding to the start of
         readonly TrickPicker picker = new TrickPicker();
         readonly Dictionary<string, GameObject> props = new Dictionary<string, GameObject>(StringComparer.Ordinal);
 
-        /// <summary>True while a trick is being ridden.</summary>
-        public bool IsRunning => run != null;
+        /// <summary>True while a trick is being ridden, or the rider is on its way to the start of one.</summary>
+        public bool IsRunning => run != null || pending != null;
 
         /// <summary>The trick being ridden, or null.</summary>
         public string Current => run?.Animation.Name;
@@ -70,12 +71,20 @@ namespace DesktopRider.Riding
         {
             if (rider != null) rider.TrickInterrupted += Stop;
             CopyTrickClips();
+            hasTricks = Available.Any();
         }
 
         void OnDestroy()
         {
             if (rider != null) rider.TrickInterrupted -= Stop;
         }
+
+        /// <summary>
+        /// Whether any trick can be ridden. Read from the tray menu's thread, so it only looks at what was found at start-up.
+        /// </summary>
+        public bool HasTricks => hasTricks;
+
+        volatile bool hasTricks;
 
         /// <summary>The tricks that can be ridden: in the layout, with a clip on the rider and every prop present.</summary>
         public IEnumerable<TrickAnimation> Available
@@ -94,23 +103,67 @@ namespace DesktopRider.Riding
         /// </summary>
         public bool TryPerform(string trickName = null)
         {
-            if (run != null || rider == null || !rider.isActiveAndEnabled || rider.InTrick) return false;
+            if (IsRunning || rider == null || !rider.isActiveAndEnabled || rider.InTrick || rider.Approaching) return false;
             var available = Available.ToList();
             string name = string.IsNullOrEmpty(trickName) ? picker.Next(available) : trickName;
             var trick = available.FirstOrDefault(a => a.Name == name);
             if (trick == null) return false;
 
             var at = rider.transform.position;
+            var here = new Numerics.Vector2(at.x, at.z);
+            var view = rider.CurrentView;
+            float halfWidth = HalfWidth(trick);
+            Func<Numerics.Vector2, bool> fits = ground => FitsOnScreen(view, ground);
+            float? heading = TrickRun.PickHeading(trick, here, rider.transform.eulerAngles.y, fits, halfWidth);
+            if (heading != null) return Begin(trick, heading.Value);
+
+            // No room here: ride to the nearest place with room, then go. A trick needs several metres of desktop.
+            var plan = TrickRun.PlanStart(trick, here, rider.transform.eulerAngles.y, Candidates(view), fits, halfWidth);
+            if (plan == null) return false;
+            var (start, planned) = plan.Value;
+            pending = trick;
+            rider.RideTo(new Vector3(start.X, at.y, start.Y), planned, () => StartWhereArrived(planned));
+            return true;
+        }
+
+        /// <summary>At the start point the bike stops near, not exactly on, the planned spot; check the room again from there.</summary>
+        void StartWhereArrived(float planned)
+        {
+            var trick = pending;
+            pending = null;
+            if (trick == null || rider == null) return;
+            var at = rider.transform.position;
+            var view = rider.CurrentView;
+            float? heading = TrickRun.PickHeading(trick, new Numerics.Vector2(at.x, at.z), planned, ground => FitsOnScreen(view, ground), HalfWidth(trick));
+            if (heading == null || Mathf.Abs(TrickRun.TurnBetween(planned, heading.Value)) > 31f) return;   // no room after all: the rider just carries on
+            Begin(trick, heading.Value);
+        }
+
+        float HalfWidth(TrickAnimation trick) =>
+            trick.Props.Count == 0 ? 0.6f : 0.5f * (float)trick.Props.Max(p => layout.Prop(p.Prop)?.Width ?? 1.2);
+
+        /// <summary>Places the rider could ride to: a grid over every screen, on the ground.</summary>
+        IEnumerable<Numerics.Vector2> Candidates(DesktopView view)
+        {
+            const int spacing = 80;
+            foreach (var screen in OverlayWindow.Area.Screens)
+            {
+                for (int y = screen.Y + spacing; y < screen.Y + screen.Height - spacing / 2; y += spacing)
+                    for (int x = screen.X + spacing; x < screen.X + screen.Width - spacing / 2; x += spacing)
+                        if (view.ToGround(new Vector2(x, y), out var ground))
+                            yield return new Numerics.Vector2(ground.x, ground.z);
+            }
+        }
+
+        bool Begin(TrickAnimation trick, float heading)
+        {
+            var at = rider.transform.position;
             var start = new Numerics.Vector2(at.x, at.z);
             var view = rider.CurrentView;
-            float halfWidth = trick.Props.Count == 0 ? 0.6f : 0.5f * (float)trick.Props.Max(p => layout.Prop(p.Prop)?.Width ?? 1.2);
-            float? heading = TrickRun.PickHeading(trick, start, rider.transform.eulerAngles.y,
-                ground => FitsOnScreen(view, ground), halfWidth);
-            if (heading == null) return false;
-
-            run = new TrickRun(trick, start, heading.Value) { Speed = rider.Director.Speed };
+            float halfWidth = HalfWidth(trick);
+            run = new TrickRun(trick, start, heading) { Speed = rider.Director.Speed };
             rider.BeginTrick();
-            rider.PlaceForTrick(at, heading.Value);
+            rider.PlaceForTrick(at, heading);
             rider.Framing = FrameFor(view, run, halfWidth);
             PlaceProps(run);
             PlayClip(trick.Name);
@@ -120,6 +173,11 @@ namespace DesktopRider.Riding
         /// <summary>Ends the trick now (also when the user picks the rider up) and puts the props away.</summary>
         public void Stop()
         {
+            if (pending != null)
+            {
+                pending = null;
+                rider?.CancelApproach();
+            }
             if (run == null) return;
             string name = run.Animation.Name;
             run = null;
@@ -134,6 +192,8 @@ namespace DesktopRider.Riding
 
         void Update()
         {
+            // Moved elsewhere (for example "move back to the middle") on the way to a trick: forget it.
+            if (pending != null && rider != null && !rider.Approaching && !rider.InTrick) pending = null;
             if (run == null) return;
             run.Speed = rider.Director.Speed;
             run.Advance(Time.deltaTime);

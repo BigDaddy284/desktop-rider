@@ -26,6 +26,8 @@ namespace DesktopRider.Overlay
         public FreeRider rider;
         public Camera viewCamera;
         public OverlayWindow overlayWindow;
+        [Tooltip("Rides tricks; adds \"Do a trick\" to the tray menu. Optional.")]
+        public TrickRunner tricks;
         [Tooltip("Frames a second while the rider is hidden; nothing is drawn, this only keeps the menu answering.")]
         public int hiddenFrameRate = 4;
 
@@ -78,7 +80,9 @@ namespace DesktopRider.Overlay
             if (string.IsNullOrEmpty(exe)) exe = Path.Combine(Path.GetDirectoryName(Application.dataPath) ?? string.Empty, "DesktopRider3D.exe");
             var startup = new StartWithWindows(settings, new WindowsStartupRegistry(), exe, Logger<StartWithWindows>());
             var freeRiding = new FreeRidingMenu(settings, Logger<FreeRidingMenu>());
-            trayMenu = new TrayViewModel(overlay, settings, new ITrayMenuContributor[] { freeRiding, startup }, Logger<TrayViewModel>());
+            var trickMenu = new TrickMenu(() => tricks != null && tricks.HasTricks);
+            trickMenu.Requested += (s, e) => MainThread.Post(DoATrick);
+            trayMenu = new TrayViewModel(overlay, settings, new ITrayMenuContributor[] { trickMenu, freeRiding, startup }, Logger<TrayViewModel>());
 
             // The tray icon and the sign-in list are only for the real program, not while working in the editor.
             if (Application.isEditor) return;
@@ -88,6 +92,14 @@ namespace DesktopRider.Overlay
             trayIcon.CommandFailed += ex => Log(LogLevel.Error, "A tray menu action failed.", ex);
             if (!trayIcon.Show()) Log(LogLevel.Warning, "The tray icon could not be shown. Ctrl+Shift+Q still closes Desktop Rider.", null);
             trayMenu.AnnounceIfStartedHidden();
+        }
+
+        void DoATrick()
+        {
+            if (tricks == null || tricks.IsRunning) return;
+            if (!settings.Current.Appearance.CharacterVisible) return;
+            if (!tricks.TryPerform())
+                trayIcon?.ShowHint("Desktop Rider", "There isn't enough clear space on the screen for a trick right now.");
         }
 
         void OnOverlayChanged(object sender, PropertyChangedEventArgs e) => MainThread.Post(ApplySettings);

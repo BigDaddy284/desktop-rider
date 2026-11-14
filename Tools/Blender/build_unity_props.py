@@ -2,7 +2,9 @@
 
 Run in a background Blender with no file open:
 
-    blender --background --factory-startup --python build_unity_props.py -- <Tools/Blender dir> <output dir> [check dir]
+    blender --background --factory-startup --python build_unity_props.py -- <Tools/Blender dir> <output dir> [check dir] [--plain]
+
+Dirt props get real-track detail from prop_detail.py (References/Terrain); --plain rebuilds the version 1 shapes.
 
 It imports trick_animations.py / trick_core.py from the first folder (it only uses their pure-maths terrain
 builders; it needs no rig and changes no .blend), rebuilds each distinct terrain piece as one closed mesh with
@@ -18,10 +20,16 @@ from mathutils import Vector
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 TOOLS, OUT = argv[0], argv[1]
-CHECK = argv[2] if len(argv) > 2 else None
+_rest = [a for a in argv[2:] if not a.startswith('--')]
+CHECK = _rest[0] if _rest else None
 sys.path.insert(0, TOOLS)
 import trick_animations as TA   # noqa: E402
 import trick_core as TC         # noqa: E402
+import prop_detail as PD        # noqa: E402
+
+# Real-track detail (References/Terrain): sloping sides, tyre groove, damp and dry dirt, clods, a dirt bank at the
+# foot of the steel ramp. False rebuilds the plain version 1 shapes.
+DETAIL = '--plain' not in argv
 
 DIRT_HALF_WIDTH = 0.55
 DIRT_STEP = 0.03
@@ -131,6 +139,26 @@ def build_dirt(name, length, fn):
     return new_object(name, B.bm, mats), (xs, hs)
 
 
+def build_dirt_detailed(name, length, fn, seed=7):
+    mats = [TC.material('DR_Dirt', (0.42, 0.26, 0.14)), TC.material('DR_DirtDark', (0.27, 0.16, 0.085)), TC.material('DR_DirtLight', (0.52, 0.35, 0.2))]
+    verts, faces = PD.dirt_mesh(length, fn, seed=seed)
+    bm = bmesh.new()
+    bv = [bm.verts.new(v) for v in verts]
+    for idx, mat in faces:
+        try:
+            f = bm.faces.new([bv[i] for i in idx])
+        except ValueError:
+            continue
+        f.material_index = mat
+    n = max(2, int(round(length / DIRT_STEP)))
+    xs = [length * i / n for i in range(n + 1)]
+    return new_object(name, bm, mats), (xs, [max(0.0, fn(x)) for x in xs])
+
+
+def seed_for(name):
+    return sum(ord(c) for c in name) % 997
+
+
 def build_steel(name, length, fn):
     DECK, TUBE = 0, 1
     mats = [TC.material('DR_RampDeck', (0.07, 0.07, 0.08), 0.6, 0.2), TC.material('DR_RampTube', (0.62, 0.64, 0.67), 0.45, 0.6)]
@@ -179,6 +207,20 @@ def build_steel(name, length, fn):
     for y0, y1 in ((-yo, -yo + 0.03), (yo - 0.03, yo)):
         Bb = Builder(); Bb.bm = B.bm; Bb.cache = {}
         Bb.prism(dn + up[::-1], y0, y1, TUBE)
+    if DETAIL:
+        # Dirt pushed up against the bottom of the deck, as at real freestyle events, so the bike rolls on from the dirt.
+        mats += [TC.material('DR_Dirt', (0.42, 0.26, 0.14)), TC.material('DR_DirtDark', (0.27, 0.16, 0.085)), TC.material('DR_DirtLight', (0.52, 0.35, 0.2))]
+        # It sits just under the deck and a little wider, so it shows along both sides of the lower half of the ramp.
+        bank_len = length * 0.45
+        bank = lambda x: max(0.0, fn(x) - 0.012 + 0.02 * (1 - TC.sm(x, 0, 0.15))) * (1 - TC.sm(x, bank_len * 0.6, bank_len)) if x <= bank_len else 0.0
+        verts, faces = PD.dirt_mesh(bank_len, bank, half_top=w + 0.06, seed=seed_for(name), groove_depth=0.0, clods=6, back=False)
+        bv = [B.bm.verts.new(v) for v in verts]
+        for idx, mat in faces:
+            try:
+                f = B.bm.faces.new([bv[i] for i in idx])
+            except ValueError:
+                continue
+            f.material_index = 2 + mat
     return new_object(name, B.bm, mats), (xs, [fn(x) for x in xs])
 
 
@@ -221,7 +263,12 @@ def main():
         for i, (x0, x1, fn, kind) in enumerate(terr.pieces):
             nm = prop_name(a['name'], i, kind); L = x1 - x0
             if nm not in built:
-                (ob, open_edges), prof = (build_steel if kind == 'steel' else build_dirt)(nm, L, fn)
+                if kind == 'steel':
+                    (ob, open_edges), prof = build_steel(nm, L, fn)
+                elif DETAIL:
+                    (ob, open_edges), prof = build_dirt_detailed(nm, L, fn, seed_for(nm))
+                else:
+                    (ob, open_edges), prof = build_dirt(nm, L, fn)
                 # compare against the sprite-version prop made by the original script
                 ref = (TC.steel_ramp_prop if kind == 'steel' else TC.dirt_prop)('REF_' + nm, L, fn)
                 rv = [v.co.copy() for v in ref.data.vertices]; mv = [v.co.copy() for v in ob.data.vertices]
@@ -296,5 +343,26 @@ def check(layout):
         sc.render.resolution_x = 1600; sc.render.resolution_y = 1600
         sc.render.filepath = os.path.join(CHECK, 'props_check_%s.png' % nm); bpy.ops.render.render(write_still=True)
 
+    # As they will be seen on the desktop: laid out in a grid on the ground, looked down on at 45 degrees like the
+    # Unity camera, with plain colours (no film-style tone curve) so the dirt shades can be judged.
+    sc.view_settings.view_transform = 'Standard'
+    meshes = [o for o in bpy.data.objects if o.type == 'MESH']
+    col_w = maxl + 0.6; row = 0; x = 0.0; y = 0.0; row_depth = 0.0
+    for k, o in enumerate(meshes):
+        if k and k % 3 == 0:
+            y -= row_depth + 0.6; x = 0.0; row_depth = 0.0
+        o.location = (0, 0, 0); bpy.context.view_layer.update()
+        bb = [o.matrix_world @ Vector(cc) for cc in o.bound_box]
+        depth = max(cc.y for cc in bb) - min(cc.y for cc in bb)
+        o.location = (x - min(cc.x for cc in bb), y - max(cc.y for cc in bb), 0)
+        x += col_w; row_depth = max(row_depth, depth)
+    y -= row_depth
+    width = 3 * col_w; c = Vector((width / 2, y / 2, 0.0))
+    cam.rotation_euler = (math.radians(45), 0, 0)
+    cam.location = c - (cam.rotation_euler.to_matrix() @ Vector((0, 0, -1))) * 30
+    sc.render.resolution_x = 1800; sc.render.resolution_y = 1400
+    cd.ortho_scale = max(width, -y * 0.75 * 1800 / 1400) * 1.05
+    lo.rotation_euler = (math.radians(40), 0, math.radians(-35))
+    sc.render.filepath = os.path.join(CHECK, 'props_check_desktop.png'); bpy.ops.render.render(write_still=True)
 
 main()

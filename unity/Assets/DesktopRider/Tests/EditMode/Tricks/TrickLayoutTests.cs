@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using DesktopRider.Tricks;
@@ -175,6 +176,59 @@ namespace DesktopRider.Tricks.Tests
         public void GivesUpWhenNothingFits()
         {
             Assert.Null(TrickRun.PickHeading(Jump, Vector2.Zero, 0f, p => p.Length() < 2));
+        }
+
+        [Test]
+        public void PlanStart_StaysPut_WhenTheTrickFitsHere()
+        {
+            var plan = TrickRun.PlanStart(Jump, Vector2.Zero, 90f, new[] { Vector2.Zero, new Vector2(3, 0) }, p => true);
+            Assert.NotNull(plan);
+            Assert.Equal(Vector2.Zero, plan.Value.Start);
+            Assert.Equal(90f, plan.Value.Heading);
+        }
+
+        [Test]
+        public void PlanStart_RidesToTheNearestPlaceWithRoom()
+        {
+            // A strip 12 m long and 3 m deep: the 7 m trick only fits lengthways. Facing north at x = 4 there is no
+            // room either way along the strip from here (4 m to the left, 8 m to the right but too close to the end
+            // with the margin), so the rider has to move.
+            Func<Vector2, bool> fits = p => p.X > 0 && p.X < 12 && p.Y > 0 && p.Y < 3;
+            var grid = new List<Vector2>();
+            for (int x = 0; x <= 12; x++) for (int y = 0; y <= 3; y++) grid.Add(new Vector2(x, y));
+
+            var plan = TrickRun.PlanStart(Jump, new Vector2(5.5f, 1.5f), 0f, grid, fits);
+
+            Assert.NotNull(plan);
+            Assert.True(TrickRun.Fits(Jump, plan.Value.Start, plan.Value.Heading, fits));
+            Assert.False(TrickRun.Fits(Jump, new Vector2(5.5f, 1.5f), 90f, fits));
+            Assert.False(TrickRun.Fits(Jump, new Vector2(5.5f, 1.5f), 270f, fits));
+            // The nearest grid points with room are x = 4 facing east or x = 7 facing west, at y = 1 or 2: 1.58 m away.
+            Assert.InRange(Vector2.Distance(plan.Value.Start, new Vector2(5.5f, 1.5f)), 1.5f, 1.6f);
+        }
+
+        [Test]
+        public void PlanStart_PrefersTheSmallerTurn_WhenTwoPlacesAreAsNear()
+        {
+            // Room both ways along a 20 m strip; from the middle, facing nearly west, it should go west.
+            Func<Vector2, bool> fits = p => p.X > -10 && p.X < 10 && Math.Abs(p.Y) < 1.5f;
+            var plan = TrickRun.PlanStart(Jump, Vector2.Zero, 260f, new[] { Vector2.Zero }, fits);
+            Assert.NotNull(plan);
+            Assert.Equal(270f, plan.Value.Heading);
+        }
+
+        [Test]
+        public void PlanStart_GivesUpWhenNothingFits()
+        {
+            Assert.Null(TrickRun.PlanStart(Jump, Vector2.Zero, 0f, new[] { Vector2.Zero, Vector2.One }, p => p.Length() < 3));
+        }
+
+        [Test]
+        public void TurnBetween_TakesTheShortWayRound()
+        {
+            Assert.Equal(20f, TrickRun.TurnBetween(350f, 10f));
+            Assert.Equal(-20f, TrickRun.TurnBetween(10f, 350f));
+            Assert.Equal(180f, Math.Abs(TrickRun.TurnBetween(0f, 180f)));
         }
 
         [Test]

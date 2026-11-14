@@ -96,22 +96,63 @@ namespace DesktopRider.Tricks
         {
             if (animation == null) throw new ArgumentNullException(nameof(animation));
             if (fits == null) throw new ArgumentNullException(nameof(fits));
-            var (from, to) = animation.Reach;
             foreach (float turn in HeadingTurns)
             {
                 float heading = Normalise(current + turn);
-                var forward = Direction(heading);
-                var side = new Vector2(forward.Y, -forward.X) * halfWidth;
-                bool ok = true;
-                for (double d = from; ok; d = Math.Min(to, d + step))
-                {
-                    var p = start + forward * (float)d;
-                    ok = fits(p) && fits(p + side) && fits(p - side);
-                    if (d >= to) break;
-                }
-                if (ok) return heading;
+                if (Fits(animation, start, heading, fits, halfWidth, step)) return heading;
             }
             return null;
+        }
+
+        /// <summary>
+        /// When the trick does not fit where the rider is, finds somewhere close by where it does: one of
+        /// <paramref name="candidates"/> (points the rider could ride to), facing one of 24 directions. Prefers the nearest
+        /// place and, between equally near places, the smallest turn. Null if nowhere fits.
+        /// </summary>
+        public static (Vector2 Start, float Heading)? PlanStart(TrickAnimation animation, Vector2 current, float currentHeading,
+            IEnumerable<Vector2> candidates, Func<Vector2, bool> fits, float halfWidth = 0.6f, float step = 0.25f)
+        {
+            if (animation == null) throw new ArgumentNullException(nameof(animation));
+            if (candidates == null) throw new ArgumentNullException(nameof(candidates));
+            if (fits == null) throw new ArgumentNullException(nameof(fits));
+            (Vector2, float)? best = null;
+            double bestCost = double.MaxValue;
+            foreach (var start in candidates.OrderBy(c => Vector2.DistanceSquared(c, current)))
+            {
+                double distance = Vector2.Distance(start, current);
+                if (distance > bestCost) break;          // the rest are further away than the best found
+                for (int k = 0; k < 24; k++)
+                {
+                    float heading = Normalise(k * 15f);
+                    double turn = Math.Abs(TurnBetween(currentHeading, heading));
+                    double cost = distance + turn / 180.0;     // a half turn costs as much as riding a metre
+                    if (cost >= bestCost || !Fits(animation, start, heading, fits, halfWidth, step)) continue;
+                    best = (start, heading);
+                    bestCost = cost;
+                }
+            }
+            return best;
+        }
+
+        /// <summary>True if the whole trick, ridden from <paramref name="start"/> facing <paramref name="heading"/>, stays where it fits.</summary>
+        public static bool Fits(TrickAnimation animation, Vector2 start, float heading, Func<Vector2, bool> fits, float halfWidth = 0.6f, float step = 0.25f)
+        {
+            var (from, to) = animation.Reach;
+            var forward = Direction(heading);
+            var side = new Vector2(forward.Y, -forward.X) * halfWidth;
+            for (double d = from; ; d = Math.Min(to, d + step))
+            {
+                var p = start + forward * (float)d;
+                if (!fits(p) || !fits(p + side) || !fits(p - side)) return false;
+                if (d >= to) return true;
+            }
+        }
+
+        /// <summary>The smallest turn from one heading to another, in degrees, from -180 to 180.</summary>
+        public static float TurnBetween(float from, float to)
+        {
+            float d = Normalise(to - from);
+            return d > 180f ? d - 360f : d;
         }
 
         public static float Normalise(float heading)

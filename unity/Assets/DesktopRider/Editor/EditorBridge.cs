@@ -83,6 +83,9 @@ namespace DesktopRider.EditorTools
                 case "test": return RunTests(id);
                 case "snapshot": return Snapshot(argument);
                 case "trick": return Trick(argument);
+                case "play": EditorApplication.isPlaying = true; return "entering play mode";
+                case "endplay": EditorApplication.isPlaying = false; return "leaving play mode";
+                case "view": return View(argument);
                 default: throw new ArgumentException("Unknown command " + command);
             }
         }
@@ -197,7 +200,7 @@ namespace DesktopRider.EditorTools
             host.viewCamera = camera;
             host.overlayWindow = overlay.GetComponent<OverlayWindow>();
             log.AppendLine("app host added (settings, tray icon, menu)");
-            AddTricks(rider, free, overlay.GetComponent<OverlayWindow>(), log);
+            host.tricks = AddTricks(rider, free, overlay.GetComponent<OverlayWindow>(), log);
 
             var scene = EditorSceneManager.GetActiveScene();
             EditorSceneManager.MarkSceneDirty(scene);
@@ -208,7 +211,7 @@ namespace DesktopRider.EditorTools
         }
 
         /// <summary>Adds the trick runner with its layout, props and the tricks model's takes, if they have been imported.</summary>
-        static void AddTricks(GameObject rider, FreeRider free, OverlayWindow window, StringBuilder log)
+        static TrickRunner AddTricks(GameObject rider, FreeRider free, OverlayWindow window, StringBuilder log)
         {
             var runner = rider.AddComponent<TrickRunner>();
             runner.rider = free;
@@ -224,24 +227,37 @@ namespace DesktopRider.EditorTools
             log.AppendLine("trick props: " + runner.propModels.Length + " (" + string.Join(", ", runner.propModels.Select(m => m.name)) + ")");
 
             var tricks = AssetDatabase.LoadAssetAtPath<GameObject>(TricksModelPath);
-            if (tricks == null) { log.AppendLine("TRICKS: model missing at " + TricksModelPath); return; }
+            if (tricks == null) { log.AppendLine("TRICKS: model missing at " + TricksModelPath); return runner; }
             var store = (GameObject)PrefabUtility.InstantiatePrefab(tricks);
             store.name = "TrickClips";
             store.transform.SetParent(rider.transform, false);
             runner.tricksModel = store.GetComponent<UnityEngine.Animation>();
             log.AppendLine("trick clips: " + string.Join(", ", AnimationUtility.GetAnimationClips(store).Select(c => c.name)));
+            return runner;
         }
 
         /// <summary>In play mode: rides the named trick, or a random one with no name. Says why if it cannot.</summary>
         static string Trick(string argument)
         {
+            if (argument != null && argument.StartsWith("at "))
+            {
+                // "trick at x y Name": put the rider at a desktop pixel first, e.g. near the left edge where there is room.
+                var bits = argument.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                var holder = UnityEngine.Object.FindFirstObjectByType<FreeRider>();
+                if (holder != null && bits.Length >= 3)
+                    holder.MoveTo(new Vector2(float.Parse(bits[1], System.Globalization.CultureInfo.InvariantCulture), float.Parse(bits[2], System.Globalization.CultureInfo.InvariantCulture)));
+                argument = bits.Length > 3 ? bits[3] : null;
+            }
             if (!EditorApplication.isPlaying) return "ERROR the editor is not playing; tricks only run in play mode";
             var runner = UnityEngine.Object.FindFirstObjectByType<TrickRunner>();
             if (runner == null) return "ERROR no trick runner in the scene; send setup first";
             var available = runner.Available.Select(a => a.Name).ToArray();
             if (available.Length == 0) return "ERROR no tricks available (layout, props or clips missing)";
             bool started = runner.TryPerform(string.IsNullOrWhiteSpace(argument) ? null : argument.Trim());
-            return (started ? "started " + runner.Current : "not started (busy, unknown trick or no room)") + "\navailable: " + string.Join(", ", available);
+            var free = runner.rider;
+            string where = free == null ? "" : "\nrider at " + free.DesktopPosition + " on " + OverlayWindow.Area.Size.Width + "x" + OverlayWindow.Area.Size.Height +
+                " (" + OverlayWindow.Area.Screens.Count + " screens, scaling " + OverlayWindow.ScaleFactor + ", " + free.CurrentView.PixelsPerMetre + " px per metre)";
+            return (started ? "started " + runner.Current : "not started (busy, unknown trick or no room)") + where + "\navailable: " + string.Join(", ", available);
         }
 
         /// <summary>
@@ -291,6 +307,48 @@ namespace DesktopRider.EditorTools
                 return "saved " + path + "\nmaterials " + materials.Length + ", with a texture " + textured +
                        "\nshaders " + string.Join(", ", materials.Select(m => m.shader.name).Distinct()) +
                        "\ntextures " + string.Join(", ", materials.Select(m => m.mainTexture ? m.mainTexture.name + " " + m.mainTexture.width : null).Where(n => n != null).Distinct());
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        /// <summary>
+        /// Draws the scene as the desktop shows it (looking down at 45 degrees) around the rider and any trick props
+        /// to Bridge/view.png, so a trick can be checked without looking at the screen. Argument: "[name]".
+        /// </summary>
+        static string View(string argument)
+        {
+            var rider = GameObject.Find("Rider");
+            if (rider == null) return "ERROR no Rider in the scene";
+            var bounds = new Bounds(rider.transform.position + Vector3.up * 0.7f, Vector3.one * 2f);
+            foreach (var r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+                if (r.gameObject.activeInHierarchy && r.name.StartsWith("DR_Prop_")) bounds.Encapsulate(r.bounds);
+            string name = string.IsNullOrWhiteSpace(argument) ? "view" : "view-" + argument.Trim();
+            var go = new GameObject("ViewCamera");
+            try
+            {
+                var cam = go.AddComponent<Camera>();
+                cam.orthographic = true;
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = new Color(0.55f, 0.6f, 0.65f, 1f);
+                go.transform.rotation = Quaternion.Euler(45f, 0f, 0f);
+                go.transform.position = bounds.center - go.transform.forward * 40f;
+                const int w = 1280, h = 720;
+                cam.orthographicSize = Mathf.Max(bounds.extents.y * 0.71f + bounds.extents.z * 0.71f, bounds.extents.x * h / w) * 1.15f;
+                cam.farClipPlane = 100f;
+                var rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
+                cam.targetTexture = rt;
+                cam.Render();
+                RenderTexture.active = rt;
+                var image = new Texture2D(w, h, TextureFormat.RGBA32, false);
+                image.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+                image.Apply();
+                RenderTexture.active = null;
+                string path = Path.Combine(Folder, name + ".png");
+                File.WriteAllBytes(path, image.EncodeToPNG());
+                cam.targetTexture = null;
+                UnityEngine.Object.DestroyImmediate(rt);
+                UnityEngine.Object.DestroyImmediate(image);
+                return "saved " + path + " (area " + bounds.size + ")";
             }
             finally { UnityEngine.Object.DestroyImmediate(go); }
         }

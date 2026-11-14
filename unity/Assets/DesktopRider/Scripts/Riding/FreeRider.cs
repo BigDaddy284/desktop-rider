@@ -75,13 +75,18 @@ namespace DesktopRider.Riding
         /// </summary>
         public Rect? Framing { get; set; }
 
+        /// <summary>True while riding to the start of a trick.</summary>
+        public bool Approaching => approachArrived != null;
+
         /// <summary>The rider size setting (1 is normal).</summary>
         public float SizeScale => sizeScale;
 
         /// <summary>How the ground maps to desktop pixels at the moment.</summary>
         public DesktopView CurrentView => View;
 
-        Vector3 target;
+        Vector3 target, approachEnd;
+        bool approachLeg;                     // true while heading for the run-up point, false on the last stretch
+        Action approachArrived;
         float speed, restUntil, lean, sizeScale = 1f;
         bool roaming = true, dragging;
         Vector3 dragOffset;
@@ -145,6 +150,29 @@ namespace DesktopRider.Riding
             transform.SetPositionAndRotation(ground, Quaternion.Euler(0f, heading, 0f));
         }
 
+        /// <summary>
+        /// Rides to the start of a trick, lining up to face <paramref name="heading"/>, then calls
+        /// <paramref name="arrived"/>. Works parked or free riding; picking the rider up cancels it.
+        /// </summary>
+        public void RideTo(Vector3 start, float heading, Action arrived)
+        {
+            var forward = Quaternion.Euler(0f, heading, 0f) * Vector3.forward;
+            // Stop where the trick starts: the bike comes to rest arriveDistance short of its aim.
+            approachEnd = start + forward * arriveDistance;
+            target = start - forward * 1.2f;               // a run-up point behind the start, so it arrives facing the right way
+            approachLeg = true;
+            approachArrived = arrived;
+            restUntil = 0f;
+        }
+
+        /// <summary>Stops riding to a trick's start, if it was.</summary>
+        public void CancelApproach()
+        {
+            if (approachArrived == null) return;
+            approachArrived = null;
+            if (roaming) PickTarget(); else target = transform.position;
+        }
+
         /// <summary>Hands the rider back after a trick: it rests a moment where it stopped, then carries on.</summary>
         public void EndTrick()
         {
@@ -160,12 +188,19 @@ namespace DesktopRider.Riding
         void Update()
         {
             UpdateMouse();
-            if (dragging && InTrick) TrickInterrupted?.Invoke();
+            if (dragging && (InTrick || Approaching)) { CancelApproach(); TrickInterrupted?.Invoke(); }
             if (dragging) { Animate(false); SetFrameRate(movingFrameRate); return; }
             if (InTrick) { SetFrameRate(movingFrameRate); return; }
 
-            bool resting = !roaming || Time.time < restUntil;
+            bool resting = !Approaching && (!roaming || Time.time < restUntil);
             float distance = RiderSteering.FlatDistance(transform.position, target);
+            if (Approaching && approachLeg && distance < arriveDistance + 0.4f)
+            {
+                // Past the run-up point: carry straight on to the start without stopping.
+                approachLeg = false;
+                target = approachEnd;
+                distance = RiderSteering.FlatDistance(transform.position, target);
+            }
             float wantedSpeed = resting ? 0f : RiderSteering.SpeedFor(distance, cruiseSpeed, braking, arriveDistance);
             speed = Mathf.MoveTowards(speed, wantedSpeed, (wantedSpeed > speed ? acceleration : braking) * Time.deltaTime);
 
@@ -185,7 +220,16 @@ namespace DesktopRider.Riding
             lean = Mathf.Lerp(lean, wantedLean, 1f - Mathf.Exp(-8f * Time.deltaTime));
             if (leanPivot != null) leanPivot.localRotation = Quaternion.Euler(0f, 0f, -lean);
 
-            if (roaming && !resting && distance < arriveDistance && speed < 0.3f)
+            if (Approaching && !approachLeg && distance < arriveDistance + 0.05f && speed < 0.15f)
+            {
+                var arrived = approachArrived;
+                approachArrived = null;
+                target = transform.position;
+                arrived();
+                return;
+            }
+
+            if (!Approaching && roaming && !resting && distance < arriveDistance && speed < 0.3f)
             {
                 restUntil = Time.time + Mathf.Lerp(restSeconds.x, restSeconds.y, (float)random.NextDouble());
                 PickTarget();
