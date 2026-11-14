@@ -333,6 +333,10 @@ Ollama; to be discussed when it is reached), then settings and the final check.
     - New WhoopsWheelie from Boss's video: front wheel up through the whole whoop section, rider standing.
     - `Tools/Blender/trick_check.py` renders any trick from four angles and measures hand and foot gaps.
     - Unity tests: 755 passed. Trick Viewer check: 19 tricks, 0 frames outside the window. Build succeeded.
+  - Second review (14 November): Whip's back end now leads the swing and comes back first (smoother curves). Scrub
+    uses the Whip's jump and props, coming in 38% faster with about half the height. NacNac rebuilt from Boss's video
+    and photos: the bike swings nearly side-on (72°) under a rider who keeps facing forward. WhoopsWheelie: the first
+    whoop kicks the front up and the rear wheel bounces from top to top.
 
 #### Still to do in this phase
 
