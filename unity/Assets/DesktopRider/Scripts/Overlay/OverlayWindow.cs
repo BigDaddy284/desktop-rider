@@ -127,6 +127,9 @@ namespace DesktopRider.Overlay
         [DllImport("user32.dll")] static extern IntPtr GetActiveWindow();
         [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr value);
         [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int index);
+        [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr hWnd, uint command);
+        [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hWnd);
         [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int command);
         [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT p);
         [DllImport("user32.dll")] static extern short GetAsyncKeyState(int key);
@@ -161,13 +164,43 @@ namespace DesktopRider.Overlay
             WindowRect = new RectInt(corner.x, corner.y, size.x, size.y);
             IsActive = true;
             if (!visible) ShowWindow(window, SW_HIDE);
-            // Unity can still move its window back into the ordinary window order while it finishes starting up, which
-            // left "Always on top" ticked but not working until it was switched off and on (Boss, 14 November). Put the
-            // window's place back once things have settled.
-            yield return new WaitForSecondsRealtime(1f);
-            if (visible) ApplyTopmost(topmost);
-            yield return new WaitForSecondsRealtime(4f);
-            if (visible) ApplyTopmost(topmost);
+            // Unity (and Windows, while the app is starting) can move the window back into the ordinary window order, which
+            // left "Always on top" ticked but not working until it was switched off and on (Boss, 14 November, twice).
+            // Putting it back once or twice at start was not enough, so keep checking now and then, and put it back the
+            // same way the switch does (off, then on) whenever an ordinary window has got above it.
+            var wait = new WaitForSecondsRealtime(TopmostCheckSeconds);
+            while (true)
+            {
+                yield return wait;
+                if (IsActive && visible && topmost && DroppedFromTop(out string why))
+                {
+                    if (topmostFixes++ < 20) Debug.Log("Desktop Rider was no longer on top (" + why + "); putting it back.");
+                    SetWindowPos(window, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                }
+            }
+        }
+
+        const float TopmostCheckSeconds = 1.5f;
+        const uint GW_HWNDPREV = 3;
+        int topmostFixes;
+
+        /// <summary>
+        /// True if the window has lost its always-on-top place: Windows no longer marks it so, or an ordinary (not
+        /// always-on-top) window that can be seen sits above it. Always-on-top windows all come before ordinary ones, so
+        /// only the few above it are looked at. Other always-on-top windows above it are left alone: no fighting them.
+        /// </summary>
+        bool DroppedFromTop(out string why)
+        {
+            why = null;
+            if (((long)GetWindowLongPtr(window, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0) { why = "not marked always on top"; return true; }
+            var above = GetWindow(window, GW_HWNDPREV);
+            for (int i = 0; i < 500 && above != IntPtr.Zero; i++, above = GetWindow(above, GW_HWNDPREV))
+            {
+                if (!IsWindowVisible(above)) continue;
+                if (((long)GetWindowLongPtr(above, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0) { why = "an ordinary window is above it"; return true; }
+            }
+            return false;
         }
 
         /// <summary>No border or title bar, and a see-through background.</summary>

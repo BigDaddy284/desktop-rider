@@ -165,7 +165,17 @@ namespace DesktopRider.Riding
             speed = 0f;
             lean = 0f;
             if (leanPivot != null) leanPivot.localRotation = Quaternion.identity;
-            UpdateCornerPose(false);
+            // Take the corner pose off at once. It sits on a layer above the trick clip, and nothing updates it during a
+            // trick, so a leg half out when the trick began would hold the riding pose over the whole jump.
+            corner.Reset();
+            ClearCornerPose();
+        }
+
+        void ClearCornerPose()
+        {
+            if (modelAnimation == null) return;
+            foreach (var name in new[] { "CornerLeft", "CornerRight" })
+                if (modelAnimation[name] is AnimationState state) SetCornerWeight(state, 0f, null);
         }
 
         /// <summary>Puts the rider on a ground point during a trick, facing <paramref name="heading"/> degrees.</summary>

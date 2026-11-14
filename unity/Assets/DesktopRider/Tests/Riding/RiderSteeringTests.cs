@@ -126,6 +126,17 @@ namespace DesktopRider.Tests
             Assert.AreEqual(0f, Run(blend, 0f, 0f, 1f).Right, 1e-4f);
         }
 
+        [Test] public void CornerBlend_Reset_PutsTheLegBackAtOnce()
+        {
+            var blend = new CornerBlend();
+            Run(blend, 70f, 20f, 0.4f);
+            blend.Reset();
+            Assert.AreEqual(0f, blend.Left);
+            Assert.AreEqual(0f, blend.Right);
+            var w = blend.Update(0f, 0f, 38f, 0.02f, true);  // no hold left over to keep it out
+            Assert.AreEqual((0f, 0f), w);
+        }
+
         [Test] public void CornerBlend_SmallTurnsLeaveTheLegOnThePeg()
         {
             var blend = new CornerBlend();

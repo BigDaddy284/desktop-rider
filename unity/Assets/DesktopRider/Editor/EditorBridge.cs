@@ -307,7 +307,12 @@ namespace DesktopRider.EditorTools
             var free = runner.rider;
             string where = free == null ? "" : "\nrider at " + free.DesktopPosition + " on " + OverlayWindow.Area.Size.Width + "x" + OverlayWindow.Area.Size.Height +
                 " (" + OverlayWindow.Area.Screens.Count + " screens, scaling " + OverlayWindow.ScaleFactor + ", " + free.CurrentView.PixelsPerMetre + " px per metre)";
-            return (started ? "started " + runner.Current : "not started (busy, unknown trick or no room)") + where + "\navailable: " + string.Join(", ", available);
+            string playing = "";
+            if (free != null && free.modelAnimation != null)
+                foreach (AnimationState state in free.modelAnimation)
+                    if (state.enabled && state.weight > 0f) playing += " " + state.name + "@" + state.layer + "=" + state.weight.ToString("0.00");
+            return (started ? "started " + runner.Current : "not started (busy, unknown trick or no room)") + where +
+                "\nclips on:" + playing + "\navailable: " + string.Join(", ", available);
         }
 
         /// <summary>

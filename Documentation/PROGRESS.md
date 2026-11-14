@@ -271,7 +271,16 @@ check, with no chat options in the settings window for now.
 - Dirt while riding (Boss): a lighter trail of dirt now comes off the rear wheel the whole time he rides, more the
   faster he goes, and two to three times as much, thrown to the outside, when he leans into a turn; none during tricks
   or at rest. The bigger burst and the smoke still play when he sets off (`StartEffects`).
-- Editor bridge: `capture <window title>`, `winclick <title>|x|y`, `playerlog` (is the program running, and the end of
+- Always on top, second report (Boss: still behind apps at start-up). The two re-applies were not enough: the player
+  log showed Windows had taken the always-on-top mark off again after them. `OverlayWindow` now checks every 1.5 s
+  (one cheap look at the window order, nothing redrawn) whether the mark is gone or an ordinary window sits above him,
+  and puts him back the way the switch does (off, then on). Other always-on-top windows are left alone. On the next run
+  the log showed one such fix at start-up and none after.
+- A random trick where the jump and landing appeared but he rode straight through them (Boss). Cause: the trick began
+  while he was cornering; the corner pose sits on an animation layer above the trick clip and is not updated during a
+  trick, so a leg half out held the riding pose over the whole trick. `BeginTrick` now clears the corner pose at once
+  (`CornerBlend.Reset`, with a test). Tricks from the menu mostly started at rest, which is why it had not shown before.
+- Editor bridge: `capture <window title>`, `winclick <title>|x|y`, `playerlog`; `trick` also lists the clips playing (is the program running, and the end of
   its Unity log).
 - Seen in the player log: Unity's own cloud services try to connect at start-up (and fail on this PC). To check in
   the final check: turn off Unity's analytics and diagnostics in the build so nothing leaves the PC.
