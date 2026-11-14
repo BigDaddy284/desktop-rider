@@ -86,6 +86,12 @@ namespace DesktopRider.Riding
         /// <summary>True while riding to the start of a trick.</summary>
         public bool Approaching => approachArrived != null;
 
+        /// <summary>How fast the bike is going, in metres a second (0 at rest or during a trick).</summary>
+        public float Speed => InTrick ? 0f : speed;
+
+        /// <summary>How far the bike is leaned into a turn, in degrees (+ or - for the two ways).</summary>
+        public float Lean => lean;
+
         /// <summary>True while the user is holding the rider with the mouse.</summary>
         public bool BeingDragged => dragging;
 

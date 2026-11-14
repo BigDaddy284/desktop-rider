@@ -268,6 +268,9 @@ check, with no chat options in the settings window for now.
 - Free riding flows (Boss: three to five times the distance, fewer stops): each ride now goes through 3 to 5 places
   without stopping, picking the next one before he would start braking and preferring one that needs no sharp turn,
   then he rests.
+- Dirt while riding (Boss): a lighter trail of dirt now comes off the rear wheel the whole time he rides, more the
+  faster he goes, and two to three times as much, thrown to the outside, when he leans into a turn; none during tricks
+  or at rest. The bigger burst and the smoke still play when he sets off (`StartEffects`).
 - Editor bridge: `capture <window title>`, `winclick <title>|x|y`, `playerlog` (is the program running, and the end of
   its Unity log).
 - Seen in the player log: Unity's own cloud services try to connect at start-up (and fail on this PC). To check in
