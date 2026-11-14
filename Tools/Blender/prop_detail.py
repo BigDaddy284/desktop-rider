@@ -13,28 +13,25 @@ import terrain_shapes as TS
 DIRT, DAMP, DRY = 0, 1, 2
 MATERIALS = ('DR_Dirt', 'DR_DirtDark', 'DR_DirtLight')     # the same three materials (and colours) as before
 MIN_HEIGHT = 0.002                                          # keeps every slice a proper solid where it touches the ground
+N_TOP, N_SIDE = 28, 8                                       # points across the top and down each side (smooth when shaded)
+SIDE_LUMPS = 0.022                                          # how far the loose dirt on the sides bulges in and out, metres
 
 
-def dirt_mesh(length, fn, half_top=0.45, step=0.03, seed=7, groove_depth=0.006, edge_wobble=0.02, clods=10, back=True):
+def dirt_mesh(length, fn, half_top=0.45, step=0.02, seed=7, groove_depth=0.006, edge_wobble=0.02, clods=10, back=True):
     """Returns (verts, faces) for a closed dirt mound with outline fn(x), x from 0 to length.
     verts: list of (x, y, z). faces: list of (vertex indices, material index)."""
-    n = max(2, int(round(length / step)))
-    xs = [length * i / n for i in range(n + 1)]
-    hs = [max(0.0, fn(x)) for x in xs]
-    if back and hs[-1] > 0.01:
-        # A take-off ends at its lip. Real dirt does not stop in a wall there: round the crown over and let the back
-        # fall away at the angle loose dirt settles at. The bike has left the ground by then, so riding is unchanged.
-        xb, hb = back_slope(hs[-1], step)
-        xs += [length + x for x in xb]; hs += hb
-        n = len(xs) - 1
+    xs, hs = outline(length, fn, step, back)
+    n = len(xs) - 1
     first = next((i for i, h in enumerate(hs) if h > 1e-5), None)
     if first is None:
         return [], []
     last = max(i for i, h in enumerate(hs) if h > 1e-5)
     lo, hi = max(0, first - 1), min(n, last + 1)
     section = TS.Section(half_top=half_top, groove_depth=groove_depth, groove_width=0.075)
-    bumps = TS.wobble(seed=seed, amount=0.004)
+    bumps = Noise2(seed)
     sway = TS.wobble(seed=seed + 1, amount=edge_wobble, scale=0.5)
+    lumpy = Noise2(seed + 2)
+    patchy = Noise2(seed + 3)
     profile = TS.Profile(xs, hs)
 
     verts, faces, rings = [], [], []
@@ -43,17 +40,20 @@ def dirt_mesh(length, fn, half_top=0.45, step=0.03, seed=7, groove_depth=0.006, 
         ring = []
         # Where the mound runs out to nothing, the tyre groove fades with it.
         ring_section = section if h > 4 * groove_depth else TS.Section(half_top=half_top, groove_depth=0.25 * h, groove_width=0.075)
-        for y, z in ring_section.points(h):
+        for y, z in ring_section.points(h, n_top=N_TOP, n_side=N_SIDE):
             share = min(1.0, abs(y) / half_top)                 # 0 on the riding line, 1 at the edges and sides
             if abs(y) > half_top + 1e-9:
-                y += math.copysign(sway(x), y) * min(1.0, (abs(y) - half_top) / max(1e-6, section.half_base(h) - half_top))
+                out = min(1.0, (abs(y) - half_top) / max(1e-6, section.half_base(h) - half_top))
+                # Loose dirt on the sides: lumps, and rills where rain has run down (stretched up the slope).
+                bulge = SIDE_LUMPS * (lumpy(x * 9.0, z * 9.0) + 0.6 * lumpy(x * 30.0 + 50.0, z * 5.0)) * min(1.0, h / 0.05)
+                y += math.copysign(sway(x) * out + bulge * math.sin(math.pi * min(1.0, out * 1.4)), y)
             if z > 0:
-                z = max(0.0005, z + bumps(x + 3.1 * y) * share * share * min(1.0, h / 0.02))
+                z = max(0.0005, z + 0.008 * bumps(x * 12.0, y * 12.0) * share * share * min(1.0, h / 0.02))
             ring.append(len(verts)); verts.append((x, y, z))
         rings.append(ring)
 
     m = len(rings[0])
-    top_from, top_to = 4, m - 5                                 # Section.points: 5 side points, the top, 5 side points
+    top_from, top_to = N_SIDE, m - N_SIDE - 1                   # Section.points: the side points, the top, the side points
     for r in range(len(rings) - 1):
         a, b = rings[r], rings[r + 1]
         xm = 0.5 * (verts[a[0]][0] + verts[b[0]][0])
@@ -62,7 +62,8 @@ def dirt_mesh(length, fn, half_top=0.45, step=0.03, seed=7, groove_depth=0.006, 
         for j in range(m - 1):
             if top_from <= j < top_to:
                 ym = 0.5 * (verts[a[j]][1] + verts[a[j + 1]][1])
-                kind = TS.wear(slope, section.groove(ym), hm)
+                # The line between damp and dry dirt is never straight: wet and dry patches run into each other.
+                kind = TS.wear(slope + 6.0 * patchy(xm * 6.0, ym * 6.0), section.groove(ym), hm)
                 mat = {'damp': DAMP, 'dry': DRY}.get(kind, DIRT)
             else:
                 mat = DIRT
@@ -74,6 +75,40 @@ def dirt_mesh(length, fn, half_top=0.45, step=0.03, seed=7, groove_depth=0.006, 
     if clods:
         add_clods(verts, faces, profile, section, seed, clods)
     return verts, faces
+
+
+def outline(length, fn, step=0.02, back=True):
+    """The heights the mound is built on: fn sampled every step, plus the sloping back of a take-off.
+    Returns (xs, hs)."""
+    n = max(2, int(round(length / step)))
+    xs = [length * i / n for i in range(n + 1)]
+    hs = [max(0.0, fn(x)) for x in xs]
+    if back and hs[-1] > 0.01:
+        # A take-off ends at its lip. Real dirt does not stop in a wall there: round the crown over and let the back
+        # fall away at the angle loose dirt settles at. The bike has left the ground by then, so riding is unchanged.
+        xb, hb = back_slope(hs[-1], step)
+        xs += [length + x for x in xb]; hs += hb
+    return xs, hs
+
+
+class Noise2:
+    """Smooth 2D value noise, about -1..1, the same every time for the same seed. One unit is one noise cell."""
+
+    def __init__(self, seed):
+        self.seed = seed * 7919
+
+    def _at(self, i, j):
+        h = (i * 374761393 + j * 668265263 + self.seed * 2246822519) & 0xFFFFFFFF
+        h = ((h ^ (h >> 13)) * 1274126177) & 0xFFFFFFFF
+        return ((h ^ (h >> 16)) & 0xFFFF) / 32767.5 - 1.0
+
+    def __call__(self, x, y):
+        i, j = math.floor(x), math.floor(y)
+        u, v = x - i, y - j
+        u = u * u * (3 - 2 * u); v = v * v * (3 - 2 * v)
+        a = self._at(i, j) + (self._at(i + 1, j) - self._at(i, j)) * u
+        b = self._at(i, j + 1) + (self._at(i + 1, j + 1) - self._at(i, j + 1)) * u
+        return a + (b - a) * v
 
 
 def back_slope(height, step, crown=0.06, angle=TS.SIDE_ANGLE):

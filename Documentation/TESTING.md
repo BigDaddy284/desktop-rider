@@ -473,6 +473,16 @@ reference package with `UNITY_STANDALONE_WIN` defined. This catches most mistake
   - The tabletop parts come in order. The whoops vary, have a steeper back side and cupped tops.
   - The braking bumps grow, the wobble is small and repeatable, and the cross-section has sloped sides, a tyre groove and banking.
   - The jump distances match References/Terrain.
+- The same command runs 32 more tests (59 in all) of the dirt itself. The texture ones need numpy, which Blender ships;
+  without it they are skipped, not failed:
+  - `prop_detail.py`: the mounds are closed solids, the riding line keeps the trick outline, sides are lumpy and
+    slope out, and the wet and dry dirt boundary is ragged.
+  - `dirt_texture.py`: sizes and ranges, real dark dirt colours, damp darkest and dry palest, no seams, normal maps of
+    unit length that lean the right way over a bump.
+  - `dirt_bake.py`: the wear weights add up to one, faces are damp, tops dry and sides loose, wet and dry fade into
+    each other along an irregular line, and the baked images fit the prop.
+- Manual: in the Unity editor, the bridge command `prop <name> [yaw] [pitch] [zoom]` renders one prop, lit by the scene,
+  to `Bridge/prop-<name>.png`, for judging the dirt close up.
 - Logic tests for `TrickLayout`, `TrickRun` and `TrickPicker` cover:
   - Reading props_layout.json and explaining a broken file.
   - Travel between frames.

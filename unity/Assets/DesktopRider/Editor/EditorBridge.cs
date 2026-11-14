@@ -86,6 +86,7 @@ namespace DesktopRider.EditorTools
                 case "play": EditorApplication.isPlaying = true; return "entering play mode";
                 case "endplay": EditorApplication.isPlaying = false; return "leaving play mode";
                 case "view": return View(argument);
+                case "prop": return PropView(argument);
                 default: throw new ArgumentException("Unknown command " + command);
             }
         }
@@ -105,7 +106,7 @@ namespace DesktopRider.EditorTools
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
             PlayerSettings.defaultScreenWidth = 1280;
             PlayerSettings.defaultScreenHeight = 720;
-            PlayerSettings.resizableWindow = false;
+            PlayerSettings.resizableWindow = true;            // the overlay resizes its own window for tricks (OverlayWindow.SetSize)
             PlayerSettings.forceSingleInstance = true;
             PlayerSettings.useFlipModelSwapchain = false;          // the flip model cannot show a see-through window
             PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
@@ -351,6 +352,57 @@ namespace DesktopRider.EditorTools
                 return "saved " + path + " (area " + bounds.size + ")";
             }
             finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        /// <summary>
+        /// Draws one trick prop close up, lit by the scene, to Bridge/prop-Name[-yaw].png, so the dirt can be judged at
+        /// the size it is seen on the desktop and larger. Argument: "Name [yaw] [pitch] [zoom]". Works in edit mode.
+        /// </summary>
+        static string PropView(string argument)
+        {
+            var parts = (argument ?? "").Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) return "ERROR give a prop name, e.g. DR_Prop_JumpRamp";
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(PropsFolder + "/" + parts[0] + ".fbx");
+            if (model == null) return "ERROR no prop " + parts[0];
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            float yaw = parts.Length > 1 ? float.Parse(parts[1], inv) : 30f;
+            float pitch = parts.Length > 2 ? float.Parse(parts[2], inv) : 30f;
+            float zoom = parts.Length > 3 ? float.Parse(parts[3], inv) : 1f;
+            var prop = (GameObject)UnityEngine.Object.Instantiate(model, new Vector3(500f, 0f, 500f), Quaternion.identity);
+            var go = new GameObject("PropCamera");
+            try
+            {
+                var bounds = new Bounds(prop.transform.position, Vector3.zero);
+                foreach (var r in prop.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(r.bounds);
+                var cam = go.AddComponent<Camera>();
+                cam.orthographic = true;
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = new Color(0.55f, 0.6f, 0.65f, 1f);
+                go.transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
+                go.transform.position = bounds.center - go.transform.forward * 40f;
+                const int w = 1280, h = 720;
+                cam.orthographicSize = bounds.extents.magnitude * 0.62f / zoom;
+                cam.farClipPlane = 100f;
+                var rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
+                cam.targetTexture = rt;
+                cam.Render();
+                RenderTexture.active = rt;
+                var image = new Texture2D(w, h, TextureFormat.RGBA32, false);
+                image.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+                image.Apply();
+                RenderTexture.active = null;
+                string path = Path.Combine(Folder, "prop-" + parts[0] + (parts.Length > 1 ? "-" + parts[1] : "") + (parts.Length > 3 ? "-z" + parts[3] : "") + ".png");
+                File.WriteAllBytes(path, image.EncodeToPNG());
+                cam.targetTexture = null;
+                UnityEngine.Object.DestroyImmediate(rt);
+                UnityEngine.Object.DestroyImmediate(image);
+                return "saved " + path + " (size " + bounds.size + ")";
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(prop);
+            }
         }
 
         static void CreateShadow(Transform parent, StringBuilder log)

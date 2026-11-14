@@ -44,12 +44,38 @@ class DirtMeshTests(unittest.TestCase):
         deck = 0.5 * (self.shape.marks['deck'] + self.shape.marks['knuckle'])
         face = self.shape.marks['slope'] + 0.2
         def material_near(x):
-            for idx, mat in self.faces:
-                vs = [self.verts[i] for i in idx]
-                if len(vs) == 4 and min(v[0] for v in vs) <= x <= max(v[0] for v in vs) and all(0.15 < abs(v[1]) < 0.3 for v in vs):
-                    return mat
+            # mostly, not all: the line between wet and dry dirt is deliberately ragged
+            found = [mat for idx, mat in self.faces if len(idx) == 4
+                     for vs in [[self.verts[i] for i in idx]]
+                     if min(v[0] for v in vs) - 0.05 <= x <= max(v[0] for v in vs) + 0.05 and all(0.15 < abs(v[1]) < 0.3 for v in vs)]
+            return max(set(found), key=found.count)
         self.assertEqual(material_near(deck), P.DRY)
         self.assertEqual(material_near(face), P.DAMP)
+
+    def test_edge_between_wet_and_dry_dirt_is_ragged(self):
+        # along one line down the track, the colour changes back and forth near a boundary rather than once
+        top = [(sum(self.verts[i][0] for i in idx) / 4, sum(self.verts[i][1] for i in idx) / 4, mat)
+               for idx, mat in self.faces if len(idx) == 4 and mat in (P.DAMP, P.DRY)]
+        first_dry = {}
+        for x, y, mat in top:
+            if mat == P.DRY and 0.1 < abs(y) < 0.4:
+                k = round(y, 2)
+                first_dry[k] = min(first_dry.get(k, 99.0), x)
+        self.assertGreater(max(first_dry.values()) - min(first_dry.values()), 0.04)
+
+    def test_noise_is_smooth_and_repeatable(self):
+        n = P.Noise2(5)
+        self.assertEqual(n(1.3, 2.7), P.Noise2(5)(1.3, 2.7))
+        self.assertLess(abs(n(1.30, 2.7) - n(1.31, 2.7)), 0.1)
+        values = [n(i * 0.37, i * 0.61) for i in range(200)]
+        self.assertTrue(all(-1.0001 <= v <= 1.0001 for v in values))
+        self.assertGreater(max(values) - min(values), 1.0)
+
+    def test_sides_are_lumpy_not_flat(self):
+        # side points at the same height along the mound stick out by different amounts
+        mid = [v for v in self.verts if 0.1 < v[2] < 0.12 and v[1] > 0.45]
+        reach = [v[1] for v in mid]
+        self.assertGreater(max(reach) - min(reach), 0.02)
 
     def test_clods_lie_beside_the_mound_on_the_ground(self):
         clod_verts = self.verts[-10 * 6:]

@@ -293,6 +293,23 @@ Ollama; to be discussed when it is reached), then settings and the final check.
     - Run the manual check in TESTING §10.
     - Decide with Boss when tricks happen by themselves.
 
+- 14 November 2026, with Boss testing on the PC:
+  - Tricks now start from anywhere: if there is no room where the rider is, it rides to the nearest place that has room
+    (`TrickRun.PlanStart`), then goes. The tray menu has a "Do a trick" line.
+  - White box and lost always-on-top after a trick: `Screen.SetResolution` turns the window back into an ordinary
+    opaque, titled, non-topmost window. A first fix restyled it afterwards, which left a white flash at every resize.
+    Now the overlay resizes its own window with `SetWindowPos` (the player is built with a resizable window so Unity
+    follows) and only falls back to `Screen.SetResolution` if Unity does not follow within ten frames.
+  - Dirt (Boss: "still looks too clean and CGI"). Close-up renders in Unity (`prop` bridge command) showed why: the
+    colours were pale tan (linear values treated as if they were sRGB), the mounds were flat-shaded facets, and wet and
+    dry dirt met in straight lines along the mesh's faces. Now:
+    - real dark track-dirt colours, clods, ruts, tyre prints and cracks at a size that shows on the desktop, each with
+      a normal map so they catch the light (`dirt_texture.py`);
+    - one texture per prop, blended pixel by pixel from damp, dry and loose dirt by how each spot is worn, with ragged,
+      faded edges (`dirt_bake.py`);
+    - smooth-shaded mounds with lumpy, rain-rilled sides (`prop_detail.py`).
+  - Python tests: 59 passed (`python3 -m unittest discover -s Tools/Blender/tests`).
+
 #### Still to do in this phase
 
 - Compile and run the Unity tests on the PC, build, and check by hand: tray menu, hide and show, always on top,

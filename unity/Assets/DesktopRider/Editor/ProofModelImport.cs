@@ -20,7 +20,7 @@ namespace DesktopRider.EditorTools
         };
 
         /// <summary>Raise this when the rules change so Unity imports the models again.</summary>
-        public override uint GetVersion() => 4;
+        public override uint GetVersion() => 5;
 
         void OnPreprocessAnimation()
         {
@@ -84,6 +84,19 @@ namespace DesktopRider.EditorTools
             if (!IsRiderModel(assetPath) && !prop) return;
             // Dirt is matt; Unity's default smoothness makes it look like plastic.
             if (prop && material.name.StartsWith("DR_Dirt") && material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.08f);
+            // The dirt's bump map: lumps, clods, ruts and cracks catch the light instead of being painted flat.
+            // If the FBX did not bring it along, it sits beside the colour texture with _normal on the end.
+            if (prop && material.HasProperty("_BumpMap") && material.GetTexture("_BumpMap") == null && material.HasProperty("_BaseMap") && material.GetTexture("_BaseMap") is Texture baseMap)
+            {
+                string folder = System.IO.Path.GetDirectoryName(assetPath).Replace('\\', '/') + "/Textures/";
+                var bump = AssetDatabase.LoadAssetAtPath<Texture2D>(folder + baseMap.name + "_normal.png");
+                if (bump != null) material.SetTexture("_BumpMap", bump);
+            }
+            if (prop && material.HasProperty("_BumpMap") && material.GetTexture("_BumpMap") != null)
+            {
+                material.EnableKeyword("_NORMALMAP");
+                if (material.HasProperty("_BumpScale")) material.SetFloat("_BumpScale", 1f);
+            }
             foreach (string texture in new[] { "_BaseMap", "_MainTex" })
             {
                 if (!material.HasProperty(texture) || material.GetTexture(texture) == null) continue;
@@ -92,6 +105,20 @@ namespace DesktopRider.EditorTools
                 return;
             }
         }
+
+        /// <summary>The prop textures: files ending _normal are normal maps; all are sharp at a slant (the desktop is seen from above at an angle).</summary>
+        void OnPreprocessTexture()
+        {
+            if (!IsPropTexture(assetPath)) return;
+            var importer = (TextureImporter)assetImporter;
+            if (IsNormalMap(assetPath)) importer.textureType = TextureImporterType.NormalMap;
+            importer.anisoLevel = 4;
+            importer.mipmapEnabled = true;
+        }
+
+        public static bool IsPropTexture(string path) => path.Contains("/Models/Props/Textures/") && path.EndsWith(".png");
+
+        public static bool IsNormalMap(string path) => path.EndsWith("_normal.png");
 
         void OnPreprocessModel()
         {

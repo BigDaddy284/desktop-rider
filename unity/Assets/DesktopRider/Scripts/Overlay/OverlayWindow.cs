@@ -174,18 +174,11 @@ namespace DesktopRider.Overlay
         {
             yield return null;
             yield return null;
-            ApplyWindowStyle(false);
+            ApplyWindowStyle(visible);
             ApplyExtendedStyle();
             SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, placed.x - offset.X, placed.y - offset.Y, size, size,
                 SWP_FRAMECHANGED | SWP_NOACTIVATE);
-            // Let it draw one frame see-through at the new size before it is shown.
-            yield return null;
-            yield return new WaitForEndOfFrame();
-            if (visible)
-            {
-                ShowWindow(window, SW_SHOWNOACTIVATE);
-                ApplyTopmost(topmost);
-            }
+            if (visible) ApplyTopmost(topmost);
             restyle = null;
         }
 
@@ -229,16 +222,32 @@ namespace DesktopRider.Overlay
             if (newSize == size) return;
             var centre = WindowRect.center;
             size = newSize;
-            // Hide the window while Unity resizes it: for a frame or two it is an ordinary opaque window, which shows
-            // as a white box. It is shown again once it is see-through and has drawn at its new size.
-            if (IsActive && visible) ShowWindow(window, SW_HIDE);
-            Screen.SetResolution(size, size, FullScreenMode.Windowed);
-            if (!IsActive) return;
+            if (!IsActive)
+            {
+                Screen.SetResolution(size, size, FullScreenMode.Windowed);
+                return;
+            }
+            // Resize the window directly. Unity follows (the player is built with a resizable window) and keeps the
+            // see-through, borderless, always-on-top style. Screen.SetResolution would instead turn the window back into
+            // an ordinary opaque one for a few frames, which flashes up as a white box.
             var corner = new Vector2Int(Mathf.RoundToInt(centre.x) - size / 2, Mathf.RoundToInt(centre.y) - size / 2);
             SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, corner.x - offset.X, corner.y - offset.Y, size, size, SWP_NOACTIVATE);
             placed = corner;
             WindowRect = new RectInt(corner.x, corner.y, size, size);
             if (restyle != null) StopCoroutine(restyle);
+            restyle = StartCoroutine(CheckResize());
+        }
+
+        /// <summary>
+        /// If Unity did not follow the new window size (an older build made without a resizable window), fall back to
+        /// asking Unity for it, then put the see-through style back.
+        /// </summary>
+        IEnumerator CheckResize()
+        {
+            for (int i = 0; i < 10 && (Screen.width != size || Screen.height != size); i++) yield return null;
+            if (Screen.width == size && Screen.height == size) { restyle = null; yield break; }
+            Debug.LogWarning("Desktop Rider's window did not resize directly; asking Unity to resize it instead.");
+            Screen.SetResolution(size, size, FullScreenMode.Windowed);
             restyle = StartCoroutine(RestyleAfterResize());
         }
 

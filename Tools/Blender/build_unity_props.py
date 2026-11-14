@@ -143,68 +143,100 @@ def build_dirt(name, length, fn):
     return new_object(name, B.bm, mats), (xs, hs)
 
 
-TEXTURE_TILE = 1.0      # metres of dirt one texture covers
-TEXTURE_SIZE = 512
-TEXTURES = {}           # material name -> image, made once per run
+TEXTURE_SIZE = 1024
+TILES = {}              # dirt kind -> (colour, normal) tile, made once per run
 
 
-def make_textures():
-    """The three dirt textures (dirt_texture.py), saved as PNGs in OUT/Textures for the FBX files to point at."""
-    if DT is None or TEXTURES:
-        return
+def dirt_tiles():
+    """The three kinds of dirt (dirt_texture.py), made once and blended per prop by dirt_bake.py."""
+    if not TILES and DT is not None:
+        for kind in DT.KINDS:
+            TILES[kind] = DT.make_maps(kind, TEXTURE_SIZE, seed=1)
+    return TILES
+
+
+def save_image(name, rgb, data):
+    """Saves an image to OUT/Textures (where the FBX files point) and returns the Blender image."""
     folder = os.path.join(OUT, 'Textures'); os.makedirs(folder, exist_ok=True)
-    for mat, kind in (('DR_Dirt', 'dirt'), ('DR_DirtDark', 'damp'), ('DR_DirtLight', 'dry')):
-        rgb = DT.make(kind, TEXTURE_SIZE, seed=1)
-        name = 'DR_Dirt_%s' % kind
-        img = bpy.data.images.new(name, TEXTURE_SIZE, TEXTURE_SIZE, alpha=False)
-        rgba = DT.np.ones((TEXTURE_SIZE, TEXTURE_SIZE, 4), dtype=DT.np.float32)
-        rgba[..., :3] = rgb[::-1]                     # Blender stores the bottom row first
-        img.pixels.foreach_set(rgba.ravel())
-        img.filepath_raw = os.path.join(folder, name + '.png'); img.file_format = 'PNG'; img.save()
-        TEXTURES[mat] = img
+    h, w = rgb.shape[:2]
+    img = bpy.data.images.new(name, w, h, alpha=False, is_data=data)
+    rgba = DT.np.ones((h, w, 4), dtype=DT.np.float32)
+    rgba[..., :3] = rgb[::-1]                     # Blender stores the bottom row first
+    img.pixels.foreach_set(rgba.ravel())
+    img.filepath_raw = os.path.join(folder, name + '.png'); img.file_format = 'PNG'; img.save()
+    if data:
+        img.colorspace_settings.name = 'Non-Color'
+    return img
 
 
-def dirt_materials():
-    mats = [TC.material('DR_Dirt', (0.42, 0.26, 0.14)), TC.material('DR_DirtDark', (0.27, 0.16, 0.085)), TC.material('DR_DirtLight', (0.52, 0.35, 0.2))]
-    for m in mats:
-        img = TEXTURES.get(m.name)
-        if img is None:
-            continue
-        nodes = m.node_tree.nodes
-        tex = nodes.get('DirtTexture') or nodes.new('ShaderNodeTexImage')
-        tex.name = 'DirtTexture'; tex.image = img
-        m.node_tree.links.new(tex.outputs['Color'], nodes.get('Principled BSDF').inputs['Base Color'])
-    return mats
+def baked_dirt_material(name, verts, xs, hs, half_top, groove_depth, seed):
+    """One material for a prop's dirt, with its own colour and normal textures blended from the three kinds of dirt
+    by how each spot is worn (dirt_bake.py). Unity treats files ending _normal as normal maps (ProofModelImport.cs).
+    Returns (material, footprint) or (plain material, None) without numpy."""
+    if DT is None:
+        return TC.material('DR_Dirt', (0.42, 0.26, 0.14)), None
+    import dirt_bake as DB
+    margin = 0.05
+    foot = DB.Footprint(min(v[0] for v in verts) - margin, min(v[1] for v in verts) - margin,
+                        max(v[0] for v in verts) + margin, max(v[1] for v in verts) + margin)
+    weights = DB.wear_weights(foot, xs, hs, half_top, groove_depth, seed)
+    colour, normal = DB.bake(foot, weights, dirt_tiles())
+    short = name.replace('DR_Prop_', '')
+    m = TC.material('DR_Dirt_' + short, (1.0, 1.0, 1.0))
+    nodes = m.node_tree.nodes; bsdf = nodes.get('Principled BSDF')
+    tex = nodes.new('ShaderNodeTexImage'); tex.image = save_image('DR_Dirt_' + short, colour, False)
+    m.node_tree.links.new(tex.outputs['Color'], bsdf.inputs['Base Color'])
+    ntex = nodes.new('ShaderNodeTexImage'); ntex.image = save_image('DR_Dirt_' + short + '_normal', normal, True)
+    nmap = nodes.new('ShaderNodeNormalMap')
+    m.node_tree.links.new(ntex.outputs['Color'], nmap.inputs['Color'])
+    m.node_tree.links.new(nmap.outputs['Normal'], bsdf.inputs['Normal'])
+    bsdf.inputs['Roughness'].default_value = 0.95
+    return m, foot
 
 
-def ground_uvs(ob, only=None):
-    """Lays the dirt texture over the prop from above, one tile per TEXTURE_TILE metres, U along the track."""
+def footprint_uvs(ob, foot, only=None):
+    """Lays the prop's own dirt texture over it from above (U along the track)."""
+    if foot is None:
+        return
     me = ob.data; uv = me.uv_layers.active
     for poly in me.polygons:
         if only is not None and poly.material_index not in only:
             continue
         for li in poly.loop_indices:
             co = me.vertices[me.loops[li].vertex_index].co
-            uv.data[li].uv = (co.x / TEXTURE_TILE, co.y / TEXTURE_TILE)
+            uv.data[li].uv = foot.uv(co.x, co.y)
 
 
 def build_dirt_detailed(name, length, fn, seed=7):
-    make_textures()
-    mats = dirt_materials()
-    verts, faces = PD.dirt_mesh(length, fn, seed=seed)
+    half_top, groove = 0.45, 0.006
+    verts, faces = PD.dirt_mesh(length, fn, half_top=half_top, groove_depth=groove, seed=seed)
+    xs, hs = PD.outline(length, fn)
+    mat, foot = baked_dirt_material(name, verts, xs, hs, half_top, groove, seed)
     bm = bmesh.new()
+    add_dirt_faces(bm, verts, [(idx, 0) for idx, _ in faces], 0)
+    n = max(2, int(round(length / DIRT_STEP)))
+    gx = [length * i / n for i in range(n + 1)]
+    ob, open_edges = new_object(name, bm, [mat])
+    footprint_uvs(ob, foot)
+    return (ob, open_edges), (gx, [max(0.0, fn(x)) for x in gx])
+
+
+def add_dirt_faces(bm, verts, faces, first_material):
+    """Adds a dirt mesh from prop_detail to bm, smooth shaded so the mound reads as soft dirt rather than flat
+    facets. The underside and the end caps stay flat and their edges sharp, so they do not darken the sides."""
     bv = [bm.verts.new(v) for v in verts]
     for idx, mat in faces:
         try:
             f = bm.faces.new([bv[i] for i in idx])
         except ValueError:
             continue
-        f.material_index = mat
-    n = max(2, int(round(length / DIRT_STEP)))
-    xs = [length * i / n for i in range(n + 1)]
-    ob, open_edges = new_object(name, bm, mats)
-    ground_uvs(ob)
-    return (ob, open_edges), (xs, [max(0.0, fn(x)) for x in xs])
+        f.material_index = first_material + mat
+        f.normal_update()
+        flat = abs(f.normal.z) > 0.999 and f.calc_center_median().z < 1e-6 or abs(f.normal.x) > 0.999
+        f.smooth = not flat
+        if flat:
+            for e in f.edges:
+                e.smooth = False
 
 
 def seed_for(name):
@@ -261,21 +293,16 @@ def build_steel(name, length, fn):
         Bb.prism(dn + up[::-1], y0, y1, TUBE)
     if DETAIL:
         # Dirt pushed up against the bottom of the deck, as at real freestyle events, so the bike rolls on from the dirt.
-        make_textures()
-        mats += dirt_materials()
         # It sits just under the deck and a little wider, so it shows along both sides of the lower half of the ramp.
         bank_len = length * 0.45
         bank = lambda x: max(0.0, fn(x) - 0.012 + 0.02 * (1 - TC.sm(x, 0, 0.15))) * (1 - TC.sm(x, bank_len * 0.6, bank_len)) if x <= bank_len else 0.0
         verts, faces = PD.dirt_mesh(bank_len, bank, half_top=w + 0.06, seed=seed_for(name), groove_depth=0.0, clods=6, back=False)
-        bv = [B.bm.verts.new(v) for v in verts]
-        for idx, mat in faces:
-            try:
-                f = B.bm.faces.new([bv[i] for i in idx])
-            except ValueError:
-                continue
-            f.material_index = 2 + mat
+        bx, bh = PD.outline(bank_len, bank, back=False)
+        dirt, foot = baked_dirt_material(name, verts, bx, bh, w + 0.06, 0.0, seed_for(name))
+        mats.append(dirt)
+        add_dirt_faces(B.bm, verts, [(idx, 0) for idx, _ in faces], 2)
         ob, open_edges = new_object(name, B.bm, mats)
-        ground_uvs(ob, only={2, 3, 4})
+        footprint_uvs(ob, foot, only={2})
         return (ob, open_edges), (xs, [fn(x) for x in xs])
     return new_object(name, B.bm, mats), (xs, [fn(x) for x in xs])
 

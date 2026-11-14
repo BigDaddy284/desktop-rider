@@ -54,6 +54,28 @@ class DirtTextureTests(unittest.TestCase):
         self.assertTrue(np.array_equal(D.make('dirt', 64, 3), D.make('dirt', 64, 3)))
         self.assertFalse(np.array_equal(D.make('dirt', 64, 3), D.make('dirt', 64, 4)))
 
+    def test_normal_map_is_unit_length_and_mostly_facing_up(self):
+        for k in D.KINDS:
+            _, n = D.make_maps(k, 128, seed=2)
+            v = n * 2 - 1
+            self.assertTrue(np.allclose(np.linalg.norm(v, axis=-1), 1.0, atol=1e-6), k)
+            self.assertGreater(v[..., 2].mean(), 0.8, k)
+            self.assertGreater(v[..., :2].std(), 0.02, k)          # it has bumps in it
+
+    def test_normal_map_matches_the_height(self):
+        # a single bump: on its right side the surface leans right (red up), above it leans up (green up)
+        h = np.zeros((32, 32)); yy, xx = np.mgrid[0:32, 0:32]
+        h += np.exp(-((xx - 16) ** 2 + (yy - 16) ** 2) / 20.0) * 0.01
+        n = D.normal_map(h, 100.0)
+        self.assertGreater(n[16, 20, 0], 0.5); self.assertLess(n[16, 12, 0], 0.5)
+        self.assertGreater(n[12, 16, 1], 0.5); self.assertLess(n[20, 16, 1], 0.5)   # row 12 is above the bump
+
+    def test_colours_are_real_dark_dirt_not_sand(self):
+        # sRGB averages within the range of photographed wet-to-dry track dirt
+        for k, im in self.images.items():
+            self.assertLess(im.mean(), 0.6, k)
+            self.assertGreater(im.mean(), 0.12, k)
+
     def test_unknown_kind_is_refused(self):
         with self.assertRaises(ValueError):
             D.make('gravel')
