@@ -20,7 +20,7 @@ namespace DesktopRider.EditorTools
         };
 
         /// <summary>Raise this when the rules change so Unity imports the models again.</summary>
-        public override uint GetVersion() => 3;
+        public override uint GetVersion() => 4;
 
         void OnPreprocessAnimation()
         {
@@ -58,6 +58,9 @@ namespace DesktopRider.EditorTools
         public static bool IsRiderModel(string path) =>
             path.Contains("/Models/Proof/") || path.EndsWith("/Models/DesktopRider.fbx") || path.EndsWith("/Models/DesktopRider_Tricks.fbx");
 
+        /// <summary>The ramps, landings and whoops built by Tools/Blender/build_unity_props.py.</summary>
+        public static bool IsPropModel(string path) => path.Contains("/Models/Props/") && path.EndsWith(".fbx");
+
         /// <summary>Blender can prefix a take with its armature ("rider_rig|Idle"); the clip is called by the part after the bar.</summary>
         public static string ClipName(string takeName)
         {
@@ -77,7 +80,10 @@ namespace DesktopRider.EditorTools
         /// </summary>
         void OnPostprocessMaterial(Material material)
         {
-            if (!IsRiderModel(assetPath)) return;
+            bool prop = IsPropModel(assetPath);
+            if (!IsRiderModel(assetPath) && !prop) return;
+            // Dirt is matt; Unity's default smoothness makes it look like plastic.
+            if (prop && material.name.StartsWith("DR_Dirt") && material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.08f);
             foreach (string texture in new[] { "_BaseMap", "_MainTex" })
             {
                 if (!material.HasProperty(texture) || material.GetTexture(texture) == null) continue;

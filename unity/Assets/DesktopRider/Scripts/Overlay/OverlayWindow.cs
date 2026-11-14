@@ -144,7 +144,7 @@ namespace DesktopRider.Overlay
             yield return null;
             yield return null;
 
-            ApplyWindowStyle();
+            ApplyWindowStyle(true);
             clickThrough = true;
             ApplyExtendedStyle();
             var centre = Area.MainCentre;
@@ -158,9 +158,9 @@ namespace DesktopRider.Overlay
         }
 
         /// <summary>No border or title bar, and a see-through background.</summary>
-        void ApplyWindowStyle()
+        void ApplyWindowStyle(bool shown)
         {
-            SetWindowLongPtr(window, GWL_STYLE, new IntPtr(unchecked((int)(WS_POPUP | (visible ? WS_VISIBLE : 0)))));
+            SetWindowLongPtr(window, GWL_STYLE, new IntPtr(unchecked((int)(WS_POPUP | (shown ? WS_VISIBLE : 0)))));
             var margins = new MARGINS { left = -1, right = -1, top = -1, bottom = -1 };
             DwmExtendFrameIntoClientArea(window, ref margins);
         }
@@ -174,10 +174,18 @@ namespace DesktopRider.Overlay
         {
             yield return null;
             yield return null;
-            ApplyWindowStyle();
+            ApplyWindowStyle(false);
             ApplyExtendedStyle();
             SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, placed.x - offset.X, placed.y - offset.Y, size, size,
-                SWP_FRAMECHANGED | SWP_NOACTIVATE | (visible ? SWP_SHOWWINDOW : 0));
+                SWP_FRAMECHANGED | SWP_NOACTIVATE);
+            // Let it draw one frame see-through at the new size before it is shown.
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            if (visible)
+            {
+                ShowWindow(window, SW_SHOWNOACTIVATE);
+                ApplyTopmost(topmost);
+            }
             restyle = null;
         }
 
@@ -221,6 +229,9 @@ namespace DesktopRider.Overlay
             if (newSize == size) return;
             var centre = WindowRect.center;
             size = newSize;
+            // Hide the window while Unity resizes it: for a frame or two it is an ordinary opaque window, which shows
+            // as a white box. It is shown again once it is see-through and has drawn at its new size.
+            if (IsActive && visible) ShowWindow(window, SW_HIDE);
             Screen.SetResolution(size, size, FullScreenMode.Windowed);
             if (!IsActive) return;
             var corner = new Vector2Int(Mathf.RoundToInt(centre.x) - size / 2, Mathf.RoundToInt(centre.y) - size / 2);

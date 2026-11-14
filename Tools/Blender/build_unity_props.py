@@ -26,6 +26,10 @@ sys.path.insert(0, TOOLS)
 import trick_animations as TA   # noqa: E402
 import trick_core as TC         # noqa: E402
 import prop_detail as PD        # noqa: E402
+try:
+    import dirt_texture as DT   # noqa: E402  (needs numpy, which Blender ships)
+except ImportError:
+    DT = None
 
 # Real-track detail (References/Terrain): sloping sides, tyre groove, damp and dry dirt, clods, a dirt bank at the
 # foot of the steel ramp. False rebuilds the plain version 1 shapes.
@@ -139,8 +143,54 @@ def build_dirt(name, length, fn):
     return new_object(name, B.bm, mats), (xs, hs)
 
 
-def build_dirt_detailed(name, length, fn, seed=7):
+TEXTURE_TILE = 1.0      # metres of dirt one texture covers
+TEXTURE_SIZE = 512
+TEXTURES = {}           # material name -> image, made once per run
+
+
+def make_textures():
+    """The three dirt textures (dirt_texture.py), saved as PNGs in OUT/Textures for the FBX files to point at."""
+    if DT is None or TEXTURES:
+        return
+    folder = os.path.join(OUT, 'Textures'); os.makedirs(folder, exist_ok=True)
+    for mat, kind in (('DR_Dirt', 'dirt'), ('DR_DirtDark', 'damp'), ('DR_DirtLight', 'dry')):
+        rgb = DT.make(kind, TEXTURE_SIZE, seed=1)
+        name = 'DR_Dirt_%s' % kind
+        img = bpy.data.images.new(name, TEXTURE_SIZE, TEXTURE_SIZE, alpha=False)
+        rgba = DT.np.ones((TEXTURE_SIZE, TEXTURE_SIZE, 4), dtype=DT.np.float32)
+        rgba[..., :3] = rgb[::-1]                     # Blender stores the bottom row first
+        img.pixels.foreach_set(rgba.ravel())
+        img.filepath_raw = os.path.join(folder, name + '.png'); img.file_format = 'PNG'; img.save()
+        TEXTURES[mat] = img
+
+
+def dirt_materials():
     mats = [TC.material('DR_Dirt', (0.42, 0.26, 0.14)), TC.material('DR_DirtDark', (0.27, 0.16, 0.085)), TC.material('DR_DirtLight', (0.52, 0.35, 0.2))]
+    for m in mats:
+        img = TEXTURES.get(m.name)
+        if img is None:
+            continue
+        nodes = m.node_tree.nodes
+        tex = nodes.get('DirtTexture') or nodes.new('ShaderNodeTexImage')
+        tex.name = 'DirtTexture'; tex.image = img
+        m.node_tree.links.new(tex.outputs['Color'], nodes.get('Principled BSDF').inputs['Base Color'])
+    return mats
+
+
+def ground_uvs(ob, only=None):
+    """Lays the dirt texture over the prop from above, one tile per TEXTURE_TILE metres, U along the track."""
+    me = ob.data; uv = me.uv_layers.active
+    for poly in me.polygons:
+        if only is not None and poly.material_index not in only:
+            continue
+        for li in poly.loop_indices:
+            co = me.vertices[me.loops[li].vertex_index].co
+            uv.data[li].uv = (co.x / TEXTURE_TILE, co.y / TEXTURE_TILE)
+
+
+def build_dirt_detailed(name, length, fn, seed=7):
+    make_textures()
+    mats = dirt_materials()
     verts, faces = PD.dirt_mesh(length, fn, seed=seed)
     bm = bmesh.new()
     bv = [bm.verts.new(v) for v in verts]
@@ -152,7 +202,9 @@ def build_dirt_detailed(name, length, fn, seed=7):
         f.material_index = mat
     n = max(2, int(round(length / DIRT_STEP)))
     xs = [length * i / n for i in range(n + 1)]
-    return new_object(name, bm, mats), (xs, [max(0.0, fn(x)) for x in xs])
+    ob, open_edges = new_object(name, bm, mats)
+    ground_uvs(ob)
+    return (ob, open_edges), (xs, [max(0.0, fn(x)) for x in xs])
 
 
 def seed_for(name):
@@ -209,7 +261,8 @@ def build_steel(name, length, fn):
         Bb.prism(dn + up[::-1], y0, y1, TUBE)
     if DETAIL:
         # Dirt pushed up against the bottom of the deck, as at real freestyle events, so the bike rolls on from the dirt.
-        mats += [TC.material('DR_Dirt', (0.42, 0.26, 0.14)), TC.material('DR_DirtDark', (0.27, 0.16, 0.085)), TC.material('DR_DirtLight', (0.52, 0.35, 0.2))]
+        make_textures()
+        mats += dirt_materials()
         # It sits just under the deck and a little wider, so it shows along both sides of the lower half of the ramp.
         bank_len = length * 0.45
         bank = lambda x: max(0.0, fn(x) - 0.012 + 0.02 * (1 - TC.sm(x, 0, 0.15))) * (1 - TC.sm(x, bank_len * 0.6, bank_len)) if x <= bank_len else 0.0
@@ -221,6 +274,9 @@ def build_steel(name, length, fn):
             except ValueError:
                 continue
             f.material_index = 2 + mat
+        ob, open_edges = new_object(name, B.bm, mats)
+        ground_uvs(ob, only={2, 3, 4})
+        return (ob, open_edges), (xs, [fn(x) for x in xs])
     return new_object(name, B.bm, mats), (xs, [fn(x) for x in xs])
 
 
@@ -242,7 +298,7 @@ def export_fbx(ob, path):
     ob.select_set(True); bpy.context.view_layer.objects.active = ob
     bpy.ops.export_scene.fbx(filepath=path, use_selection=True, object_types={'MESH'}, axis_forward='-Z', axis_up='Y',
                              apply_scale_options='FBX_SCALE_UNITS', bake_space_transform=True, mesh_smooth_type='FACE',
-                             use_mesh_modifiers=True, bake_anim=False, add_leaf_bones=False, path_mode='AUTO')
+                             use_mesh_modifiers=True, bake_anim=False, add_leaf_bones=False, path_mode='RELATIVE')
 
 
 def main():
