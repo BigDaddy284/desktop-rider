@@ -39,6 +39,11 @@ namespace DesktopRider.Core.Configuration
                 behaviour.AnimationFrequency = AnimationFrequency.Normal;
             }
 
+            if (!Enum.IsDefined(typeof(TrickFrequency), behaviour.TricksByHimself))
+            {
+                behaviour.TricksByHimself = TrickFrequency.Sometimes;
+            }
+
             var ai = settings.Ai;
             if (string.IsNullOrWhiteSpace(ai.Provider))
             {

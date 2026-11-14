@@ -84,6 +84,9 @@ namespace DesktopRider.Riding
         /// <summary>True while riding to the start of a trick.</summary>
         public bool Approaching => approachArrived != null;
 
+        /// <summary>True while the user is holding the rider with the mouse.</summary>
+        public bool BeingDragged => dragging;
+
         /// <summary>The rider size setting (1 is normal).</summary>
         public float SizeScale => sizeScale;
 

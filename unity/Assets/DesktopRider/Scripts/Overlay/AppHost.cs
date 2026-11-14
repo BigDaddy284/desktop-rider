@@ -9,6 +9,7 @@ using DesktopRider.Core.Infrastructure;
 using DesktopRider.Core.Logging;
 using DesktopRider.Core.ViewModels;
 using DesktopRider.Riding;
+using DesktopRider.Tricks;
 using UnityEngine;
 
 namespace DesktopRider.Overlay
@@ -36,6 +37,8 @@ namespace DesktopRider.Overlay
         OverlayViewModel overlay;
         TrayViewModel trayMenu;
         TrayIcon trayIcon;
+        readonly OwnTrickTimer ownTricks = new OwnTrickTimer();
+        float nextOwnTrickCheck;
         ILogger<AppHost> log;
         bool ready;
 
@@ -100,6 +103,24 @@ namespace DesktopRider.Overlay
             if (!settings.Current.Appearance.CharacterVisible) return;
             if (!tricks.TryPerform())
                 trayIcon?.ShowHint("Desktop Rider", "There isn't enough clear space on the screen for a trick right now.");
+            else
+                ownTricks.Restart(Time.realtimeSinceStartup);   // one asked for counts: the next one by himself waits a full gap
+        }
+
+        /// <summary>
+        /// Tricks by himself ("Tricks by himself": never, sometimes or often). Looked at once a second, which costs
+        /// nothing; a trick that is due while he is hidden, held, busy or short of room is tried again a little later.
+        /// </summary>
+        void Update()
+        {
+            if (!ready || tricks == null || rider == null) return;
+            float now = Time.realtimeSinceStartup;
+            if (now < nextOwnTrickCheck) return;
+            nextOwnTrickCheck = now + 1f;
+            bool canStart = settings.Current.Appearance.CharacterVisible && rider.isActiveAndEnabled && tricks.HasTricks
+                            && !tricks.IsRunning && !rider.InTrick && !rider.Approaching && !rider.BeingDragged;
+            if (ownTricks.Due(now, settings.Current.Behaviour.TricksByHimself, canStart) && !tricks.TryPerform())
+                ownTricks.Retry(now);   // no room just now: try again shortly
         }
 
         void OnOverlayChanged(object sender, PropertyChangedEventArgs e) => MainThread.Post(ApplySettings);
