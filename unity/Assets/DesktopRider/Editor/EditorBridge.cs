@@ -91,6 +91,7 @@ namespace DesktopRider.EditorTools
                 case "trickcheck": return TrickViewer.CheckAll();
                 case "trickframes": return TrickViewer.SaveFrames(argument);
                 case "capture": return DesktopRider.EditorTools.WindowCapture.Capture(argument, Path.Combine(Folder, "capture-" + id + ".png"));
+                case "screengrab": return DesktopRider.EditorTools.WindowCapture.ScreenGrab(argument, Path.Combine(Folder, "grab-" + id));
                 case "winclick": return DesktopRider.EditorTools.WindowCapture.Click(argument);
                 case "playerlog": return PlayerLog();
                 default: throw new ArgumentException("Unknown command " + command);

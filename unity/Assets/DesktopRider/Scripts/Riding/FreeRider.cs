@@ -68,6 +68,10 @@ namespace DesktopRider.Riding
         /// <summary>Raised when the user lets go of the rider after dragging it.</summary>
         public event Action Dropped;
 
+        /// <summary>Raised when the rider is right-clicked (the button let go over him): opens the settings.</summary>
+        public event Action RightClicked;
+        bool rightPressedOver, rightWasDown;
+
         /// <summary>Where the rider's wheels touch the desktop, in desktop pixels.</summary>
         public Vector2 DesktopPosition => View.ToDesktop(transform.position);
 
@@ -106,7 +110,6 @@ namespace DesktopRider.Riding
         Action approachArrived;
         float speed, restUntil, lean, turnAhead, sizeScale = 1f;
         readonly CornerBlend corner = new CornerBlend();
-        int? drawnMask;
         bool roaming = true, dragging;
         Vector3 dragOffset;
         int playedStarts = -1;
@@ -301,29 +304,55 @@ namespace DesktopRider.Riding
             {
                 // A window the shape of the whole trick, cut to the desktop (nothing shows past its edge anyway); most of
                 // it is see-through and lets clicks pass. A square one was taller than the screen for long jumps, and
-                // Windows then cut the window short, which cut off the front wheel or the helmet.
+                // Windows then cut the window short, which cut off the front wheel or the helmet. The window only ever
+                // grows for this (see OverlayWindow.Grow), and is placed round the trick, on the desktop.
                 var fit = TrickWindow(frame, OverlayWindow.Area.Size.Width, OverlayWindow.Area.Size.Height);
-                if (window.width != fit.width || window.height != fit.height) OverlayWindow.Resize(fit.width, fit.height);
-                OverlayWindow.PlaceWindow(fit.position);
+                OverlayWindow.Grow(fit.width, fit.height);
+                var size = OverlayWindow.WantedSize;
+                var corner = OverlayWindow.Area.WindowCorner(new Numerics.Vector2(fit.center.x, fit.center.y),
+                    new DesktopRider.Core.Placement.PixelSize(size.x, size.y));
+                OverlayWindow.PlaceWindow(new Vector2Int(corner.X, corner.Y));
                 window = OverlayWindow.WindowRect;
             }
             else if (OverlayWindow.IsActive)
             {
+                // Keep him inside the window, moving it only as far as needed (a window grown for a trick stays big).
                 var centre = view.ToDesktop(transform.position + Vector3.up * framingHeight);
-                var corner = OverlayWindow.Area.WindowCorner(new Numerics.Vector2(centre.x, centre.y),
-                    new DesktopRider.Core.Placement.PixelSize(window.width, window.height));
-                OverlayWindow.PlaceWindow(new Vector2Int(corner.X, corner.Y));
+                var size = OverlayWindow.WantedSize;
+                var own = OverlayWindow.BaseSize.x > 0 ? OverlayWindow.BaseSize : size;
+                var (x, y) = DesktopRider.Core.Desktop.WindowStep.Follow(window.x, window.y, size.x, size.y, centre.x, centre.y,
+                    own.x, own.y, OverlayWindow.Area.Size.Width, OverlayWindow.Area.Size.Height);
+                OverlayWindow.PlaceWindow(new Vector2Int(x, y));
                 window = OverlayWindow.WindowRect;
             }
 
             var windowCentre = new Vector2(window.x + window.width * 0.5f, window.y + window.height * 0.5f);
             viewCamera.orthographic = true;
-            // Draw nothing (fully see-through) while the window is changing size, as at the start and end of a trick.
-            if (drawnMask == null) drawnMask = viewCamera.cullingMask;
-            viewCamera.cullingMask = OverlayWindow.Settling ? 0 : drawnMask.Value;
             viewCamera.orthographicSize = window.height / (2f * view.PixelsPerMetre);
             viewCamera.transform.SetPositionAndRotation(view.CameraFor(windowCentre), view.Rotation);
+            AimAtDrawnPart(window, view.PixelsPerMetre);
         }
+
+        /// <summary>
+        /// For the frame after the window changes size Unity still draws at the old size, and Windows pins that picture
+        /// to the window's top-left corner. Draw the scene over just that part of the window so nothing jumps; once the
+        /// sizes match this is the normal view.
+        /// </summary>
+        void AimAtDrawnPart(RectInt window, float pixelsPerMetre)
+        {
+            if (!OverlayWindow.IsActive || (Screen.width == window.width && Screen.height == window.height))
+            {
+                if (aimedAtPart) { viewCamera.ResetProjectionMatrix(); aimedAtPart = false; }
+                return;
+            }
+            var (left, right, bottom, top) = DesktopRider.Core.Desktop.WindowStep.DrawnPart(window.width, window.height, Screen.width, Screen.height);
+            float m = 1f / pixelsPerMetre;
+            viewCamera.projectionMatrix = Matrix4x4.Ortho((float)left * m, (float)right * m, (float)bottom * m, (float)top * m,
+                viewCamera.nearClipPlane, viewCamera.farClipPlane);
+            aimedAtPart = true;
+        }
+
+        bool aimedAtPart;
 
         /// <summary>The window for a trick: the trick's frame in whole pixels, kept inside the desktop.</summary>
         public static RectInt TrickWindow(Rect frame, int desktopWidth, int desktopHeight)
@@ -348,6 +377,15 @@ namespace DesktopRider.Riding
                 over = Physics.Raycast(ray, out RaycastHit hit, 500f) && hit.transform.IsChildOf(transform);
             }
             OverlayWindow.WantsMouse = over || dragging;
+
+            // A right click on the rider: pressed and let go over him, not while he is being carried.
+            if (OverlayWindow.RightButtonDown) { if (over && !dragging && !rightWasDown) rightPressedOver = true; }
+            else
+            {
+                if (rightPressedOver && over && !dragging) RightClicked?.Invoke();
+                rightPressedOver = false;
+            }
+            rightWasDown = OverlayWindow.RightButtonDown;
 
             if (!dragging && over && OverlayWindow.LeftButtonDown && view.ToGround(mouse, out Vector3 start))
             {

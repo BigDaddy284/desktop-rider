@@ -69,6 +69,7 @@ namespace DesktopRider.Overlay
             RestorePosition();
             ApplySettings();
             if (rider != null) rider.Dropped += SavePositionSoon;
+            if (rider != null) rider.RightClicked += OpenSettings;
             ready = true;
             // "DesktopRider3D.exe --open-settings" opens the settings window straight away (handy for a shortcut, and for checks).
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "--open-settings") >= 0) { Debug.Log("Opening the settings window (--open-settings)."); OpenSettings(); }
@@ -164,7 +165,10 @@ namespace DesktopRider.Overlay
                 rider.SetAnimationSpeed((float)appearance.AnimationSpeed);
                 rider.Director.IdleAnimations = settings.Current.Behaviour.IdleAnimations;
             }
-            if (overlayWindow != null) OverlayWindow.Resize(overlayWindow.SizeFor((float)appearance.Scale));
+            // Only when the size setting changed: any other change (or saving his place) left the window as it was. Resizing
+            // every time shrank a window grown for a trick, which flickers (see OverlayWindow.Grow).
+            int own = overlayWindow != null ? overlayWindow.SizeFor((float)appearance.Scale) : 0;
+            if (overlayWindow != null && OverlayWindow.BaseSize != new Vector2Int(own, own)) OverlayWindow.Resize(own);
             // The rider sets its own frame rate while shown; hidden, nothing is drawn, so tick over slowly.
             if (!visible) Application.targetFrameRate = hiddenFrameRate;
         }
@@ -229,7 +233,7 @@ namespace DesktopRider.Overlay
             if (overlay != null) { overlay.PropertyChanged -= OnOverlayChanged; overlay.Dispose(); }
             trayMenu?.Dispose();
             if (settings != null) settings.Changed -= OnSettingsChanged;
-            if (rider != null) rider.Dropped -= SavePositionSoon;
+            if (rider != null) { rider.Dropped -= SavePositionSoon; rider.RightClicked -= OpenSettings; }
             services?.Dispose();
         }
 

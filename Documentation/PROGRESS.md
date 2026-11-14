@@ -280,13 +280,25 @@ check, with no chat options in the settings window for now.
   while he was cornering; the corner pose sits on an animation layer above the trick clip and is not updated during a
   trick, so a leg half out held the riding pose over the whole trick. `BeginTrick` now clears the corner pose at once
   (`CornerBlend.Reset`, with a test). Tricks from the menu mostly started at rest, which is why it had not shown before.
-- Flicker at the end of a trick (Boss: a flash of white, or the bike briefly facing the wrong way). The window changes
-  size when a trick starts and ends, and Unity takes a frame or two to catch up, so those frames were the old picture
-  stretched into the new window, and the newly uncovered part was filled white. Now nothing is drawn (see-through)
-  until Unity matches the window (`OverlayWindow.Settling`), the old picture is not copied into the resized window
-  (SWP_NOCOPYBITS), and the window has no background brush to paint white. Checked by eye only (one frame is too
-  quick to capture).
-- Editor bridge: `capture <window title>`, `winclick <title>|x|y`, `playerlog`; `trick` also lists the clips playing (is the program running, and the end of
+- Flicker at the end of a trick (Boss, twice, with a screen recording). The window changes size for a trick, and
+  Unity takes a few frames to catch up with a new size. Measured on Boss's PC with fast screen grabs (new bridge
+  command `screengrab`, and a hidden `--resize-probe` run since removed): when the window grows, Windows shows the old
+  picture pinned to its top-left corner at its real size; when it shrinks, Windows squeezes the last big picture into
+  the small window (a tiny rider in the wrong place for a moment). Hiding the picture while Unity caught up (the first
+  try) only turned that into a blank blink. Now:
+  - the window only grows (`OverlayWindow.Grow`), never shrinks after a trick; it keeps the bigger size and he rides
+    about inside it, the window moving only as far as it must to keep him in (`WindowStep.Follow`). Only a change of
+    the size setting resizes it exactly (`Resize`), and only when that setting really changed;
+  - growing is done in place first and the move waits until Unity has caught up (`WindowStep.Next`), so the old
+    picture stays exactly where it was; while the sizes differ the camera draws only the part of the window Unity's
+    picture covers (`WindowStep.DrawnPart`);
+  - no background brush, so newly uncovered parts of the window are see-through rather than white.
+  Checked with screen grabs of a jump on Boss's PC: the props go and the rider stays put, no squeeze or blink. Idle
+  processor use with the bigger window stayed the same (about 2 to 7% of one core at 10 frames a second).
+- Right-click the rider to open the settings (Boss). `FreeRider.RightClicked`: the right button pressed and let go
+  over him, not while he is carried.
+- `trick.txt` beside the proof build starts a trick (checked every 5 s by `ProofStats`), for checks from the bridge.
+- Editor bridge: `capture <window title>`, `winclick <title>|x|y`, `playerlog`, `screengrab <title>|count|ms`; `trick` also lists the clips playing (is the program running, and the end of
   its Unity log).
 - Seen in the player log: Unity's own cloud services try to connect at start-up (and fail on this PC). To check in
   the final check: turn off Unity's analytics and diagnostics in the build so nothing leaves the PC.
