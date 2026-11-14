@@ -9,7 +9,9 @@ namespace DesktopRider.Animation
     /// <summary>
     /// Decides which of the 3D model's clips plays, using the same rules as version 1's sprites: the resting loop, a
     /// small idle movement now and then, thinking and talking, and tricks asked for one after another. While the bike is
-    /// moving, the riding loop plays instead. It only names clips; the Unity side plays them. It knows nothing about Unity.
+    /// moving, the riding loop plays instead, after the start clip whenever the bike sets off from a stop (feet down,
+    /// then up on the pegs, as the rider does at the start gate). It only names clips; the Unity side plays them. It
+    /// knows nothing about Unity.
     /// </summary>
     public sealed class ModelAnimationDirector
     {
@@ -25,6 +27,9 @@ namespace DesktopRider.Animation
         public const double FramesPerSecond = 24;
         public const string RidingClip = "RidingLoop";
 
+        /// <summary>Plays once each time the bike sets off from a stop, before the riding loop.</summary>
+        public const string StartClip = "RideOff";
+
         /// <summary>The small movements picked now and then while resting, as in version 1.</summary>
         public static readonly string[] IdleChoices = { "IdleVariation", "LookLeft", "LookRight" };
 
@@ -34,6 +39,8 @@ namespace DesktopRider.Animation
         private AnimationClip? _shown;
         private int _shownFrame;
         private bool _wasMoving;
+        private bool _wasRolling;
+        private TimeSpan _startLeft;
         private bool _idleWanted = true;
 
         public ModelAnimationDirector(Random? random = null)
@@ -93,8 +100,25 @@ namespace DesktopRider.Animation
             var current = _player.Current;
             if (moving && !_behaviour.IsPerforming)
             {
-                if (!_wasMoving || Clip != RidingClip)
+                if (!_wasRolling)
                 {
+                    // Setting off from a stop: the start first, then the riding loop.
+                    Clip = StartClip;
+                    Starts++;
+                    _startLeft = TimeSpan.FromTicks((long)(StartSeconds / Math.Max(0.05, Speed) * TimeSpan.TicksPerSecond));
+                }
+                else if (Clip == StartClip && _wasMoving)
+                {
+                    _startLeft -= elapsed;
+                    if (_startLeft <= TimeSpan.Zero)
+                    {
+                        Clip = RidingClip;
+                        Starts++;
+                    }
+                }
+                else if (!_wasMoving || Clip != RidingClip)
+                {
+                    // Already rolling (for example after a trick): straight back to the riding loop.
                     Clip = RidingClip;
                     Starts++;
                 }
@@ -109,7 +133,10 @@ namespace DesktopRider.Animation
             _shown = current;
             _shownFrame = _player.FrameIndex;
             _wasMoving = moving && !_behaviour.IsPerforming;
+            _wasRolling = moving;
         }
+
+        private static double StartSeconds => Clips.First(c => c.Name == StartClip).Frames / FramesPerSecond;
 
         private static SpriteManifest BuildManifest()
         {

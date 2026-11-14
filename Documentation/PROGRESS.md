@@ -309,6 +309,46 @@ Ollama; to be discussed when it is reached), then settings and the final check.
       faded edges (`dirt_bake.py`);
     - smooth-shaded mounds with lumpy, rain-rilled sides (`prop_detail.py`).
   - Python tests: 59 passed (`python3 -m unittest discover -s Tools/Blender/tests`).
+  - Riding style from the owner's photographs and videos (`Tools/Blender/riding_style.py`, exported as
+    `DesktopRider_Style.fbx`): seated at the front of the seat, a ride-off clip when setting off, and corner poses with
+    the inside leg out, blended in by the turn still to come (`CornerBlend`) so the leg comes out as the turn starts, not
+    half way through. Dirt spray and blue smoke at the rear wheel when setting off (`StartEffects`). Boss had the
+    feet-down rest and start poses taken out.
+  - Tricks cut off at the edge of their window (Boss: the front wheel at the end, the helmet at the top of jumps). Two
+    causes: the room above the bike was a fixed 1.8 m (tricks reach up to 3.9 m), and the window was a square as big as
+    the longest side, which for a long jump is taller than a 1080-pixel screen, so Windows cut it short. Now each trick's
+    room is measured from its clip, frame by frame (`TrickExtents`), and the window is the shape of the trick, kept on the
+    desktop (`FreeRider.TrickWindow`). All 18 tricks checked frame by frame with the new Trick Viewer: nothing outside.
+  - Unity tests: 754 passed, 0 failed. Build succeeded.
+  - Trick review with Boss (14 November):
+    - NoFooter taken out. The old HeelClicker was really a bar hop (legs between the arms): renamed BarHop. A new
+      HeelClicker brings the legs round the outside of the arms (knee pole targets, added only in the export session)
+      and clicks the heels once in front of the chest.
+    - Whip and Scrub rebuilt from written technique guides: both start on the face; the whip lays the bike near flat
+      with the back end swung out about the steering head and the rear wheel slowing then spinning up; the scrub
+      leans over on the face, keeps 62% of the kick so it stays low, and is upright again for the landing.
+    - NacNac: the back of the bike kicks out away from the rider. Indian Air: body twisted onto its side. Nothing:
+      legs trail less far back. Stoppie and every other trick: the hips move just enough that a hand holding the
+      bar can always reach it (`keep_hands_on`).
+    - New WhoopsWheelie from Boss's video: front wheel up through the whole whoop section, rider standing.
+    - `Tools/Blender/trick_check.py` renders any trick from four angles and measures hand and foot gaps.
+    - Unity tests: 755 passed. Trick Viewer check: 19 tricks, 0 frames outside the window. Build succeeded.
+  - Second review (14 November): Whip's back end now leads the swing and comes back first (smoother curves). Scrub
+    uses the Whip's jump and props, coming in 38% faster with about half the height. NacNac rebuilt from Boss's video
+    and photos: the bike swings nearly side-on (72°) under a rider who keeps facing forward. WhoopsWheelie: the first
+    whoop kicks the front up and the rear wheel bounces from top to top.
+  - Third review (14 November): Whip and Scrub now throw the back end out to the high side, away from the lean (Boss's
+    picture with the green line); checked by measuring the rear axle against the rider's lean at every frame. The
+    Scrub's jump between frames at the lip is gone: it now turns about its tyres the whole way and its lean eases in
+    and out (trick_check.py prints the worst frame-to-frame change of axle motion as "jerk"; mid-air spikes went from
+    61 to 16 mm). WhoopsWheelie: the rear wheel lands on the face of each whoop about 8 cm below the top and the
+    suspension soaks each hit. Unity tests 755/755, every trick inside its window, build OK.
+  - Fourth review (14 November), WhoopsWheelie from Boss's rollers video: the rider's body now glides while the bike
+    pumps beneath it. After the path is built, absorb_whoops() moves the hips against the bike's rise and fall (about
+    one whoop's worth of smoothing) and folds the back forward as the bike comes up into him; the stance is a little
+    lower and further forward so the arms have room to straighten when the bike drops away. Measured per whoop: the
+    bike moves about 9 cm, the head about 1 cm (it was moving with the bike); hands stay on the bars. The rear wheel
+    now meets each face about half way up (16 cm below the top). Unity tests 755/755, all tricks inside their windows.
 
 #### Still to do in this phase
 

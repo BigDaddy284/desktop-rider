@@ -36,6 +36,9 @@ Sitting back with both legs lifted straight out over the bars and the boots toge
 
 ## What to change for the 3D version
 
+**14 November 2026, Boss:** the first 3D version (feet straight out over the bars, between the arms) was a bar hop. It is now `BarHop` ([BarHop.md](BarHop.md)) and this trick was rebuilt with the legs round the outside of the arms and one click in front of the chest.
+
+
 Pose is right. Real riders click once or twice, not five times. In 3D make sure each leg passes outside its arm on the way out and back; v1 never had to solve that because it was hidden side-on.
 
 ## Best views

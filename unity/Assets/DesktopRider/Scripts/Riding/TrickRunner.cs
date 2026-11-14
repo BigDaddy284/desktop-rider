@@ -44,6 +44,32 @@ namespace DesktopRider.Riding
         TrickAnimation pending;              // the trick the rider is riding to the start of
         readonly TrickPicker picker = new TrickPicker();
         readonly Dictionary<string, GameObject> props = new Dictionary<string, GameObject>(StringComparer.Ordinal);
+        readonly Dictionary<string, TrickExtent> extents = new Dictionary<string, TrickExtent>(StringComparer.Ordinal);
+        float checkRoom, checkMargin;          // the room above and the extra edge margin of the trick being checked
+
+        /// <summary>
+        /// The room the named trick takes, measured from its clip the first time it is asked for (see <see cref="TrickExtents"/>).
+        /// </summary>
+        public TrickExtent ExtentOf(TrickAnimation trick)
+        {
+            if (extents.TryGetValue(trick.Name, out var known)) return known;
+            var state = rider != null && rider.modelAnimation != null ? rider.modelAnimation[trick.Name] : null;
+            var measured = state == null
+                ? new TrickExtent(1.0f, (float)trick.Distance + 0.6f, airRoom, 0.6f)
+                : TrickExtents.Measure(rider.modelAnimation.gameObject, state.clip, rider.leanPivot != null ? rider.leanPivot : rider.transform, trick.TravelAt);
+            extents[trick.Name] = measured;
+            return measured;
+        }
+
+        /// <summary>Uses the trick's measured room when checking whether it fits on a screen.</summary>
+        void PrepareCheck(TrickAnimation trick)
+        {
+            var extent = ExtentOf(trick);
+            checkRoom = Mathf.Max(airRoom, extent.Up);
+            // The trick's own check covers the props and where the bike stops; the bike's nose reaches a little further.
+            float beyond = Mathf.Max(0f, extent.Front - (float)trick.Reach.To);
+            checkMargin = beyond * rider.CurrentView.PixelsPerMetre;
+        }
 
         /// <summary>True while a trick is being ridden, or the rider is on its way to the start of one.</summary>
         public bool IsRunning => run != null || pending != null;
@@ -113,6 +139,7 @@ namespace DesktopRider.Riding
             var here = new Numerics.Vector2(at.x, at.z);
             var view = rider.CurrentView;
             float halfWidth = HalfWidth(trick);
+            PrepareCheck(trick);
             Func<Numerics.Vector2, bool> fits = ground => FitsOnScreen(view, ground);
             float? heading = TrickRun.PickHeading(trick, here, rider.transform.eulerAngles.y, fits, halfWidth);
             if (heading != null) return Begin(trick, heading.Value);
@@ -134,12 +161,16 @@ namespace DesktopRider.Riding
             if (trick == null || rider == null) return;
             var at = rider.transform.position;
             var view = rider.CurrentView;
+            PrepareCheck(trick);
             float? heading = TrickRun.PickHeading(trick, new Numerics.Vector2(at.x, at.z), planned, ground => FitsOnScreen(view, ground), HalfWidth(trick));
             if (heading == null || Mathf.Abs(TrickRun.TurnBetween(planned, heading.Value)) > 31f) return;   // no room after all: the rider just carries on
             Begin(trick, heading.Value);
         }
 
-        float HalfWidth(TrickAnimation trick) =>
+        float HalfWidth(TrickAnimation trick) => HalfWidth(layout, trick);
+
+        /// <summary>Half the width of the widest prop the trick uses (or of the bike, with none).</summary>
+        public static float HalfWidth(TrickLayout layout, TrickAnimation trick) =>
             trick.Props.Count == 0 ? 0.6f : 0.5f * (float)trick.Props.Max(p => layout.Prop(p.Prop)?.Width ?? 1.2);
 
         /// <summary>Places the rider could ride to: a grid over every screen, on the ground.</summary>
@@ -164,7 +195,7 @@ namespace DesktopRider.Riding
             run = new TrickRun(trick, start, heading) { Speed = rider.Director.Speed };
             rider.BeginTrick();
             rider.PlaceForTrick(at, heading);
-            rider.Framing = FrameFor(view, run, halfWidth);
+            rider.Framing = FrameFor(view, ExtentOf(trick), trick, at, heading, halfWidth);
             PlaceProps(run);
             PlayClip(trick.Name);
             return true;
@@ -205,32 +236,36 @@ namespace DesktopRider.Riding
         bool FitsOnScreen(DesktopView view, Numerics.Vector2 ground)
         {
             var pixel = view.ToDesktop(new Vector3(ground.X, 0f, ground.Y));
-            var top = view.ToDesktop(new Vector3(ground.X, airRoom, ground.Y));
-            return OverlayWindow.Area.IsOnScreen(new Numerics.Vector2(pixel.x, pixel.y), screenMargin)
+            var top = view.ToDesktop(new Vector3(ground.X, checkRoom > 0f ? checkRoom : airRoom, ground.Y));
+            return OverlayWindow.Area.IsOnScreen(new Numerics.Vector2(pixel.x, pixel.y), screenMargin + checkMargin)
                 && OverlayWindow.Area.IsOnScreen(new Numerics.Vector2(top.x, top.y), 0f);
         }
 
-        /// <summary>The part of the desktop the whole trick covers, props and the bike in the air included.</summary>
-        Rect FrameFor(DesktopView view, TrickRun trickRun, float halfWidth)
+        /// <summary>
+        /// The part of the desktop the whole trick covers: the props, and the bike and rider at every moment of the clip
+        /// (measured, so the front wheel at the end and the helmet at the top of the jump are inside).
+        /// </summary>
+        public static Rect FrameFor(DesktopView view, TrickExtent extent, TrickAnimation trick, Vector3 start, float heading, float halfWidth)
         {
-            var (from, to) = trickRun.Animation.Reach;
-            var forward = trickRun.Forward;
-            var side = new Numerics.Vector2(forward.Y, -forward.X) * halfWidth;
             float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
-            foreach (double d in new[] { from - 1.0, to + 0.5 })
+            foreach (var corner in TrickExtents.Corners(extent, start, heading, halfWidth))
             {
-                foreach (var s in new[] { side, -side })
-                {
-                    var g = trickRun.Start + forward * (float)d + s;
-                    foreach (float height in new[] { 0f, airRoom })
-                    {
-                        var px = view.ToDesktop(new Vector3(g.X, height, g.Y));
-                        minX = Mathf.Min(minX, px.x); maxX = Mathf.Max(maxX, px.x);
-                        minY = Mathf.Min(minY, px.y); maxY = Mathf.Max(maxY, px.y);
-                    }
-                }
+                var px = view.ToDesktop(corner);
+                minX = Mathf.Min(minX, px.x); maxX = Mathf.Max(maxX, px.x);
+                minY = Mathf.Min(minY, px.y); maxY = Mathf.Max(maxY, px.y);
             }
-            const float pad = 16f;
+            // The props too, which can reach further than the bike (a landing's run-out).
+            var (from, to) = trick.Reach;
+            var forward = Quaternion.Euler(0f, heading, 0f) * Vector3.forward;
+            var right = Quaternion.Euler(0f, heading, 0f) * Vector3.right;
+            foreach (double d in new[] { from, to })
+                foreach (float s in new[] { -halfWidth, halfWidth })
+                {
+                    var px = view.ToDesktop(start + forward * (float)d + right * s);
+                    minX = Mathf.Min(minX, px.x); maxX = Mathf.Max(maxX, px.x);
+                    minY = Mathf.Min(minY, px.y); maxY = Mathf.Max(maxY, px.y);
+                }
+            const float pad = 12f;
             return Rect.MinMaxRect(minX - pad, minY - pad, maxX + pad, maxY + pad);
         }
 
@@ -275,16 +310,8 @@ namespace DesktopRider.Riding
         void CopyTrickClips()
         {
             if (tricksModel == null || rider == null || rider.modelAnimation == null || tricksModel == rider.modelAnimation) return;
-            int added = 0;
-            foreach (AnimationState state in tricksModel)
-            {
-                if (state.clip == null || rider.modelAnimation[state.name] != null) continue;
-                rider.modelAnimation.AddClip(state.clip, state.name);
-                added++;
-            }
-            // The tricks model is only a store of clips; it is never shown.
-            tricksModel.gameObject.SetActive(false);
-            if (added == 0) Debug.LogWarning("Desktop Rider found no trick clips to add from " + tricksModel.name + ".");
+            if (ClipLibrary.Copy(tricksModel, rider.modelAnimation, replace: false) == 0)
+                Debug.LogWarning("Desktop Rider found no trick clips to add from " + tricksModel.name + ".");
         }
     }
 }

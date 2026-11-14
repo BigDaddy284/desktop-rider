@@ -310,9 +310,11 @@ def build_steel(name, length, fn):
 def prop_name(anim, index, kind):
     if kind == 'steel':
         return 'DR_Prop_SteelRamp'
-    if anim == 'Whoops':
+    if anim.startswith('Whoops'):                 # Whoops and WhoopsWheelie ride the same whoops
         return 'DR_Prop_Whoops'
-    if anim in ('Jump', 'Whip', 'Scrub'):
+    if anim == 'Scrub':                            # the scrub uses the whip's jump (Boss, 14 November)
+        anim = 'Whip'
+    if anim in ('Jump', 'Whip'):
         return 'DR_Prop_%s%s' % (anim, 'Ramp' if index == 0 else 'Landing')
     return 'DR_Prop_TrickLanding'
 

@@ -92,6 +92,16 @@ After the fork legs were remodelled and the chain closed (13 November, 22:41) `D
 
 The wheel and brake-disc change of 13 November was a texture change only. The FBX files were not exported again, and `verify_models.py` was run again after the texture was replaced.
 
+### Trick framing (Trick Viewer)
+
+In Unity, **Desktop Rider > Trick Viewer** (with the editor stopped) shows any trick frame by frame as the app's window
+sees it, with the ramp and landing in place. Pick a trick, then use the Frame slider or Previous and Next. The text under
+the buttons turns red if any part of the bike or rider is outside the window at that frame. **Save every frame** writes
+the frames as pictures to `Bridge/trick-frames/<trick>/`. Closing the window puts the rider back.
+
+Bridge commands: `trickcheck` checks every frame of every trick and lists the window size and the frames outside it;
+`trickframes <name|all>` saves the pictures. Last run, 14 November 2026: 18 tricks, 0 frames outside.
+
 ## Known limitations
 
 - Development happens on a Linux build machine. It compiles the WPF application but cannot run it, so anything involving a real window is verified by GitHub Actions on Windows (build only) and by hand on the owner's Windows 11 PC.

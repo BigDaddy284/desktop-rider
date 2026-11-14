@@ -19,6 +19,15 @@ GRIP = {'L': Vector((0.17, 0.345, 1.0)), 'R': Vector((0.17, -0.345, 1.0))}
 AX = {'X': Vector((1, 0, 0)), 'Y': Vector((0, 1, 0)), 'Z': Vector((0, 0, 1))}
 PARK = Vector((0, 0, -50))    # where props wait when they are not in an animation
 
+# Rider rig rest positions (bike frame, metres), for keeping the hands on the bars (see keep_hands_on).
+HIPS_HEAD = Vector((-0.13, 0.0, 0.80))
+SPINE_HEAD = Vector((-0.12, 0.0, 0.92))
+SHOULDER = {'L': Vector((-0.02, 0.18, 1.17)), 'R': Vector((-0.02, -0.18, 1.17))}
+ARM_REACH = 0.333             # shoulder to grip with the arm almost straight (upper arm 0.200 + forearm 0.139)
+STEER_HEAD = Vector((0.235, 0.0, 0.895)); STEER_AXIS = (Vector((0.43, 0.0, 0.49)) - STEER_HEAD).normalized()
+# Where the knees point when a trick asks for it (pole targets; see Rig): bike frame, and how much they are used.
+KNEE_REST = {'L': Vector((0.45, 0.6, 0.75)), 'R': Vector((0.45, -0.6, 0.75))}
+
 
 def sm(t, a, b):
     if b == a:
@@ -195,9 +204,10 @@ def steel_ramp_prop(name, length, fn, half_width=0.5, step=0.04):
 
 # ---------------------------------------------------------------- keying
 class Rig:
-    def __init__(self):
+    def __init__(self, hands_on=True):
         self.brig = bpy.data.objects['bike_rig']; self.rrig = bpy.data.objects['rider_rig']
         self.last = {}
+        self.hands_on = hands_on
 
     def reset(self):
         for rig, nm in ((self.brig, 'DR_bike'), (self.rrig, 'DR_rider')):
@@ -210,6 +220,7 @@ class Rig:
             for pb in rig.pose.bones:
                 pb.location = (0, 0, 0); pb.rotation_quaternion = (1, 0, 0, 0); pb.rotation_euler = (0, 0, 0)
         self.last = {}
+        self.ensure_knee_poles()
 
     def key(self, rig, bone, f, rots=(), loc=(0, 0, 0), local_loc=None):
         pb = rig.pose.bones[bone]; R = rig.data.bones[bone].matrix_local.to_3x3(); Ri = R.inverted()
@@ -228,9 +239,53 @@ class Rig:
     def wheel(self, bone, f, deg):
         pb = self.brig.pose.bones[bone]; pb.rotation_euler = (0, math.radians(deg), 0); pb.keyframe_insert('rotation_euler', frame=f)
 
+    def ensure_knee_poles(self):
+        """Adds, in this session only (the owner's file is never saved), a pole bone for each knee and a second IK
+        with that pole on each shin. Its influence is 0 unless a trick says where the knees go (the heel clicker's legs
+        wrap around the outside of the arms); every other clip comes out exactly as before."""
+        if self.brig.data.bones.get('pole.knee.L') is not None:
+            return
+        view = bpy.context.view_layer
+        for o in view.objects:
+            o.select_set(False)
+        view.objects.active = self.brig; self.brig.select_set(True)
+        bpy.ops.object.mode_set(mode='EDIT')
+        eb = self.brig.data.edit_bones
+        for s in 'LR':
+            e = eb.new('pole.knee.' + s)
+            e.head = KNEE_REST[s]; e.tail = KNEE_REST[s] + Vector((0, 0, 0.08)); e.parent = eb['chassis']
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for s in 'LR':
+            c = self.rrig.pose.bones['shin.' + s].constraints.new('IK')
+            c.name = 'IK knee'; c.target = self.brig; c.subtarget = 'peg.' + s
+            c.pole_target = self.brig; c.pole_subtarget = 'pole.knee.' + s; c.chain_count = 2
+            c.pole_angle = self.knee_pole_angle(s, c)
+            c.influence = 0.0
+
+    def knee_pole_angle(self, s, c):
+        """The pole angle that bends the knee toward the pole at rest (found by trying, as it depends on the bones' roll)."""
+        best = None
+        c.influence = 1.0
+        for k in range(-180, 180, 5):
+            c.pole_angle = math.radians(k)
+            bpy.context.view_layer.update()
+            knee = self.rrig.matrix_world @ self.rrig.pose.bones['shin.' + s].head
+            pole = self.brig.matrix_world @ self.brig.pose.bones['pole.knee.' + s].head
+            hip = self.rrig.matrix_world @ self.rrig.pose.bones['thigh.' + s].head
+            foot = self.brig.matrix_world @ self.brig.pose.bones['peg.' + s].head
+            axis = (foot - hip).normalized()
+            off_knee = (knee - hip) - axis * (knee - hip).dot(axis)
+            off_pole = (pole - hip) - axis * (pole - hip).dot(axis)
+            score = off_knee.normalized().dot(off_pole.normalized()) if off_knee.length > 1e-6 and off_pole.length > 1e-6 else -2
+            if best is None or score > best[0]:
+                best = (score, k)
+        return math.radians(best[1])
+
     def apply(self, f, d):
         """Keys one frame from a state dictionary (see `state()`)."""
         b, r = self.brig, self.rrig
+        if self.hands_on:
+            d = keep_hands_on(d)
         air = d['air']                                   # 0 on the ground, 1 in the air
         extra = math.degrees(math.asin(max(-1, min(1, (d['dive'] * 0.9 - d['squat']) / 1.088))))
         pitch = d['pitch'] + extra * (1 - air)
@@ -243,10 +298,64 @@ class Rig:
         for s in 'LR':
             self.key(b, 'grip.' + s, f, (), d['grip' + s]); self.key(b, 'peg.' + s, f, (), d['peg' + s])
         self.key(r, 'hips', f, _rots(d['hipsrot']), d['hips']); self.key(r, 'spine', f, _rots(d['spine'])); self.key(r, 'head', f, _rots(d['head']))
+        if self.brig.data.bones.get('pole.knee.L') is not None:
+            for s in 'LR':
+                pb = b.pose.bones['pole.knee.' + s]
+                pb.location = b.data.bones['pole.knee.' + s].matrix_local.to_3x3().inverted() @ (Vector(d.get('knee' + s, KNEE_REST[s])) - KNEE_REST[s])
+                pb.keyframe_insert('location', frame=f)
+                c = r.pose.bones['shin.' + s].constraints['IK knee']
+                c.influence = d.get('kneew', 0.0); c.keyframe_insert('influence', frame=f)
 
 
 def _rots(v):
     return (('Y', v[1]), ('X', v[0]), ('Z', v[2]))
+
+
+def _quat(rots):
+    """The rotation Rig.key makes from a list of (axis, degrees), in armature axes."""
+    Q = Quaternion()
+    for ax, deg in rots:
+        Q = Quaternion(AX[ax], math.radians(deg)) @ Q
+    return Q
+
+
+def shoulder_at(d, s):
+    """Where the rider's shoulder is, in the bike's frame, for a state or pose (the rider rig moves with the chassis)."""
+    Qh = _quat(_rots(d['hipsrot'])); Qs = _quat(_rots(d['spine']))
+    x = SPINE_HEAD + Qs @ (SHOULDER[s] - SPINE_HEAD)
+    return HIPS_HEAD + Qh @ (x - HIPS_HEAD) + Vector(d['hips'])
+
+
+def grip_at(d, s):
+    """Where a hand's target is, in the bike's frame: the grip plus the pose's offset, turned with the bars."""
+    g = GRIP[s] + Vector(d['grip' + s])
+    q = Quaternion(STEER_AXIS, math.radians(d.get('steer', 0.0)))
+    return STEER_HEAD + q @ (g - STEER_HEAD)
+
+
+def hand_gap(d, s):
+    """How far short of its grip a hand ends up (0 when the arm can reach)."""
+    return max(0.0, (grip_at(d, s) - shoulder_at(d, s)).length - ARM_REACH)
+
+
+def keep_hands_on(d, reach=ARM_REACH):
+    """Moves the hips toward the bars just enough that every hand still holding its grip can reach it.
+    The arm rig is short (about 3 cm to spare at rest), so a rider leaning back, twisting or sitting back (the stoppie,
+    the heel clicker, the superman) would otherwise leave a hand floating off the bar. A hand let go on purpose (an
+    offset from its grip of more than 1 cm) is left alone."""
+    d = dict(d)
+    for _ in range(6):
+        push = Vector(); n = 0
+        for s in 'LR':
+            if Vector(d['grip' + s]).length > 0.01:
+                continue
+            v = grip_at(d, s) - shoulder_at(d, s)
+            if v.length > reach:
+                push += v.normalized() * (v.length - reach + 0.002); n += 1
+        if n == 0:
+            break
+        d['hips'] = tuple(Vector(d['hips']) + push / n)
+    return d
 
 
 def state():

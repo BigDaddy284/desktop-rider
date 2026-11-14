@@ -16,13 +16,16 @@ namespace DesktopRider.Riding
         public Camera viewCamera;
         public Transform leanPivot;
         public UnityEngine.Animation modelAnimation;
+        [Tooltip("The rider's own riding style (resting, setting off, riding, corners); replaces the model's clips of the same name.")]
+        public UnityEngine.Animation styleModel;
 
         [Header("Riding")]
         public float cruiseSpeed = 2.6f;          // metres a second
         public float acceleration = 2.5f;
         public float braking = 4.0f;
         public float maxTurnRate = 110f;          // degrees a second at cruise speed
-        public float maxLean = 28f;
+        [Tooltip("How far the bike leans at most in a turn. The rider's body stays nearer upright (the corner clips).")]
+        public float maxLean = 38f;
         public float arriveDistance = 0.6f;
         public Vector2 restSeconds = new Vector2(2f, 6f);
         [Range(0.02f, 0.3f)] public float screenMargin = 0.12f;
@@ -57,6 +60,9 @@ namespace DesktopRider.Riding
         /// <summary>Chooses the clip: riding while moving, otherwise rest, idle movements, talking and tricks as in version 1.</summary>
         public DesktopRider.Animation.ModelAnimationDirector Director { get; } = new DesktopRider.Animation.ModelAnimationDirector();
 
+        /// <summary>Raised each time the bike sets off from a stop (for the dirt and smoke at the rear wheel).</summary>
+        public event Action SetOff;
+
         /// <summary>Raised when the user lets go of the rider after dragging it.</summary>
         public event Action Dropped;
 
@@ -87,7 +93,8 @@ namespace DesktopRider.Riding
         Vector3 target, approachEnd;
         bool approachLeg;                     // true while heading for the run-up point, false on the last stretch
         Action approachArrived;
-        float speed, restUntil, lean, sizeScale = 1f;
+        float speed, restUntil, lean, turnAhead, sizeScale = 1f;
+        readonly CornerBlend corner = new CornerBlend();
         bool roaming = true, dragging;
         Vector3 dragOffset;
         int playedStarts = -1;
@@ -104,6 +111,11 @@ namespace DesktopRider.Riding
             movingFrameRate = CommandLineInt("-movingFps", movingFrameRate);
             restingFrameRate = CommandLineInt("-restingFps", restingFrameRate);
             if (viewCamera == null) viewCamera = Camera.main;
+            if (styleModel != null && modelAnimation != null)
+            {
+                ClipLibrary.Copy(styleModel, modelAnimation, replace: true);
+                if (modelAnimation["Idle"] != null) modelAnimation.Play("Idle");
+            }
             OverlayWindow.ScreensChanged += OnScreensChanged;
             if (roaming) PickTarget(); else target = transform.position;
         }
@@ -142,6 +154,7 @@ namespace DesktopRider.Riding
             speed = 0f;
             lean = 0f;
             if (leanPivot != null) leanPivot.localRotation = Quaternion.identity;
+            UpdateCornerPose(false);
         }
 
         /// <summary>Puts the rider on a ground point during a trick, facing <paramref name="heading"/> degrees.</summary>
@@ -189,7 +202,7 @@ namespace DesktopRider.Riding
         {
             UpdateMouse();
             if (dragging && (InTrick || Approaching)) { CancelApproach(); TrickInterrupted?.Invoke(); }
-            if (dragging) { Animate(false); SetFrameRate(movingFrameRate); return; }
+            if (dragging) { Animate(false); UpdateCornerPose(false); SetFrameRate(movingFrameRate); return; }
             if (InTrick) { SetFrameRate(movingFrameRate); return; }
 
             bool resting = !Approaching && (!roaming || Time.time < restUntil);
@@ -205,10 +218,12 @@ namespace DesktopRider.Riding
             speed = Mathf.MoveTowards(speed, wantedSpeed, (wantedSpeed > speed ? acceleration : braking) * Time.deltaTime);
 
             float turn = 0f;
+            turnAhead = 0f;
             if (speed > 0.05f)
             {
                 float heading = transform.eulerAngles.y;
                 float wanted = RiderSteering.HeadingTo(transform.position, target);
+                turnAhead = RiderSteering.ShortestTurn(heading, wanted);
                 float rate = maxTurnRate * Mathf.Clamp01(speed / cruiseSpeed + 0.25f);
                 turn = RiderSteering.TurnStep(heading, wanted, rate * Time.deltaTime);
                 transform.rotation = Quaternion.Euler(0f, heading + turn, 0f);
@@ -237,6 +252,7 @@ namespace DesktopRider.Riding
 
             bool moving = speed > 0.05f;
             Animate(moving);
+            UpdateCornerPose(moving);
             SetFrameRate(moving ? movingFrameRate : restingFrameRate);
         }
 
@@ -252,10 +268,12 @@ namespace DesktopRider.Riding
             var window = OverlayWindow.WindowRect;
             if (OverlayWindow.IsActive && Framing is Rect frame)
             {
-                // A square window over the whole trick; most of it is see-through and lets clicks pass.
-                int size = Mathf.CeilToInt(Mathf.Max(frame.width, frame.height));
-                if (window.width != size) OverlayWindow.Resize(size);
-                OverlayWindow.PlaceWindow(new Vector2Int(Mathf.RoundToInt(frame.center.x - size * 0.5f), Mathf.RoundToInt(frame.center.y - size * 0.5f)));
+                // A window the shape of the whole trick, cut to the desktop (nothing shows past its edge anyway); most of
+                // it is see-through and lets clicks pass. A square one was taller than the screen for long jumps, and
+                // Windows then cut the window short, which cut off the front wheel or the helmet.
+                var fit = TrickWindow(frame, OverlayWindow.Area.Size.Width, OverlayWindow.Area.Size.Height);
+                if (window.width != fit.width || window.height != fit.height) OverlayWindow.Resize(fit.width, fit.height);
+                OverlayWindow.PlaceWindow(fit.position);
                 window = OverlayWindow.WindowRect;
             }
             else if (OverlayWindow.IsActive)
@@ -271,6 +289,14 @@ namespace DesktopRider.Riding
             viewCamera.orthographic = true;
             viewCamera.orthographicSize = window.height / (2f * view.PixelsPerMetre);
             viewCamera.transform.SetPositionAndRotation(view.CameraFor(windowCentre), view.Rotation);
+        }
+
+        /// <summary>The window for a trick: the trick's frame in whole pixels, kept inside the desktop.</summary>
+        public static RectInt TrickWindow(Rect frame, int desktopWidth, int desktopHeight)
+        {
+            int left = Mathf.Max(0, Mathf.FloorToInt(frame.xMin)), top = Mathf.Max(0, Mathf.FloorToInt(frame.yMin));
+            int right = Mathf.Min(desktopWidth, Mathf.CeilToInt(frame.xMax)), bottom = Mathf.Min(desktopHeight, Mathf.CeilToInt(frame.yMax));
+            return new RectInt(left, top, Mathf.Max(64, right - left), Mathf.Max(64, bottom - top));
         }
 
         void UpdateMouse()
@@ -355,6 +381,49 @@ namespace DesktopRider.Riding
             if (state.wrapMode != WrapMode.Loop) state.time = 0f;
             state.speed = animationSpeed;
             modelAnimation.CrossFade(Director.Clip, 0.25f);
+            if (Director.Clip == DesktopRider.Animation.ModelAnimationDirector.StartClip) SetOff?.Invoke();
+        }
+
+        /// <summary>
+        /// In a turn the rider sits in the corner pose: inside leg straight out ahead, head into the turn, body nearer
+        /// upright than the bike. The corner clips are blended over the riding (or setting-off) clip on a layer of their
+        /// own. <see cref="CornerBlend"/> decides how much: the leg comes out as the turn is lined up, not halfway round.
+        /// </summary>
+        void UpdateCornerPose(bool moving)
+        {
+            if (modelAnimation == null) return;
+            var left = modelAnimation["CornerLeft"];
+            var right = modelAnimation["CornerRight"];
+            if (left == null || right == null) return;
+            string clip = Director.Clip;
+            bool on = moving && !InTrick && !dragging &&
+                      (clip == DesktopRider.Animation.ModelAnimationDirector.RidingClip || clip == DesktopRider.Animation.ModelAnimationDirector.StartClip);
+            var (toLeft, toRight) = corner.Update(on ? turnAhead : 0f, on ? lean : 0f, maxLean, Time.deltaTime, on);
+            var riding = modelAnimation[DesktopRider.Animation.ModelAnimationDirector.RidingClip];
+            // Keep the corner clips in step with the riding loop while it plays, so the wheels and the bob match.
+            float? at = riding != null && riding.enabled && riding.weight > 0.5f ? riding.normalizedTime : (float?)null;
+            SetCornerWeight(left, toLeft, at);
+            SetCornerWeight(right, toRight, at);
+        }
+
+        void SetCornerWeight(AnimationState state, float weight, float? normalizedTime)
+        {
+            state.layer = 1;
+            state.wrapMode = WrapMode.Loop;
+            if (weight <= 0.01f)
+            {
+                state.weight = 0f;
+                state.enabled = false;
+                return;
+            }
+            state.enabled = true;
+            state.weight = weight;
+            if (normalizedTime is float t)
+            {
+                state.speed = 0f;                              // moved along with the riding loop instead
+                state.normalizedTime = t;
+            }
+            else state.speed = animationSpeed;
         }
 
         static int CommandLineInt(string name, int fallback)

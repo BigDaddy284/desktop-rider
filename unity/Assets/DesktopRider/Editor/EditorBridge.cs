@@ -27,7 +27,8 @@ namespace DesktopRider.EditorTools
         const string ProofModelPath = "Assets/DesktopRider/Models/Proof/RiderProof.fbx";   // rough stand-in if the textured one is missing
         const string ArtFolder = "Assets/DesktopRider/Art/Proof";
         const string TricksModelPath = "Assets/DesktopRider/Models/DesktopRider_Tricks.fbx";   // trick takes, rigs only (kept off GitHub)
-        const string PropsFolder = "Assets/DesktopRider/Models/Props";                          // ramps, landings, whoops and props_layout.json
+        const string PropsFolder = "Assets/DesktopRider/Models/Props";
+        const string StyleModelPath = "Assets/DesktopRider/Models/DesktopRider_Style.fbx";         // the rider's own riding style, rigs only (kept off GitHub)                          // ramps, landings, whoops and props_layout.json
         static readonly string Root = Directory.GetParent(Application.dataPath).FullName;
         static readonly string Folder = Path.Combine(Root, "Bridge");
         static readonly string BuildFolder = Path.Combine(Root, "Builds", "Proof");
@@ -87,6 +88,8 @@ namespace DesktopRider.EditorTools
                 case "endplay": EditorApplication.isPlaying = false; return "leaving play mode";
                 case "view": return View(argument);
                 case "prop": return PropView(argument);
+                case "trickcheck": return TrickViewer.CheckAll();
+                case "trickframes": return TrickViewer.SaveFrames(argument);
                 default: throw new ArgumentException("Unknown command " + command);
             }
         }
@@ -202,6 +205,7 @@ namespace DesktopRider.EditorTools
             host.overlayWindow = overlay.GetComponent<OverlayWindow>();
             log.AppendLine("app host added (settings, tray icon, menu)");
             host.tricks = AddTricks(rider, free, overlay.GetComponent<OverlayWindow>(), log);
+            AddRidingStyle(rider, free, log);
 
             var scene = EditorSceneManager.GetActiveScene();
             EditorSceneManager.MarkSceneDirty(scene);
@@ -209,6 +213,48 @@ namespace DesktopRider.EditorTools
             AssetDatabase.SaveAssets();
             log.AppendLine("scene saved: " + scene.path);
             return log.ToString();
+        }
+
+        /// <summary>
+        /// The rider's own riding style (Tools/Blender/riding_style.py): its clips replace the model's resting, setting-off
+        /// and riding clips and add the corner poses. Also the dirt and blue smoke when the bike sets off.
+        /// </summary>
+        static void AddRidingStyle(GameObject rider, FreeRider free, StringBuilder log)
+        {
+            var style = AssetDatabase.LoadAssetAtPath<GameObject>(StyleModelPath);
+            if (style == null) log.AppendLine("STYLE: model missing at " + StyleModelPath + "; the model's own clips are used");
+            else
+            {
+                var store = (GameObject)PrefabUtility.InstantiatePrefab(style);
+                store.name = "StyleClips";
+                store.transform.SetParent(rider.transform, false);
+                free.styleModel = store.GetComponent<UnityEngine.Animation>();
+                log.AppendLine("style clips: " + string.Join(", ", AnimationUtility.GetAnimationClips(store).Select(c => c.name)));
+            }
+
+            const string materialPath = ArtFolder + "/DR_Particles.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (material == null)
+            {
+                var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+                if (shader == null) { log.AppendLine("EFFECTS: no URP particle shader; no dirt or smoke"); return; }
+                material = new Material(shader) { name = "DR_Particles" };
+                // Transparent, alpha blended, both sides, no depth writes.
+                material.SetFloat("_Surface", 1f);
+                material.SetFloat("_Blend", 0f);
+                material.SetFloat("_Cull", 0f);
+                material.SetFloat("_ZWrite", 0f);
+                material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                Directory.CreateDirectory(Path.Combine(Root, ArtFolder));
+                AssetDatabase.CreateAsset(material, materialPath);
+            }
+            var effects = rider.AddComponent<StartEffects>();
+            effects.rider = free;
+            effects.particleMaterial = material;
+            log.AppendLine("start effects: dirt and blue smoke at the rear wheel");
         }
 
         /// <summary>Adds the trick runner with its layout, props and the tricks model's takes, if they have been imported.</summary>
@@ -273,7 +319,10 @@ namespace DesktopRider.EditorTools
             if (model == null) return "ERROR no Rider/Lean/Model in the scene; send setup first";
             if (parts.Length > 1)
             {
-                var clip = AnimationUtility.GetAnimationClips(model).FirstOrDefault(c => c.name == parts[1]);
+                // The riding style's clips replace the model's own in the app, so look there first.
+                var styleStore = GameObject.Find("Rider/StyleClips");
+                var clip = (styleStore != null ? AnimationUtility.GetAnimationClips(styleStore).FirstOrDefault(c => c.name == parts[1]) : null)
+                           ?? AnimationUtility.GetAnimationClips(model).FirstOrDefault(c => c.name == parts[1]);
                 if (clip == null) return "ERROR no clip " + parts[1];
                 float t = parts.Length > 2 ? float.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture) : 0f;
                 clip.SampleAnimation(model, t);

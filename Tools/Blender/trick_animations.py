@@ -40,6 +40,12 @@ def hold(u, a=0.14, b=0.38, c=0.60, d=0.84):
     return bump(u, a, b, c, d)
 
 
+def smoother(t, a, b):
+    """Like sm(), but with no sudden change in how fast it moves at either end (for long, flowing swings)."""
+    x = min(1.0, max(0.0, (t - a) / (b - a)))
+    return x * x * x * (x * (6 * x - 15) + 10)
+
+
 def _feet(l, r):
     return dict(pegL=tuple(Vector(l) - PEG['L']), pegR=tuple(Vector(r) - PEG['R']))
 
@@ -73,23 +79,45 @@ def t_no_hander(u):
     return p, hold(u), {}
 
 
-def t_no_footer(u):
-    p = pose(hips=(-0.03, 0, 0.10), spine=(0, 16, 0), head=(0, -12, 0),
-             **_feet((-0.8, 0.6, 0.55), (-0.8, -0.6, 0.55)))
-    return p, hold(u), {}
-
-
 def t_nothing(u):
+    # Hands and feet off together. Boss (14 November): the legs went back a little too far; they now trail just behind.
     p = pose(hips=(-0.02, 0, 0.12), spine=(0, -14, 0), head=(0, 2, 0),
-             **_hands((-0.2, 0.8, 1.7), (-0.2, -0.8, 1.7)), **_feet((-0.8, 0.6, 0.55), (-0.8, -0.6, 0.55)))
+             **_hands((-0.2, 0.8, 1.7), (-0.2, -0.8, 1.7)), **_feet((-0.50, 0.50, 0.62), (-0.50, -0.50, 0.62)))
     return p, hold(u), {}
+
+
+def t_bar_hop(u):
+    # Both feet come up between the arms and out over the bars, then back through to the pegs. (Until 14 November this
+    # was called the heel clicker; Boss pointed out it is a bar hop, because the legs pass between the arms.)
+    p = pose(hips=(-0.12, 0, 0.14), hipsrot=(0, -16, 0), spine=(0, 22, 0), head=(0, -4, 0),
+             **_feet((0.8, 0.07, 1.2), (0.8, -0.07, 1.2)))
+    return p, hold(u), {}
+
+
+def _path(points, steps):
+    """A point moved along `points` by `steps` (one 0..1 weight for each leg of the path)."""
+    p = Vector(points[0])
+    for q, w in zip(points[1:], steps):
+        p = p.lerp(Vector(q), w)
+    return p
 
 
 def t_heel_clicker(u):
-    click = 0.03 * math.sin(u * 60)
-    p = pose(hips=(-0.12, 0, 0.14), hipsrot=(0, -16, 0), spine=(0, 22, 0), head=(0, -4, 0),
-             **_feet((0.8, 0.07 + click, 1.2), (0.8, -0.07 - click, 1.2)))
-    return p, hold(u), {}
+    # The legs come up round the OUTSIDE of the arms, knees out past the elbows, and the heels click together once in
+    # front of the chest above the bars; then back round the arms and down to the pegs. The rider sits back with the
+    # arms nearly straight. (Red Bull's trick list: the legs "wrap around the arms" and the heels click "in front of
+    # the chest"; legs between the arms would be a bar hop.)
+    out = [sm(u, 0.10, 0.19), sm(u, 0.17, 0.28), sm(u, 0.27, 0.38)]
+    back = [sm(u, 0.72, 0.84), sm(u, 0.62, 0.73), sm(u, 0.55, 0.63)]
+    steps = [a * (1 - b) for a, b in zip(out, back)]
+    click = bump(u, 0.40, 0.45, 0.48, 0.53)
+
+    def foot(y):
+        return tuple(_path([(0.05, 0.165 * y, 0.31), (0.0, 0.50 * y, 0.75), (0.10, 0.56 * y, 1.24),
+                            (0.30, (0.05 - 0.045 * click) * y, 1.12)], steps))
+    p = pose(hips=(-0.10, 0, 0.14), hipsrot=(0, -14, 0), spine=(0, 16, 0), head=(0, -6, 0), **_feet(foot(1), foot(-1)))
+    knees = bump(u, 0.08, 0.20, 0.74, 0.88)
+    return p, hold(u, 0.08, 0.30, 0.66, 0.88), dict(kneew=knees, kneeL=(0.42, 0.95, 1.25), kneeR=(0.42, -0.95, 1.25))
 
 
 def t_can_can(u):
@@ -103,13 +131,21 @@ def t_can_can(u):
 
 
 def t_nac_nac(u):
-    # The far leg swings back over the rear mudguard to the camera's side while the rider looks back.
+    # From Boss's video and photographs (14 November): the far leg swings back over the rear mudguard and out to the
+    # camera's side, and as it goes the whole bike swings round underneath the rider until it is nearly side-on to the
+    # direction of travel, while the rider stays facing the way they are going, upright, looking ahead; then the bike
+    # swings back into line under them and the leg comes back for the landing. The back of the bike goes away from the
+    # rider's body.
     def feet(n, f):
         return _feet(n, f) if SIDE['hs'] > 0 else _feet(f, n)
     hs = SIDE['hs']
-    p = pose(hips=(0.02, near(0.05), 0.14), hipsrot=(0, 4, near(30)), spine=(0, 10, near(18)), head=(0, -6, near(48)),
-             **feet(tuple(PEG[SIDE['near']]), (-0.85, 0.42 * hs, 0.72)))
-    return p, hold(u), {}
+    leg = hold(u, 0.12, 0.34, 0.60, 0.82)
+    swing = smoother(u, 0.06, 0.40) * (1 - smoother(u, 0.56, 0.90))
+    yaw = near(72) * swing
+    p = pose(hips=(0.0, near(0.06), 0.16), hipsrot=(near(-6) * swing, 6, -yaw * 0.8 + near(14) * (1 - swing)),
+             spine=(near(-4), 6, -yaw * 0.12), head=(0, -10, near(10) - yaw * 0.08),
+             **feet(tuple(PEG[SIDE['near']]), (-0.80, 0.55 * hs, 0.80)))
+    return p, leg, dict(yaw=yaw, roll=near(12) * swing, steer=near(14) * swing, pivot=(0.05, 0.0, 0.75))
 
 
 def t_lazy_boy(u):
@@ -138,10 +174,14 @@ def t_seat_grab(u):
 
 
 def t_indian_air(u):
-    # A superman with the legs scissoring past each other.
-    k = math.sin(u * 30) * 0.22
-    p = pose(hips=(-0.316, 0, 0.37), hipsrot=(0, 75, 0), head=(0, -58, 0),
-             **_feet((-1.6, 0.1, 1.34 + k), (-1.6, -0.1, 1.34 - k)))
+    # A superman with the legs crossed and scissoring, the body twisted round onto its side (Boss, 14 November: more
+    # twist). The legs cross over each other and swap twice.
+    k = 0.10 * math.sin((u - 0.2) * 2 * math.pi * 2.2)
+    twist = sm(u, 0.16, 0.36) * (1 - sm(u, 0.60, 0.80))
+    cross = 0.12 * twist
+    p = pose(hips=(-0.30, near(0.05) * twist, 0.37), hipsrot=(near(55) * twist, 75, near(22) * twist),
+             spine=(near(22) * twist, 0, near(14) * twist), head=(near(-26) * twist, -58, near(-12) * twist),
+             **_side((-1.55, 0.10 - 0.10 * twist - cross, 1.36 + k + 0.06 * twist), (-1.62, -0.10 + 0.10 * twist + cross, 1.30 - k), _feet))
     return p, hold(u), {}
 
 
@@ -159,16 +199,35 @@ def t_rock_solid(u):
 
 
 def t_scrub(u):
-    # Staying low: the bike is thrown flat the moment it leaves the lip and picked up again before the landing.
-    w = bump(u, -0.05, 0.16, 0.34, 0.78)
-    p = pose(hips=(-0.02, near(-0.06), 0.03), spine=(near(18), 26, 0), head=(near(26), -16, 0))
-    return p, w, dict(roll=near(-70) * w, yaw=near(-24) * w, steer=near(-26) * w)
+    # Staying low (adbmag, "How to motocross scrub"): the bike is leaned over and turned sideways while still on the
+    # face, bars turned into the scrub, so it soaks up the kick and leaves the lip already laid over; the rider's weight
+    # goes to the high side, the low knee presses into the bike, the high foot comes off its peg with the knee tucked up
+    # under the elbow. In the air it is brought back upright and pointed straight for the landing. Starts on the face.
+    w = smoother(u, -0.40, -0.02) * (1 - smoother(u, 0.30, 0.72))     # eased at both ends of each swing, so no lurch
+    p = pose(hips=(0.0, near(-0.08), 0.02), spine=(near(30), 28, near(-6)), head=(near(42), -18, near(14)),
+             **_side((0.05, 0.165, 0.31), (-0.06, -0.30, 0.64), _feet))
+    # It turns about the tyres the whole way (Boss, 14 November: the bike jumped between two frames when the turning
+    # point moved up to the steering head at the lip while already laid over); laid flat it stays low over its wheels.
+    return p, w, dict(roll=near(-74) * w, yaw=near(24) * w, steer=near(-28) * w, pivot=tuple(GROUND_PIVOT))
 
 
 def t_whip(u):
-    w = bump(u, 0.10, 0.42, 0.52, 0.88)
-    p = pose(hips=(0.0, near(-0.04), 0.07), spine=(near(14), 20, 0), head=(near(22), -14, 0))
-    return p, w, dict(roll=near(-62) * w, yaw=near(-30) * w, steer=near(-22) * w)
+    # (Transmoto, "How-To: Whip with Ben Townley", and Red Bull's trick list.) An arc up the face starts the lean; at the
+    # lip the bars are counter-steered and the back end swings out and up about the steering head; at the peak the bike
+    # is laid over nearly flat and sideways to the travel, the bars turned back toward the landing, the rider up on the
+    # high side, low foot firm on its peg, high leg bent, looking at the landing. The throttle is shut at the lip (the
+    # rear wheel slows) and opened hard past the peak, which pulls the back end down and into line.
+    # The back end leads: it starts swinging out at the lip, the lay-down follows it, and on the way back the back end
+    # comes into line first while the bike is still picking itself up (Boss, 14 November: the back end didn't flow).
+    arc = bump(u, -0.30, -0.06, 0.04, 0.20)
+    swing = smoother(u, -0.06, 0.32) * (1 - smoother(u, 0.46, 0.80))
+    w = smoother(u, 0.0, 0.42) * (1 - smoother(u, 0.52, 0.88))
+    roll = near(-16) * arc * (1 - w) + near(-82) * w
+    yaw = near(6) * arc * (1 - swing) + near(50) * swing        # the back end goes out to the high side, like a slide
+    p = pose(hips=(0.0, near(-0.07), 0.08), spine=(near(32), 20, near(8)), head=(near(44), -14, near(30)),
+             **_side((0.05, 0.165, 0.31), (0.02, -0.165, 0.40), _feet))
+    spin = 1.15 * (1 - 0.6 * bump(u, 0.0, 0.06, 0.34, 0.46)) + 1.5 * bump(u, 0.50, 0.58, 0.74, 0.86)
+    return p, max(w, 0.45 * arc), dict(roll=roll, yaw=yaw, steer=near(22) * swing, rear_spin=spin)
 
 
 def t_backflip(u):
@@ -179,8 +238,29 @@ def t_backflip(u):
 
 
 # ================================================================= jumps
-def build_jump(trick=t_plain, angle=38.0, lip=0.5, land_angle=31.0, land_drop=0.0, ramp='steel', flip=0, name='Jump', nose_hold=0.15):
-    """Returns (frames, list of states, props). One keyed frame every 1/24 s."""
+AIR_PIVOT = Vector((0.25, 0.0, 0.60))      # what a whip turns about in the air: near the steering head, so the back end swings
+GROUND_PIVOT = Vector((0.0, 0.0, 0.0))    # on the ground the bike leans over about its tyres
+
+
+def turn_about(d, pivot):
+    """Moves the chassis so that its roll and yaw turn the bike about `pivot` (bike frame) instead of the rear axle,
+    which is where the chassis bone sits."""
+    if abs(d['roll']) < 1e-6 and abs(d['yaw']) < 1e-6:
+        return
+    p = pivot - Vector((RA[0], 0.0, RA[1]))
+    full = C._quat((('X', d['roll']), ('Y', d['pitch']), ('Z', d['yaw'])))
+    plain = C._quat((('Y', d['pitch']),))
+    move = plain @ p - full @ p
+    d['dx'] += move.x; d['dy'] += move.y; d['dz'] += move.z
+
+
+def build_jump(trick=t_plain, angle=38.0, lip=0.5, land_angle=31.0, land_drop=0.0, ramp='steel', flip=0, name='Jump', nose_hold=0.15,
+               pop=1.0, face=0.0, speed=1.0):
+    """Returns (frames, list of states, props). One keyed frame every 1/24 s.
+    pop: the share of the ramp's upward kick the bike keeps (a scrub soaks up the face and stays low).
+    face: how long before the lip the trick starts, as a share of the flight (a whip and a scrub start on the face).
+    speed: riding speed as a share of the normal speed (a scrub comes in faster, so it covers the same gap lower)."""
+    vel = V * speed
     dt = 1.0 / FPS
     Ta = 0.6                                    # time to reach riding speed
     tan_a = math.tan(math.radians(angle))
@@ -190,7 +270,7 @@ def build_jump(trick=t_plain, angle=38.0, lip=0.5, land_angle=31.0, land_drop=0.
     def ramp_fn(x):
         x = min(max(x, 0.0), Lr)
         return Rarc - math.sqrt(Rarc * Rarc - x * x)
-    s_at = lambda t: V * (t - Ta / 2) if t >= Ta else V * (t * t * t / (Ta * Ta) - t ** 4 / (2 * Ta ** 3))   # integral of V*smoothstep
+    s_at = lambda t: vel * (t - Ta / 2) if t >= Ta else vel * (t * t * t / (Ta * Ta) - t ** 4 / (2 * Ta ** 3))   # integral of vel*smoothstep
     xc0 = RA[0] + CREL[0]
     base = xc0 + s_at(Ta) + 0.35 + (FA[0] - xc0)
     lipx = base + Lr
@@ -209,7 +289,7 @@ def build_jump(trick=t_plain, angle=38.0, lip=0.5, land_angle=31.0, land_drop=0.
     kL = k - 1; tL = kL * dt
     L = frames[kL]
     cL = rot(CREL, L['phi']); zcL = L['zr'] + cL[1]
-    vz0 = V * tan_a
+    vz0 = vel * tan_a * pop
     # --- flight
     disc = vz0 * vz0 + 2 * G * land_drop
     T = (vz0 + math.sqrt(disc)) / G
@@ -270,13 +350,13 @@ def build_jump(trick=t_plain, angle=38.0, lip=0.5, land_angle=31.0, land_drop=0.
     toe_x = mound_x + up_len + top_len + down_len + 0.9
     t_brake = None; Tb = 0.8
     k = kT
-    s = sT; v = V
+    s = sT; v = vel
     gT = None
     while True:
         t = k * dt
         if t_brake is None and (xc0 + s - CREL[0]) > toe_x:
             t_brake = t
-        v = V if t_brake is None else V * (1 - sm(t, t_brake, t_brake + Tb))
+        v = vel if t_brake is None else vel * (1 - sm(t, t_brake, t_brake + Tb))
         xc = xc0 + s
         phi, xr, zr = ground_pose(terr, xc)
         if gT is None:
@@ -298,10 +378,15 @@ def build_jump(trick=t_plain, angle=38.0, lip=0.5, land_angle=31.0, land_drop=0.
         if fr['xr'] + FREL[0] >= base and t_load0 is None:
             t_load0 = fr['t']
     out = []; wr = wf = 0.0; prev_s = 0.0
-    land_v = abs(vz0 - G * T + V * tan_b) / 3.0             # how hard the landing is, roughly 0..1
+    land_v = abs(vz0 - G * T + vel * tan_b) / 3.0             # how hard the landing is, roughly 0..1
     A_r = 0.055 + 0.05 * min(1.0, land_v); A_f = 0.06 + 0.05 * min(1.0, land_v)
     for i, fr in enumerate(frames):
         t = fr['t']; d = state(); u = fr.get('u', 0.0)
+        tr = None
+        if fr['air'] == 1.0:
+            tr = trick(u)
+        elif face > 0 and t <= tL + 1e-6 and t > tL - face * T:
+            tr = trick((t - tL) / T)                  # on the face, before the lip
         c = rot(CREL, fr['phi'])
         d['pitch'] = fr['phi']; d['air'] = fr['air']
         d['dx'] = fr['xr'] - (fr['s'] + RA[0]); d['dz'] = fr['zr'] - RA[1]
@@ -311,15 +396,16 @@ def build_jump(trick=t_plain, angle=38.0, lip=0.5, land_angle=31.0, land_drop=0.
         flying = sm(t, tL, tL + 0.12) if t < tT else 0.0
         tau = t - tT
         after = (1 - sm(tau, 0, 0.07)) if t >= tT else 0.0
-        gout = bump(t, tT + down_len / V * 0.55, tT + down_len / V * 0.55 + 0.2, tT + down_len / V * 0.55 + 0.3, tT + down_len / V * 0.55 + 0.6) if t > tT else 0.0
+        gout = bump(t, tT + down_len / vel * 0.55, tT + down_len / vel * 0.55 + 0.2, tT + down_len / vel * 0.55 + 0.3, tT + down_len / vel * 0.55 + 0.6) if t > tT else 0.0
         brake = bump(t, t_brake, t_brake + 0.3, t_brake + Tb - 0.2, t_brake + Tb + 0.25) if t_brake is not None else 0.0
         d['squat'] = 0.02 * kick + 0.05 * load - droop_r * (flying + after) + A_r * shock(tau) + 0.02 * gout
         d['dive'] = -0.01 * kick + 0.055 * load - droop_f * (flying + after) + A_f * shock(tau - 0.03) + 0.025 * gout + 0.04 * brake
         if fr['air'] == 0.0 and t < tL:
             d['pitch'] += -4 * kick
         ds = fr['s'] - prev_s; prev_s = fr['s']
-        wr += math.degrees(ds / RR) if fr['air'] == 0 else math.degrees(V * dt / RR) * 1.15
-        wf += math.degrees(ds / RF) if fr['air'] == 0 else math.degrees(V * dt / RF) * (1 - 0.5 * u)
+        spin = tr[2].get('rear_spin', 1.15) if tr is not None else 1.15
+        wr += math.degrees(ds / RR) if fr['air'] == 0 else math.degrees(vel * dt / RR) * spin
+        wf += math.degrees(ds / RF) if fr['air'] == 0 else math.degrees(vel * dt / RF) * (1 - 0.5 * u)
         d['wr'] = wr; d['wf'] = wf
         # rider
         up = sm(t, 0.25, Ta + 0.1)
@@ -327,11 +413,16 @@ def build_jump(trick=t_plain, angle=38.0, lip=0.5, land_angle=31.0, land_drop=0.
         base_pose = blend(base_pose, ABSORB, 0.55 * load)
         pop = bump(t, tL - 0.1, tL + 0.05, tL + 0.15, tL + 0.4)
         base_pose = blend(base_pose, pose(hips=(0.05, 0, 0.16), spine=(0, 12, 0), head=(0, -10, 0)), 0.7 * pop)
-        if fr['air'] == 1.0:
-            tp, w, extra = trick(u)
+        if tr is not None:
+            tp, w, extra = tr
             base_pose = blend(base_pose, tp, w)
             for kx, vx in extra.items():
-                d[kx] = vx
+                if kx not in ('rear_spin', 'pivot'):
+                    d[kx] = vx
+            # leaving the lip, the turning point moves smoothly from the tyres to the steering head (a sudden switch made
+            # the bike jump between two frames when it was already leaned over, as in the scrub)
+            air_pivot = Vector(extra['pivot']) if 'pivot' in extra else AIR_PIVOT
+            turn_about(d, GROUND_PIVOT.lerp(air_pivot, sm(t, tL - 0.10, tL + 0.20)))
         hit = shock(tau, 0.14, 0.8)
         base_pose = blend(base_pose, ABSORB, max(0.0, min(1.0, 0.85 * hit)))
         if t_brake is not None:
@@ -418,6 +509,143 @@ def build_whoops(count=7, pitch_len=1.3, height=0.30, speed=3.3):
     return out, terr, dict(N=n - 1, t_brake=t_brake, x0=x0, x1=x1)
 
 
+def build_whoops_wheelie(count=7, pitch_len=1.3, height=0.30, speed=3.3, angle=38.0):
+    """Wheeling through the whoops (Boss's video, on rollers, 14 November 2026: the same technique). The bike comes in
+    level; the face of the first whoop kicks the front wheel up, and from then on the front stays up while the rear
+    wheel bounces from the top of one whoop to the top of the next, never dropping into the gaps between them; each
+    hit nudges the nose up a little more and it settles again before the next. The rider stands with knees bent, arms
+    nearly straight, weight back over the rear wheel. After the last whoop the front is set down and the rider brakes,
+    as in Whoops. Same whoops prop as Whoops (Boss's second note: not riding down between each one).
+    Third note (Boss, 14 November, from the video again): the rider's body hardly rises and falls; the bike does,
+    underneath him. Each whoop pushes the bike up into him (knees and elbows fold, chest comes forward over the bars,
+    the nose lifts) and over the back of it he pushes the bike away again (legs and arms extend, standing tall), so
+    his head travels in a nearly straight line while the bike pumps up and down below it."""
+    dt = 1.0 / FPS; Ta = 0.6; Tb = 0.8
+    xc0 = RA[0] + CREL[0]
+    s_at = lambda t: speed * (t - Ta / 2) if t >= Ta else speed * (t * t * t / (Ta * Ta) - t ** 4 / (2 * Ta ** 3))
+    x0 = xc0 + s_at(Ta) + 0.3 + (FA[0] - xc0); x1 = x0 + count * pitch_len
+    whoop = lambda x: height * (0.5 - 0.5 * math.cos(2 * math.pi * x / pitch_len))
+    terr = Terrain().add(x0, x1, whoop)
+    # The rear wheel's path: on the flat before, up the first face, then from crest to crest, falling only a little
+    # (a short hop under gravity) between them, then down off the last one.
+    crests = [x0 + (k + 0.5) * pitch_len for k in range(count)]
+    def rear_path(x):
+        # Off each top the rear wheel flies on in a short, falling hop and lands on the face of the next whoop below
+        # its top (Boss, 14 November), then rides up that face to the top: the suspension and the rider soak it.
+        ground = terr.axle(x, RR)
+        if x < crests[0] or x > crests[-1]:
+            return ground
+        k = min(count - 2, int((x - crests[0]) // pitch_len)); a = crests[k]
+        dx = x - a; tau = dx / speed
+        # off the top the rider pushes the bike down (Boss, the third note), so it falls faster than gravity alone and
+        # meets the next face about half way up it
+        hop = height + RR - 0.75 * G * tau * tau
+        return max(ground, hop)
+    t_kick = (x0 + 0.3 * pitch_len - (RA[0] + FREL[0])) / speed + Ta / 2      # the front wheel meets the first face
+    t_out = (crests[-1] + 0.4 - RA[0]) / speed + Ta / 2                        # the rear wheel leaves the last top
+    raw = []; k = 0; s = 0.0; t_brake = None
+    while True:
+        t = k * dt
+        if t_brake is None:
+            s = s_at(t)
+            if t >= t_out + 0.6:
+                t_brake = t
+        v = speed if t_brake is None else speed * (1 - sm(t, t_brake, t_brake + Tb))
+        xr = RA[0] + s
+        raw.append(dict(t=t, s=s, xr=xr, zr=rear_path(xr), v=v))
+        if t_brake is not None and t >= t_brake + Tb + 0.25:
+            break
+        if t_brake is not None:
+            s += v * dt
+        k += 1
+    if (len(raw) - 1) % 2:
+        raw.append(dict(raw[-1], t=raw[-1]['t'] + dt))
+    n = len(raw)
+    def smooth(i, r=4):
+        tot = w = 0.0
+        for j in range(i - r, i + r + 1):
+            jj = min(n - 1, max(0, j)); ww = r + 1 - abs(j - i)
+            tot += raw[jj]['zr'] * ww; w += ww
+        return tot / w
+    zs = [smooth(i) for i in range(n)]                  # where the chassis goes: the suspension takes the difference
+    zb = [smooth(i, 10) for i in range(n)]              # where the rider's body goes: about one whoop's worth of smoothing
+    out = []; wr = wf = 0.0; prev = 0.0; fspin = 1.0
+    for i, fr in enumerate(raw):
+        t = fr['t']; d = state()
+        lift = smoother(t, t_kick, t_kick + 0.35) * (1 - smoother(t, t_out, t_out + 0.4))
+        inside = sm(t, t_kick, t_kick + 0.2) * (1 - sm(t, t_out - 0.1, t_out + 0.2))
+        # each top the rear wheel lands on nudges the nose up, and it settles before the next
+        xr = fr['xr']; f = ((xr - crests[0]) / pitch_len) % 1.0 if crests[0] <= xr <= crests[-1] else 0.5
+        climb = max(0.0, (raw[min(n - 1, i + 1)]['zr'] - raw[max(0, i - 1)]['zr']) / (2 * dt * speed))
+        nudge = 9.0 * min(1.0, climb) * inside             # the hit on each face nudges the nose up
+        kick = bump(t, 0, 0.25, 0.33, 0.7)
+        drop = t - (t_out + 0.4)                                                     # the front wheel lands
+        d['air'] = 1.0
+        d['pitch'] = -(angle * lift + nudge) - 4 * kick
+        d['dx'] = 0.0
+        hit = nudge / 9.0
+        soak = max(-0.04, min(0.06, 0.6 * (fr['zr'] - zs[i]))) * inside
+        d['dz'] = fr['zr'] - soak - RA[1] - 0.025 * lift
+        # how far the bike is pushed up into the rider (+) or away below him (-): his legs and arms take it
+        rel = max(-0.10, min(0.13, fr['zr'] - soak - zb[i])) * inside
+        d['pitch'] -= 12.0 * rel                           # pushed up, the nose lifts; pushed away, it settles
+        brake = bump(t, t_brake, t_brake + 0.3, t_brake + Tb - 0.2, t_brake + Tb + 0.2) if t_brake is not None else 0.0
+        d['squat'] = soak + 0.025 * lift + 0.02 * kick + 0.05 * shock(drop, 0.08, 0.5)
+        d['dive'] = -0.045 * lift + 0.07 * shock(drop - 0.02, 0.08, 0.5) + 0.04 * brake
+        ds = fr['s'] - prev; prev = fr['s']
+        wr += math.degrees(ds / RR) * (1 + 0.15 * lift)
+        fspin = 1.0 if lift < 0.05 else max(0.55, fspin - 0.004)
+        wf += math.degrees(ds / RF) * fspin
+        d['wr'] = wr; d['wf'] = wf
+        up = sm(t, 0.25, Ta + 0.1)
+        p = blend(blend(REST, SEATED_FWD, bump(t, 0, 0.3, 0.4, 0.8)), ATTACK, up)
+        # standing, knees bent, arms nearly straight, weight back over the rear wheel; the knees take each hit
+        # (the legs and arms soaking each whoop are added after this loop, once the whole path is known)
+        wheel = pose(hips=WW_HIPS, hipsrot=(0, 18, 0), spine=(0, WW_SPINE, 0), head=(0, -20, 0))
+        p = blend(p, wheel, lift)
+        p = blend(p, ABSORB, max(0.0, min(1.0, 0.6 * shock(drop, 0.12, 0.5))))
+        if t_brake is not None:
+            down = sm(t, t_brake + 0.15, t_brake + Tb)
+            p = blend(p, blend(REST, pose(spine=(0, 5, 0)), bump(t, t_brake, t_brake + 0.4, t_brake + Tb - 0.2, t_brake + Tb + 0.25)), down)
+        for kx in RIDER_KEYS:
+            d[kx] = p[kx]
+        hp = d['head']; d['head'] = (hp[0], hp[1] - 0.6 * d['pitch'], hp[2])
+        d['_s'] = fr['s']; d['_inside'] = inside
+        out.append(d)
+    absorb_whoops(out)
+    return out, terr, dict(N=n - 1, t_brake=t_brake, x0=x0, x1=x1, t_kick=t_kick, t_out=t_out)
+
+
+WW_HIPS = (0.03, 0.0, 0.14)    # wheelie stance: forward enough over the bars that the elbows are bent, so the arms can
+WW_SPINE = 14.0                # straighten when the bike drops away (the arm rig has only about 3 cm to spare)
+WW_ABSORB = 0.9                # how much of the bike's rise and fall the rider's legs and arms take out
+
+
+def _hips_world_z(d):
+    p = HIPS_HEAD + Vector(d['hips']) - Vector((RA[0], 0.0, RA[1]))
+    q = Quaternion(Vector((0.0, 1.0, 0.0)), math.radians(d['pitch']))
+    return (q @ p).z + RA[1] + d['dz']
+
+
+def absorb_whoops(out, r=10):
+    """The rider's body goes on in a nearly straight line while the bike pumps up and down beneath it (Boss's rollers
+    video): the hips are moved, in the bike's frame, against the bike's rise and fall about a path smoothed over
+    roughly one whoop, and the back bends forward over the bars as the bike comes up into the rider."""
+    n = len(out); z = [_hips_world_z(d) for d in out]
+    for i, d in enumerate(out):
+        tot = w = 0.0
+        for j in range(i - r, i + r + 1):
+            jj = min(n - 1, max(0, j)); ww = r + 1 - abs(j - i)
+            tot += z[jj] * ww; w += ww
+        dzw = max(-0.12, min(0.10, WW_ABSORB * (tot / w - z[i]))) * d['_inside']
+        q = Quaternion(Vector((0.0, 1.0, 0.0)), math.radians(d['pitch']))
+        off = q.inverted() @ Vector((0.0, 0.0, dzw))
+        d['hips'] = tuple(Vector(d['hips']) + off)
+        fold = max(0.0, -dzw)                                   # the bike pushed up into him: chest forward, head up
+        sp = d['spine']; d['spine'] = (sp[0], sp[1] + 260 * fold, sp[2])
+        hp = d['head']; d['head'] = (hp[0], hp[1] - 200 * fold, hp[2])
+
+
 # ================================================================= stoppie
 def build_stoppie(peak=40.0):
     """Hard on the front brake: the forks dive, the rear wheel comes up, the rider balances it and sets it back down."""
@@ -465,14 +693,16 @@ def animations():
     def jump(name, **kw):
         A.append(dict(name=name, stage='air', build=lambda kw=kw, name=name: build_jump(name=name, **kw)))
     jump('Jump', trick=t_plain, angle=30.0, lip=0.5, land_angle=26.0, ramp='dirt')
-    jump('Whip', trick=t_whip, angle=32.0, lip=0.55, land_angle=27.0, ramp='dirt')
-    jump('Scrub', trick=t_scrub, angle=24.0, lip=0.42, land_angle=22.0, ramp='dirt', nose_hold=0.0)
+    jump('Whip', trick=t_whip, angle=32.0, lip=0.55, land_angle=27.0, ramp='dirt', face=0.30)
+    # The same jump as the whip (Boss, 14 November): it comes in faster and soaks up the kick, so it covers the same gap
+    # at about half the height.
+    jump('Scrub', trick=t_scrub, angle=32.0, lip=0.55, land_angle=27.0, ramp='dirt', nose_hold=0.0, pop=0.52, speed=1.38, face=0.40)
     jump('Backflip', trick=t_backflip, flip=1)
     jump('Superman', trick=t_superman)
     jump('SupermanSeatGrab', trick=t_seat_grab)
     jump('NoHander', trick=t_no_hander)
-    jump('NoFooter', trick=t_no_footer)
-    jump('Nothing', trick=t_nothing)
+    jump('Nothing', trick=t_nothing)                      # NoFooter was taken out on 14 November (Boss)
+    jump('BarHop', trick=t_bar_hop)
     jump('HeelClicker', trick=t_heel_clicker)
     jump('CanCan', trick=t_can_can)
     jump('NacNac', trick=t_nac_nac)
@@ -481,6 +711,7 @@ def animations():
     jump('IndianAir', trick=t_indian_air)
     jump('RockSolid', trick=t_rock_solid)
     A.append(dict(name='Whoops', stage='ground', build=build_whoops))
+    A.append(dict(name='WhoopsWheelie', stage='ground', build=build_whoops_wheelie))
     A.append(dict(name='Stoppie', stage='ground', build=build_stoppie))
     return A
 

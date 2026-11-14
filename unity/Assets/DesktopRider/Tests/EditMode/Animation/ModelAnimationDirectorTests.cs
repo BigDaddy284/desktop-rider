@@ -52,6 +52,8 @@ namespace DesktopRider.Animation.Tests
             director.Advance(Seconds(0.05), moving: false);
 
             director.Advance(Seconds(0.05), moving: true);
+            Assert.Equal(ModelAnimationDirector.StartClip, director.Clip);   // setting off: the start first
+            Run(director, 30.0 / 24 + 0.1, moving: true);
             Assert.Equal(ModelAnimationDirector.RidingClip, director.Clip);
             int starts = director.Starts;
 
@@ -85,7 +87,7 @@ namespace DesktopRider.Animation.Tests
             for (int i = 0; i < 30 * 20; i++)
             {
                 director.Advance(Seconds(0.05), moving: true);
-                Assert.Equal(ModelAnimationDirector.RidingClip, director.Clip);
+                Assert.Contains(director.Clip, new[] { ModelAnimationDirector.StartClip, ModelAnimationDirector.RidingClip });
             }
         }
 
@@ -155,6 +157,58 @@ namespace DesktopRider.Animation.Tests
 
             // Wheelie, Wheelie again, then back to Idle: three fresh starts.
             Assert.InRange(director.Starts - startsBefore, 3, 4);
+        }
+
+        [Test]
+        public void SettingOff_PlaysTheStartOnce_ThenRides()
+        {
+            var director = new ModelAnimationDirector(new Random(1)) { IdleAnimations = false };
+            director.Advance(Seconds(0.05), moving: false);
+            var seen = new System.Collections.Generic.List<string>();
+
+            for (int i = 0; i < 100; i++)
+            {
+                director.Advance(Seconds(0.05), moving: true);
+                if (seen.Count == 0 || seen[seen.Count - 1] != director.Clip) seen.Add(director.Clip);
+            }
+
+            Assert.Equal(new[] { "RideOff", "RidingLoop" }, seen.ToArray());
+        }
+
+        [Test]
+        public void TheStart_TakesAsLongAsItsClip_AtTheChosenSpeed()
+        {
+            var director = new ModelAnimationDirector(new Random(1)) { IdleAnimations = false, Speed = 2 };
+            director.Advance(Seconds(0.05), moving: true);
+
+            Run(director, 30.0 / 24 / 2 - 0.15, moving: true);
+            Assert.Equal("RideOff", director.Clip);
+            Run(director, 0.25, moving: true);
+            Assert.Equal("RidingLoop", director.Clip);
+        }
+
+        [Test]
+        public void StoppingAndSettingOffAgain_PlaysTheStartAgain()
+        {
+            var director = new ModelAnimationDirector(new Random(1)) { IdleAnimations = false };
+            Run(director, 3, moving: true);
+            Run(director, 1, moving: false);
+
+            director.Advance(Seconds(0.05), moving: true);
+
+            Assert.Equal("RideOff", director.Clip);
+        }
+
+        [Test]
+        public void AfterATrickWhileRolling_GoesStraightBackToRiding()
+        {
+            var director = new ModelAnimationDirector(new Random(1)) { IdleAnimations = false };
+            Run(director, 3, moving: true);
+
+            director.Perform("Wheelie");
+            Run(director, 60.0 / 24 + 0.5, moving: true);
+
+            Assert.Equal("RidingLoop", director.Clip);
         }
 
         [Test]
