@@ -188,6 +188,13 @@ namespace DesktopRider.EditorTools
             rider.transform.position = Vector3.zero;
             CreateShadow(rider.transform, log);
 
+            // Settings, tray icon and menu: applied to this rider and window when the program starts.
+            var host = overlay.AddComponent<AppHost>();
+            host.rider = free;
+            host.viewCamera = camera;
+            host.overlayWindow = overlay.GetComponent<OverlayWindow>();
+            log.AppendLine("app host added (settings, tray icon, menu)");
+
             var scene = EditorSceneManager.GetActiveScene();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);

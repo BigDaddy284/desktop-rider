@@ -442,3 +442,22 @@ Automated tests cannot see the desktop. With the proof running:
 4. Ctrl+Shift+Q closes it. `Builds/Proof/proof-stats.txt` records frame rate, memory and processor use every 5 s.
 
 Status on 13 November 2026: steps 1 and 3 confirmed by Boss on the PC. Step 2 still to confirm.
+
+### 9. Desktop basics: manual check (phase 2)
+
+With the built program running:
+
+1. A rider icon appears beside the clock. Left click hides the rider; left click again brings it back.
+2. Right click opens the menu: hide or show, always on top, move back to the middle, ride around freely, start with
+   Windows, exit. Ticks match the current state.
+3. "Ride around freely" off: the rider stays where it was put and can still be dragged. On: it rides about every screen.
+4. With two screens, the rider can be dragged to and ride on both, never into a gap between them.
+5. At 150% screen scaling the rider is drawn 1.5 times bigger than at 100%.
+6. "Start with Windows" adds `Desktop Rider 3D` under HKCU\Software\Microsoft\Windows\CurrentVersion\Run, and
+   unticking removes it.
+7. Close and reopen: the rider is where it was left.
+
+Status on 14 November 2026: not yet run (written with the PC off).
+
+The Unity scripts can be compile-checked outside Unity by building them against the `UnityEngine.Modules` 2021.3.33
+reference package with `UNITY_STANDALONE_WIN` defined. This catches most mistakes but is not a substitute for Unity 6.

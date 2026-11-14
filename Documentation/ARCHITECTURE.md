@@ -390,3 +390,19 @@ the screen, at a fraction of the drawing cost. The desktop is the ground plane a
 
 `FreeRider` (Scripts/Riding) moves the rider on that plane. Its arithmetic is in `RiderSteering`, which has no scene
 or clock and is unit tested. The model sits under a `Lean` object that rolls into turns.
+
+### Screens, tray and settings (version 2.0, phase 2)
+
+Positions in the Unity version are desktop pixels: measured from the top-left corner of the area that holds every
+screen, so they are never negative. `RidingArea` (Logic/Core/Desktop) holds each screen's work area in those pixels and
+`OverlayWindow.WindowsOffset` converts to and from Windows' own coordinates. The screens are read at start and again
+when Windows broadcasts a display or work-area change, which the tray icon's hidden window receives, so nothing polls.
+
+The rider and its window are drawn bigger by Windows' screen scaling for the main screen (`OverlayWindow.ScaleFactor`)
+and by the rider-size setting. Screens with different scaling use the main screen's; mixed scaling is a known
+limitation for now.
+
+`AppHost` (Scripts/Overlay) is the composition root: it makes the core services, loads the settings off the main
+thread, builds the tray view model with its menu contributors (free riding, start with Windows), and applies settings
+to the scene on the main thread through `MainThread.Post`. The tray icon is plain Windows calls (`TrayIcon`), because
+Unity has no tray support and Unity's class library has no Windows Forms or registry access.

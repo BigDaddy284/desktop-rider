@@ -239,3 +239,33 @@ settings windows on top of `RiderServices`.
 #### Next
 
 - Optional, if the owner asks: repaint the peak's right side to the black-with-stripes look of the real helmet.
+
+## Phase 2: desktop app basics for the 3D rider (in progress, 14 November 2026)
+
+Order of the remaining phases, as Boss set it on 14 November 2026: desktop basics (this phase), then parked mode and
+the free-riding setting, the riding style, tricks and ramps, the chat (Boss has a different idea for it, still using
+Ollama; to be discussed when it is reached), then settings and the final check.
+
+#### Done so far (written overnight with the PC off; Unity side not yet compiled in Unity)
+
+- `RidingArea` (Logic/Core/Desktop): every screen's work area in desktop pixels, starting at 0,0 even when a screen is
+  left of or above the main one. Keeps the rider off gaps between screens of different sizes, picks places to ride to,
+  usually on the same screen and sometimes on another.
+- `TrayMenuPlan`: turns the tray view model's menu into numbered lines for a Windows pop-up menu.
+- `StartWithWindows`: the "Start with Windows" tray line and the per-user sign-in list (Run key), off by default.
+  Fixes the stored path if the program moves.
+- `FreeRidingMenu`: the "Ride around freely" tray line. Off by default, as the plan says: the rider stays parked.
+- Unity side: `TrayIcon` (Shell_NotifyIcon with a hidden window; left click hides or shows, right click opens the
+  menu, the hidden-rider reminder, icon re-added if Explorer restarts, screen-change notices), `RiderIcon` (the icon is
+  drawn from the 3D model at start-up), `WindowsStartupRegistry`, `MainThread`, and `AppHost`, which loads the settings
+  and applies them: shown or hidden (hidden draws nothing), always on top, rider size, free riding or parked, and the
+  last position. `OverlayWindow` now covers every screen and scales with Windows' screen scaling.
+- Version 2 keeps its settings in `%LOCALAPPDATA%\DesktopRider3D`, separate from version 1's, so the two can run side by
+  side during development without changing each other's settings.
+- Logic tests: 667 passed, 0 failed (`dotnet test` in `logic-tests`). The Unity scripts compile against the Unity
+  2021.3 module references outside Unity; the real check in Unity 6 is still to do.
+
+#### Still to do in this phase
+
+- Compile and run the Unity tests on the PC, build, and check by hand: tray menu, hide and show, always on top,
+  two screens, 150% scaling, start with Windows, position kept after a restart.
