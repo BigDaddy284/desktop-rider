@@ -432,4 +432,9 @@ build v2.0 into a Windows program to share with the kids.
   Nothing in the running app used them (chat was already hidden), so the rider behaves exactly as before. A settings
   file from a version with chat still loads (new test); its chat parts are ignored.
 - The version 1 desktop program under `src/` (WPF) is left as it was; it is not what is built or shared.
-- Logic tests: 332 pass (the 404 removed were the AI tests and AI settings checks).
+- Logic tests: 332 pass; Unity tests on the PC: 381 pass (the 404 removed were the AI tests and AI settings checks).
+- On Boss's PC the AI files were moved out of the Unity project (not deleted) into `V3 chat files (not in v2)` beside
+  Assets, ready to put back for v3.0.
+- Shared program: `Builds/Share/Desktop Rider v2.0.zip` (55 MB, 207 files): the built program folder without Unity's
+  debug-symbol folder or the checking files, plus "How to start.txt". Unzip and double-click DesktopRider3D.exe; no
+  install. Not signed, so Windows SmartScreen asks once ("More info", "Run anyway").
