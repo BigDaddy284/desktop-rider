@@ -24,7 +24,7 @@ namespace DesktopRider.AI.Tests
         [TestCase("can you do a superman", "Superman")]
         [TestCase("superman seat grab please", "SupermanSeatGrab")]
         [TestCase("try a no-hander", "NoHander")]
-        [TestCase("do a no footer", "NoFooter")]
+        [TestCase("do a bar hop", "BarHop")]
         [TestCase("no hands and no feet this time", "Nothing")]
         [TestCase("heel clicker!", "HeelClicker")]
         [TestCase("do a can-can", "CanCan")]
@@ -35,6 +35,7 @@ namespace DesktopRider.AI.Tests
         [TestCase("indian air!", "IndianAir")]
         [TestCase("do a rock solid", "RockSolid")]
         [TestCase("go and hit the whoops", "Whoops")]
+        [TestCase("wheelie through the whoops", "WhoopsWheelie")]
         [TestCase("do a stoppie", "Stoppie")]
         [TestCase("do a nose wheelie", "Stoppie")]
         public void FromRequest_RecognisesPlainRequests(string message, string animation)
@@ -104,8 +105,11 @@ namespace DesktopRider.AI.Tests
         {
             var names = RiderActions.Tricks.Select(action => action.Animation).ToList();
 
-            Assert.Equal(19, names.Count);
+            Assert.Equal(20, names.Count);
             Assert.Contains("Wheelie", names);
+            Assert.Contains("BarHop", names);
+            Assert.Contains("WhoopsWheelie", names);
+            Assert.DoesNotContain("NoFooter", names);
             Assert.Contains("Backflip", names);
             Assert.Contains("Whoops", names);
             Assert.DoesNotContain("Sleeping", names);

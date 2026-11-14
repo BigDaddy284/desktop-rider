@@ -63,9 +63,9 @@ namespace DesktopRider.AI
             new("superman", "Superman", RiderActionKind.Trick, "do a superman, flying flat out behind the bike", new[] { "superman" }),
             new("seat-grab", "SupermanSeatGrab", RiderActionKind.Trick, "do a superman seat grab, holding on by the seat", new[] { "seat grab", "seatgrab", "superman seat grab" }),
             new("no-hander", "NoHander", RiderActionKind.Trick, "jump with both hands off the bars", new[] { "no hander", "nohander", "no handed", "no hands" }),
-            new("no-footer", "NoFooter", RiderActionKind.Trick, "jump with both feet off the pegs", new[] { "no footer", "nofooter", "no feet" }),
             new("nothing", "Nothing", RiderActionKind.Trick, "do a nothing: no hands and no feet in the air", new[] { "do a nothing", "nothing trick", "no hands no feet", "no hands and no feet" }),
-            new("heel-clicker", "HeelClicker", RiderActionKind.Trick, "do a heel clicker, clicking the boots together over the bars", new[] { "heel clicker", "heelclicker", "click your heels" }),
+            new("bar-hop", "BarHop", RiderActionKind.Trick, "do a bar hop, bringing both feet up between the arms and over the bars", new[] { "bar hop", "barhop", "bar hops" }),
+            new("heel-clicker", "HeelClicker", RiderActionKind.Trick, "do a heel clicker, bringing the legs round the arms and clicking the boots together in front of the chest", new[] { "heel clicker", "heelclicker", "click your heels" }),
             new("can-can", "CanCan", RiderActionKind.Trick, "do a can-can, swinging one leg over the seat", new[] { "can can", "cancan" }),
             new("nac-nac", "NacNac", RiderActionKind.Trick, "do a nac-nac, swinging one leg back over the rear wheel", new[] { "nac nac", "nacnac", "nac" }),
             new("lazy-boy", "LazyBoy", RiderActionKind.Trick, "do a lazy boy, lying back flat on the seat in the air", new[] { "lazy boy", "lazyboy" }),
@@ -74,6 +74,7 @@ namespace DesktopRider.AI
             new("indian-air", "IndianAir", RiderActionKind.Trick, "do an indian air: a superman with the legs scissoring", new[] { "indian air", "indianair" }),
             new("rock-solid", "RockSolid", RiderActionKind.Trick, "do a rock solid, letting go with both hands and floating above the bike", new[] { "rock solid", "rocksolid" }),
             new("whoops", "Whoops", RiderActionKind.Trick, "blitz through a supercross whoop section", new[] { "whoops section", "whoop section", "hit the whoops", "ride the whoops", "through the whoops", "do the whoops", "do some whoops", "skim the whoops", "blitz the whoops" }),
+            new("whoops-wheelie", "WhoopsWheelie", RiderActionKind.Trick, "wheelie through a supercross whoop section with the front wheel up", new[] { "wheelie through the whoops", "wheelie the whoops", "wheelie through whoops", "wheelie over the whoops", "wheelie the whoop section" }),
             new("stoppie", "Stoppie", RiderActionKind.Trick, "do a stoppie, lifting the rear wheel on the front brake", new[] { "stoppie", "stoppy", "endo", "nose wheelie" }),
         };
 

@@ -320,6 +320,19 @@ Ollama; to be discussed when it is reached), then settings and the final check.
     room is measured from its clip, frame by frame (`TrickExtents`), and the window is the shape of the trick, kept on the
     desktop (`FreeRider.TrickWindow`). All 18 tricks checked frame by frame with the new Trick Viewer: nothing outside.
   - Unity tests: 754 passed, 0 failed. Build succeeded.
+  - Trick review with Boss (14 November):
+    - NoFooter taken out. The old HeelClicker was really a bar hop (legs between the arms): renamed BarHop. A new
+      HeelClicker brings the legs round the outside of the arms (knee pole targets, added only in the export session)
+      and clicks the heels once in front of the chest.
+    - Whip and Scrub rebuilt from written technique guides: both start on the face; the whip lays the bike near flat
+      with the back end swung out about the steering head and the rear wheel slowing then spinning up; the scrub
+      leans over on the face, keeps 62% of the kick so it stays low, and is upright again for the landing.
+    - NacNac: the back of the bike kicks out away from the rider. Indian Air: body twisted onto its side. Nothing:
+      legs trail less far back. Stoppie and every other trick: the hips move just enough that a hand holding the
+      bar can always reach it (`keep_hands_on`).
+    - New WhoopsWheelie from Boss's video: front wheel up through the whole whoop section, rider standing.
+    - `Tools/Blender/trick_check.py` renders any trick from four angles and measures hand and foot gaps.
+    - Unity tests: 755 passed. Trick Viewer check: 19 tricks, 0 frames outside the window. Build succeeded.
 
 #### Still to do in this phase
 

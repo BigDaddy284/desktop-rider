@@ -254,7 +254,7 @@ namespace DesktopRider.Animation.Tests
             new[]
             {
                 "Wheelie", "Celebration", "Revving", "Sleeping", "RidingLoop", "LookLeft", "LookRight",
-                "Jump", "Whip", "Backflip", "Superman", "SupermanSeatGrab", "NoHander", "NoFooter", "Nothing",
+                "Jump", "Whip", "Backflip", "Superman", "SupermanSeatGrab", "NoHander", "Nothing",
                 "HeelClicker", "CanCan", "NacNac", "LazyBoy", "OneHander", "Scrub", "IndianAir", "RockSolid", "Whoops", "Stoppie",
             };
 
