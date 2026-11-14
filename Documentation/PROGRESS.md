@@ -343,6 +343,12 @@ Ollama; to be discussed when it is reached), then settings and the final check.
     and out (trick_check.py prints the worst frame-to-frame change of axle motion as "jerk"; mid-air spikes went from
     61 to 16 mm). WhoopsWheelie: the rear wheel lands on the face of each whoop about 8 cm below the top and the
     suspension soaks each hit. Unity tests 755/755, every trick inside its window, build OK.
+  - Fourth review (14 November), WhoopsWheelie from Boss's rollers video: the rider's body now glides while the bike
+    pumps beneath it. After the path is built, absorb_whoops() moves the hips against the bike's rise and fall (about
+    one whoop's worth of smoothing) and folds the back forward as the bike comes up into him; the stance is a little
+    lower and further forward so the arms have room to straighten when the bike drops away. Measured per whoop: the
+    bike moves about 9 cm, the head about 1 cm (it was moving with the bike); hands stay on the bars. The rear wheel
+    now meets each face about half way up (16 cm below the top). Unity tests 755/755, all tricks inside their windows.
 
 #### Still to do in this phase
 

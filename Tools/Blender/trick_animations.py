@@ -509,13 +509,17 @@ def build_whoops(count=7, pitch_len=1.3, height=0.30, speed=3.3):
     return out, terr, dict(N=n - 1, t_brake=t_brake, x0=x0, x1=x1)
 
 
-def build_whoops_wheelie(count=7, pitch_len=1.3, height=0.30, speed=3.3, angle=32.0):
+def build_whoops_wheelie(count=7, pitch_len=1.3, height=0.30, speed=3.3, angle=38.0):
     """Wheeling through the whoops (Boss's video, on rollers, 14 November 2026: the same technique). The bike comes in
     level; the face of the first whoop kicks the front wheel up, and from then on the front stays up while the rear
     wheel bounces from the top of one whoop to the top of the next, never dropping into the gaps between them; each
     hit nudges the nose up a little more and it settles again before the next. The rider stands with knees bent, arms
     nearly straight, weight back over the rear wheel. After the last whoop the front is set down and the rider brakes,
-    as in Whoops. Same whoops prop as Whoops (Boss's second note: not riding down between each one)."""
+    as in Whoops. Same whoops prop as Whoops (Boss's second note: not riding down between each one).
+    Third note (Boss, 14 November, from the video again): the rider's body hardly rises and falls; the bike does,
+    underneath him. Each whoop pushes the bike up into him (knees and elbows fold, chest comes forward over the bars,
+    the nose lifts) and over the back of it he pushes the bike away again (legs and arms extend, standing tall), so
+    his head travels in a nearly straight line while the bike pumps up and down below it."""
     dt = 1.0 / FPS; Ta = 0.6; Tb = 0.8
     xc0 = RA[0] + CREL[0]
     s_at = lambda t: speed * (t - Ta / 2) if t >= Ta else speed * (t * t * t / (Ta * Ta) - t ** 4 / (2 * Ta ** 3))
@@ -526,14 +530,16 @@ def build_whoops_wheelie(count=7, pitch_len=1.3, height=0.30, speed=3.3, angle=3
     # (a short hop under gravity) between them, then down off the last one.
     crests = [x0 + (k + 0.5) * pitch_len for k in range(count)]
     def rear_path(x):
-        # Off each top the rear wheel flies on in a short, falling hop and lands on the face of the next whoop a
-        # little below its top (Boss, 14 November), then rides up that face to the top: the suspension soaks it.
+        # Off each top the rear wheel flies on in a short, falling hop and lands on the face of the next whoop below
+        # its top (Boss, 14 November), then rides up that face to the top: the suspension and the rider soak it.
         ground = terr.axle(x, RR)
         if x < crests[0] or x > crests[-1]:
             return ground
         k = min(count - 2, int((x - crests[0]) // pitch_len)); a = crests[k]
         dx = x - a; tau = dx / speed
-        hop = height + RR + 0.17 * tau - 0.5 * G * tau * tau             # off the top with a little lift, then falling
+        # off the top the rider pushes the bike down (Boss, the third note), so it falls faster than gravity alone and
+        # meets the next face about half way up it
+        hop = height + RR - 0.75 * G * tau * tau
         return max(ground, hop)
     t_kick = (x0 + 0.3 * pitch_len - (RA[0] + FREL[0])) / speed + Ta / 2      # the front wheel meets the first face
     t_out = (crests[-1] + 0.4 - RA[0]) / speed + Ta / 2                        # the rear wheel leaves the last top
@@ -562,6 +568,7 @@ def build_whoops_wheelie(count=7, pitch_len=1.3, height=0.30, speed=3.3, angle=3
             tot += raw[jj]['zr'] * ww; w += ww
         return tot / w
     zs = [smooth(i) for i in range(n)]                  # where the chassis goes: the suspension takes the difference
+    zb = [smooth(i, 10) for i in range(n)]              # where the rider's body goes: about one whoop's worth of smoothing
     out = []; wr = wf = 0.0; prev = 0.0; fspin = 1.0
     for i, fr in enumerate(raw):
         t = fr['t']; d = state()
@@ -577,8 +584,11 @@ def build_whoops_wheelie(count=7, pitch_len=1.3, height=0.30, speed=3.3, angle=3
         d['pitch'] = -(angle * lift + nudge) - 4 * kick
         d['dx'] = 0.0
         hit = nudge / 9.0
-        soak = max(-0.04, min(0.11, fr['zr'] - zs[i])) * inside
+        soak = max(-0.04, min(0.06, 0.6 * (fr['zr'] - zs[i]))) * inside
         d['dz'] = fr['zr'] - soak - RA[1] - 0.025 * lift
+        # how far the bike is pushed up into the rider (+) or away below him (-): his legs and arms take it
+        rel = max(-0.10, min(0.13, fr['zr'] - soak - zb[i])) * inside
+        d['pitch'] -= 12.0 * rel                           # pushed up, the nose lifts; pushed away, it settles
         brake = bump(t, t_brake, t_brake + 0.3, t_brake + Tb - 0.2, t_brake + Tb + 0.2) if t_brake is not None else 0.0
         d['squat'] = soak + 0.025 * lift + 0.02 * kick + 0.05 * shock(drop, 0.08, 0.5)
         d['dive'] = -0.045 * lift + 0.07 * shock(drop - 0.02, 0.08, 0.5) + 0.04 * brake
@@ -590,7 +600,8 @@ def build_whoops_wheelie(count=7, pitch_len=1.3, height=0.30, speed=3.3, angle=3
         up = sm(t, 0.25, Ta + 0.1)
         p = blend(blend(REST, SEATED_FWD, bump(t, 0, 0.3, 0.4, 0.8)), ATTACK, up)
         # standing, knees bent, arms nearly straight, weight back over the rear wheel; the knees take each hit
-        wheel = pose(hips=(-0.03, 0, 0.24 - 0.9 * max(0.0, soak) - 0.04 * hit), hipsrot=(0, 18, 0), spine=(0, 8 + 40 * max(0.0, soak), 0), head=(0, -20, 0))
+        # (the legs and arms soaking each whoop are added after this loop, once the whole path is known)
+        wheel = pose(hips=WW_HIPS, hipsrot=(0, 18, 0), spine=(0, WW_SPINE, 0), head=(0, -20, 0))
         p = blend(p, wheel, lift)
         p = blend(p, ABSORB, max(0.0, min(1.0, 0.6 * shock(drop, 0.12, 0.5))))
         if t_brake is not None:
@@ -599,9 +610,40 @@ def build_whoops_wheelie(count=7, pitch_len=1.3, height=0.30, speed=3.3, angle=3
         for kx in RIDER_KEYS:
             d[kx] = p[kx]
         hp = d['head']; d['head'] = (hp[0], hp[1] - 0.6 * d['pitch'], hp[2])
-        d['_s'] = fr['s']
+        d['_s'] = fr['s']; d['_inside'] = inside
         out.append(d)
+    absorb_whoops(out)
     return out, terr, dict(N=n - 1, t_brake=t_brake, x0=x0, x1=x1, t_kick=t_kick, t_out=t_out)
+
+
+WW_HIPS = (0.03, 0.0, 0.14)    # wheelie stance: forward enough over the bars that the elbows are bent, so the arms can
+WW_SPINE = 14.0                # straighten when the bike drops away (the arm rig has only about 3 cm to spare)
+WW_ABSORB = 0.9                # how much of the bike's rise and fall the rider's legs and arms take out
+
+
+def _hips_world_z(d):
+    p = HIPS_HEAD + Vector(d['hips']) - Vector((RA[0], 0.0, RA[1]))
+    q = Quaternion(Vector((0.0, 1.0, 0.0)), math.radians(d['pitch']))
+    return (q @ p).z + RA[1] + d['dz']
+
+
+def absorb_whoops(out, r=10):
+    """The rider's body goes on in a nearly straight line while the bike pumps up and down beneath it (Boss's rollers
+    video): the hips are moved, in the bike's frame, against the bike's rise and fall about a path smoothed over
+    roughly one whoop, and the back bends forward over the bars as the bike comes up into the rider."""
+    n = len(out); z = [_hips_world_z(d) for d in out]
+    for i, d in enumerate(out):
+        tot = w = 0.0
+        for j in range(i - r, i + r + 1):
+            jj = min(n - 1, max(0, j)); ww = r + 1 - abs(j - i)
+            tot += z[jj] * ww; w += ww
+        dzw = max(-0.12, min(0.10, WW_ABSORB * (tot / w - z[i]))) * d['_inside']
+        q = Quaternion(Vector((0.0, 1.0, 0.0)), math.radians(d['pitch']))
+        off = q.inverted() @ Vector((0.0, 0.0, dzw))
+        d['hips'] = tuple(Vector(d['hips']) + off)
+        fold = max(0.0, -dzw)                                   # the bike pushed up into him: chest forward, head up
+        sp = d['spine']; d['spine'] = (sp[0], sp[1] + 260 * fold, sp[2])
+        hp = d['head']; d['head'] = (hp[0], hp[1] - 200 * fold, hp[2])
 
 
 # ================================================================= stoppie
