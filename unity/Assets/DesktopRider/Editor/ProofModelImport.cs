@@ -20,7 +20,7 @@ namespace DesktopRider.EditorTools
         };
 
         /// <summary>Raise this when the rules change so Unity imports the models again.</summary>
-        public override uint GetVersion() => 5;
+        public override uint GetVersion() => 6;
 
         void OnPreprocessAnimation()
         {
@@ -56,7 +56,8 @@ namespace DesktopRider.EditorTools
 
         /// <summary>The proof model and the textured rider model; props and anything else keep Unity's defaults.</summary>
         public static bool IsRiderModel(string path) =>
-            path.Contains("/Models/Proof/") || path.EndsWith("/Models/DesktopRider.fbx") || path.EndsWith("/Models/DesktopRider_Tricks.fbx");
+            path.Contains("/Models/Proof/") || path.EndsWith("/Models/DesktopRider.fbx") || path.EndsWith("/Models/DesktopRider_Tricks.fbx")
+            || path.EndsWith("/Models/DesktopRider_Style.fbx");
 
         /// <summary>The ramps, landings and whoops built by Tools/Blender/build_unity_props.py.</summary>
         public static bool IsPropModel(string path) => path.Contains("/Models/Props/") && path.EndsWith(".fbx");
@@ -68,8 +69,12 @@ namespace DesktopRider.EditorTools
             return bar >= 0 ? takeName.Substring(bar + 1) : takeName;
         }
 
+        /// <summary>The rider's own riding style (Tools/Blender/riding_style.py): the corner poses loop with the riding loop.</summary>
+        static readonly string[] StyleLoops = { "CornerLeft", "CornerRight" };
+
         public static bool IsLooping(string clip)
         {
+            if (System.Array.IndexOf(StyleLoops, clip) >= 0) return true;
             foreach (var c in Clips) if (c.name == clip) return c.loop;
             return false;   // tricks and anything new play once
         }

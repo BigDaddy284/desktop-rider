@@ -55,5 +55,20 @@ namespace DesktopRider.Riding
             if (lean < -maxLean) lean = -maxLean;
             return (float)lean;
         }
+
+        /// <summary>
+        /// How much of the left and right corner poses to show for a lean (degrees, positive leaning right, as
+        /// <see cref="LeanFor"/> gives): none when upright, all of one side at full lean, eased in so a small wobble
+        /// does not throw a leg out.
+        /// </summary>
+        public static (float Left, float Right) CornerWeights(float lean, float maxLean)
+        {
+            if (maxLean <= 0f) return (0f, 0f);
+            float amount = Math.Min(1f, Math.Abs(lean) / maxLean);
+            amount = amount < 0.12f ? 0f : (amount - 0.12f) / 0.6f;            // ignore small wobbles, full pose by 72%
+            amount = Math.Min(1f, amount);
+            amount = amount * amount * (3f - 2f * amount);
+            return lean > 0f ? (0f, amount) : (amount, 0f);
+        }
     }
 }

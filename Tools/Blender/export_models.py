@@ -18,6 +18,8 @@ MODELS, BIKE_PNG, RIDER_PNG, MASTER_JSON = argv[:4]
 # optional key=value settings after the four paths:
 #   apply=0            do not use the exporter's "apply transform"
 #   tricks=<dir>       key the trick animations from <dir>/trick_animations.py first (in memory) and export those clips
+#   anims=<module>     with tricks=<dir>: key another module's clips from that folder instead (riding_style for the
+#                      rider's own riding style); it must have build(side) returning the same kind of table
 #   side=Right|Left    which side the tricks are keyed for (their gestures use the hand nearest the camera)
 #   name=<file stem>   output name (default DesktopRider)
 #   meshes=0           export the two rigs only (an animation-only file)
@@ -74,9 +76,10 @@ for n in ("Helmet Size", "Mouth Guard", "Helmet Rim Flush", "Chin End Flush"):
 trick_table = None
 if TRICKS:
     sys.path.insert(0, TRICKS)
-    import trick_animations as TA
+    import importlib
+    TA = importlib.import_module(OPT.get("anims", "trick_animations"))
     trick_table = TA.build(SIDE)                       # replaces DR_bike / DR_rider in this throwaway session only
-    clips = [dict(name=t["name"], start=t["start"], end=t["end"], loop=False) for t in trick_table]
+    clips = [dict(name=t["name"], start=t["start"], end=t["end"], loop=t.get("loop", False)) for t in trick_table]
     print("EXPORT tricks keyed for side %s: %d clips, frames %d-%d" % (SIDE, len(clips), clips[0]["start"], clips[-1]["end"]))
 
 # ---------------------------------------------------------------- 2. export rigs: plain copies that follow the animated originals

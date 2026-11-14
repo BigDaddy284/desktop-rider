@@ -275,16 +275,8 @@ namespace DesktopRider.Riding
         void CopyTrickClips()
         {
             if (tricksModel == null || rider == null || rider.modelAnimation == null || tricksModel == rider.modelAnimation) return;
-            int added = 0;
-            foreach (AnimationState state in tricksModel)
-            {
-                if (state.clip == null || rider.modelAnimation[state.name] != null) continue;
-                rider.modelAnimation.AddClip(state.clip, state.name);
-                added++;
-            }
-            // The tricks model is only a store of clips; it is never shown.
-            tricksModel.gameObject.SetActive(false);
-            if (added == 0) Debug.LogWarning("Desktop Rider found no trick clips to add from " + tricksModel.name + ".");
+            if (ClipLibrary.Copy(tricksModel, rider.modelAnimation, replace: false) == 0)
+                Debug.LogWarning("Desktop Rider found no trick clips to add from " + tricksModel.name + ".");
         }
     }
 }

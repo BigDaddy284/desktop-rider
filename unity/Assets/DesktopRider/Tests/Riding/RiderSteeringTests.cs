@@ -60,5 +60,35 @@ namespace DesktopRider.Tests
             Assert.AreEqual(28f, RiderSteering.LeanFor(720f, 5f, 28f), 1e-4f);
             Assert.AreEqual(-28f, RiderSteering.LeanFor(-720f, 5f, 28f), 1e-4f);
         }
+
+        [Test] public void CornerWeights_NoneWhenUpright_OrForASmallWobble()
+        {
+            Assert.AreEqual((0f, 0f), RiderSteering.CornerWeights(0f, 38f));
+            Assert.AreEqual((0f, 0f), RiderSteering.CornerWeights(3f, 38f));
+            Assert.AreEqual((0f, 0f), RiderSteering.CornerWeights(-3f, 38f));
+        }
+
+        [Test] public void CornerWeights_LeaningRightShowsTheRightCorner_AndLeftTheLeft()
+        {
+            var right = RiderSteering.CornerWeights(20f, 38f);
+            var left = RiderSteering.CornerWeights(-20f, 38f);
+            Assert.Greater(right.Right, 0f); Assert.AreEqual(0f, right.Left);
+            Assert.Greater(left.Left, 0f); Assert.AreEqual(0f, left.Right);
+            Assert.AreEqual(right.Right, left.Left, 1e-5f);
+        }
+
+        [Test] public void CornerWeights_GrowWithTheLean_AndReachTheFullPose()
+        {
+            float last = 0f;
+            for (float lean = 0f; lean <= 38f; lean += 2f)
+            {
+                float w = RiderSteering.CornerWeights(lean, 38f).Right;
+                Assert.GreaterOrEqual(w, last);
+                Assert.LessOrEqual(w, 1f);
+                last = w;
+            }
+            Assert.AreEqual(1f, RiderSteering.CornerWeights(38f, 38f).Right, 1e-5f);
+            Assert.AreEqual(1f, RiderSteering.CornerWeights(-30f, 38f).Left, 1e-5f);
+        }
     }
 }

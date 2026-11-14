@@ -16,13 +16,16 @@ namespace DesktopRider.Riding
         public Camera viewCamera;
         public Transform leanPivot;
         public UnityEngine.Animation modelAnimation;
+        [Tooltip("The rider's own riding style (resting, setting off, riding, corners); replaces the model's clips of the same name.")]
+        public UnityEngine.Animation styleModel;
 
         [Header("Riding")]
         public float cruiseSpeed = 2.6f;          // metres a second
         public float acceleration = 2.5f;
         public float braking = 4.0f;
         public float maxTurnRate = 110f;          // degrees a second at cruise speed
-        public float maxLean = 28f;
+        [Tooltip("How far the bike leans at most in a turn. The rider's body stays nearer upright (the corner clips).")]
+        public float maxLean = 38f;
         public float arriveDistance = 0.6f;
         public Vector2 restSeconds = new Vector2(2f, 6f);
         [Range(0.02f, 0.3f)] public float screenMargin = 0.12f;
@@ -56,6 +59,9 @@ namespace DesktopRider.Riding
 
         /// <summary>Chooses the clip: riding while moving, otherwise rest, idle movements, talking and tricks as in version 1.</summary>
         public DesktopRider.Animation.ModelAnimationDirector Director { get; } = new DesktopRider.Animation.ModelAnimationDirector();
+
+        /// <summary>Raised each time the bike sets off from a stop (for the dirt and smoke at the rear wheel).</summary>
+        public event Action SetOff;
 
         /// <summary>Raised when the user lets go of the rider after dragging it.</summary>
         public event Action Dropped;
@@ -104,6 +110,11 @@ namespace DesktopRider.Riding
             movingFrameRate = CommandLineInt("-movingFps", movingFrameRate);
             restingFrameRate = CommandLineInt("-restingFps", restingFrameRate);
             if (viewCamera == null) viewCamera = Camera.main;
+            if (styleModel != null && modelAnimation != null)
+            {
+                ClipLibrary.Copy(styleModel, modelAnimation, replace: true);
+                if (modelAnimation["Idle"] != null) modelAnimation.Play("Idle");
+            }
             OverlayWindow.ScreensChanged += OnScreensChanged;
             if (roaming) PickTarget(); else target = transform.position;
         }
@@ -142,6 +153,7 @@ namespace DesktopRider.Riding
             speed = 0f;
             lean = 0f;
             if (leanPivot != null) leanPivot.localRotation = Quaternion.identity;
+            UpdateCornerPose(false);
         }
 
         /// <summary>Puts the rider on a ground point during a trick, facing <paramref name="heading"/> degrees.</summary>
@@ -189,7 +201,7 @@ namespace DesktopRider.Riding
         {
             UpdateMouse();
             if (dragging && (InTrick || Approaching)) { CancelApproach(); TrickInterrupted?.Invoke(); }
-            if (dragging) { Animate(false); SetFrameRate(movingFrameRate); return; }
+            if (dragging) { Animate(false); UpdateCornerPose(false); SetFrameRate(movingFrameRate); return; }
             if (InTrick) { SetFrameRate(movingFrameRate); return; }
 
             bool resting = !Approaching && (!roaming || Time.time < restUntil);
@@ -237,6 +249,7 @@ namespace DesktopRider.Riding
 
             bool moving = speed > 0.05f;
             Animate(moving);
+            UpdateCornerPose(moving);
             SetFrameRate(moving ? movingFrameRate : restingFrameRate);
         }
 
@@ -355,6 +368,42 @@ namespace DesktopRider.Riding
             if (state.wrapMode != WrapMode.Loop) state.time = 0f;
             state.speed = animationSpeed;
             modelAnimation.CrossFade(Director.Clip, 0.25f);
+            if (Director.Clip == DesktopRider.Animation.ModelAnimationDirector.StartClip) SetOff?.Invoke();
+        }
+
+        /// <summary>
+        /// In a turn the rider sits in the corner pose: inside leg straight out ahead, head into the turn, body nearer
+        /// upright than the bike. The corner clips are blended over the riding loop by how far the bike leans, on a layer
+        /// of their own, and kept in step with it so the wheels and the bob match.
+        /// </summary>
+        void UpdateCornerPose(bool moving)
+        {
+            if (modelAnimation == null) return;
+            var left = modelAnimation["CornerLeft"];
+            var right = modelAnimation["CornerRight"];
+            if (left == null || right == null) return;
+            var riding = modelAnimation[DesktopRider.Animation.ModelAnimationDirector.RidingClip];
+            bool on = moving && !InTrick && riding != null && Director.Clip == DesktopRider.Animation.ModelAnimationDirector.RidingClip;
+            var (toLeft, toRight) = RiderSteering.CornerWeights(on ? lean : 0f, maxLean);
+            float at = riding != null ? riding.normalizedTime : 0f;
+            SetCornerWeight(left, toLeft, at);
+            SetCornerWeight(right, toRight, at);
+        }
+
+        void SetCornerWeight(AnimationState state, float weight, float normalizedTime)
+        {
+            state.layer = 1;
+            state.wrapMode = WrapMode.Loop;
+            if (weight <= 0.01f)
+            {
+                state.weight = 0f;
+                state.enabled = false;
+                return;
+            }
+            state.enabled = true;
+            state.weight = weight;
+            state.speed = 0f;                                  // moved along with the riding loop instead
+            state.normalizedTime = normalizedTime;
         }
 
         static int CommandLineInt(string name, int fallback)
