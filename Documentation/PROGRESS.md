@@ -280,6 +280,12 @@ check, with no chat options in the settings window for now.
   while he was cornering; the corner pose sits on an animation layer above the trick clip and is not updated during a
   trick, so a leg half out held the riding pose over the whole trick. `BeginTrick` now clears the corner pose at once
   (`CornerBlend.Reset`, with a test). Tricks from the menu mostly started at rest, which is why it had not shown before.
+- Flicker at the end of a trick (Boss: a flash of white, or the bike briefly facing the wrong way). The window changes
+  size when a trick starts and ends, and Unity takes a frame or two to catch up, so those frames were the old picture
+  stretched into the new window, and the newly uncovered part was filled white. Now nothing is drawn (see-through)
+  until Unity matches the window (`OverlayWindow.Settling`), the old picture is not copied into the resized window
+  (SWP_NOCOPYBITS), and the window has no background brush to paint white. Checked by eye only (one frame is too
+  quick to capture).
 - Editor bridge: `capture <window title>`, `winclick <title>|x|y`, `playerlog`; `trick` also lists the clips playing (is the program running, and the end of
   its Unity log).
 - Seen in the player log: Unity's own cloud services try to connect at start-up (and fail on this PC). To check in

@@ -106,6 +106,7 @@ namespace DesktopRider.Riding
         Action approachArrived;
         float speed, restUntil, lean, turnAhead, sizeScale = 1f;
         readonly CornerBlend corner = new CornerBlend();
+        int? drawnMask;
         bool roaming = true, dragging;
         Vector3 dragOffset;
         int playedStarts = -1;
@@ -317,6 +318,9 @@ namespace DesktopRider.Riding
 
             var windowCentre = new Vector2(window.x + window.width * 0.5f, window.y + window.height * 0.5f);
             viewCamera.orthographic = true;
+            // Draw nothing (fully see-through) while the window is changing size, as at the start and end of a trick.
+            if (drawnMask == null) drawnMask = viewCamera.cullingMask;
+            viewCamera.cullingMask = OverlayWindow.Settling ? 0 : drawnMask.Value;
             viewCamera.orthographicSize = window.height / (2f * view.PixelsPerMetre);
             viewCamera.transform.SetPositionAndRotation(view.CameraFor(windowCentre), view.Rotation);
         }

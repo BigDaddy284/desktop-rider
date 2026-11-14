@@ -93,6 +93,12 @@ namespace DesktopRider.Overlay
         /// <summary>The window's normal size times the given rider size, for the current screen scaling.</summary>
         public int SizeFor(float riderScale) => Mathf.RoundToInt(windowSize * ScaleFactor * Mathf.Max(0.1f, riderScale));
 
+        /// <summary>
+        /// True for the frame or two after the window changed size, until Unity has caught up with it. A frame drawn then
+        /// is the old size stretched into the new window (the rider squashed or in the wrong place), so nothing is drawn.
+        /// </summary>
+        public static bool Settling => instance != null && instance.IsSettling;
+
         static OverlayWindow instance;
 
         void Awake()
@@ -106,7 +112,7 @@ namespace DesktopRider.Overlay
         const int GWL_STYLE = -16, GWL_EXSTYLE = -20;
         const uint WS_POPUP = 0x80000000, WS_VISIBLE = 0x10000000;
         const uint WS_EX_TOPMOST = 0x00000008, WS_EX_LAYERED = 0x00080000, WS_EX_TRANSPARENT = 0x00000020, WS_EX_TOOLWINDOW = 0x00000080, WS_EX_NOACTIVATE = 0x08000000;
-        const uint SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOACTIVATE = 0x0010, SWP_FRAMECHANGED = 0x0020, SWP_SHOWWINDOW = 0x0040;
+        const uint SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOACTIVATE = 0x0010, SWP_FRAMECHANGED = 0x0020, SWP_SHOWWINDOW = 0x0040, SWP_NOCOPYBITS = 0x0100;
         const int SW_HIDE = 0, SW_SHOWNOACTIVATE = 4, VK_LBUTTON = 0x01;
         const uint MONITORINFOF_PRIMARY = 1;
         static readonly IntPtr HWND_TOPMOST = new IntPtr(-1), HWND_NOTOPMOST = new IntPtr(-2);
@@ -130,6 +136,8 @@ namespace DesktopRider.Overlay
         [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int index);
         [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr hWnd, uint command);
         [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hWnd);
+        [DllImport("user32.dll", EntryPoint = "SetClassLongPtrW")] static extern IntPtr SetClassLongPtr(IntPtr hWnd, int index, IntPtr value);
+        [DllImport("gdi32.dll")] static extern IntPtr GetStockObject(int index);
         [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int command);
         [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT p);
         [DllImport("user32.dll")] static extern short GetAsyncKeyState(int key);
@@ -154,6 +162,10 @@ namespace DesktopRider.Overlay
             yield return null;
 
             ApplyWindowStyle(true);
+            // No background brush: when the window grows, Windows would otherwise fill the new part white for a moment
+            // before Unity draws into it.
+            const int GCLP_HBRBACKGROUND = -10, NULL_BRUSH = 5;
+            SetClassLongPtr(window, GCLP_HBRBACKGROUND, GetStockObject(NULL_BRUSH));
             clickThrough = true;
             ApplyExtendedStyle();
             var centre = Area.MainCentre;
@@ -276,7 +288,9 @@ namespace DesktopRider.Overlay
             // see-through, borderless, always-on-top style. Screen.SetResolution would instead turn the window back into
             // an ordinary opaque one for a few frames, which flashes up as a white box.
             var corner = new Vector2Int(Mathf.RoundToInt(centre.x) - size.x / 2, Mathf.RoundToInt(centre.y) - size.y / 2);
-            SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, corner.x - offset.X, corner.y - offset.Y, size.x, size.y, SWP_NOACTIVATE);
+            // NOCOPYBITS: do not carry the old picture over into the resized window (it showed as a stretched flash).
+            SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, corner.x - offset.X, corner.y - offset.Y, size.x, size.y,
+                SWP_NOACTIVATE | SWP_NOCOPYBITS);
             placed = corner;
             WindowRect = new RectInt(corner.x, corner.y, size.x, size.y);
             if (restyle != null) StopCoroutine(restyle);
@@ -295,6 +309,8 @@ namespace DesktopRider.Overlay
             Screen.SetResolution(size.x, size.y, FullScreenMode.Windowed);
             restyle = StartCoroutine(RestyleAfterResize());
         }
+
+        bool IsSettling => IsActive && (Screen.width != size.x || Screen.height != size.y);
 
         void ApplyVisible(bool show)
         {
@@ -334,6 +350,7 @@ namespace DesktopRider.Overlay
             }
         }
 #else
+        bool IsSettling => false;
         void MoveTo(Vector2Int corner) { }
         void SetSize(Vector2Int newSize) { }
         void ApplyVisible(bool show) { }
