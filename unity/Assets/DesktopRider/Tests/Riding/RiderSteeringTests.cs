@@ -90,5 +90,67 @@ namespace DesktopRider.Tests
             Assert.AreEqual(1f, RiderSteering.CornerWeights(38f, 38f).Right, 1e-5f);
             Assert.AreEqual(1f, RiderSteering.CornerWeights(-30f, 38f).Left, 1e-5f);
         }
+
+        static (float Left, float Right) Run(CornerBlend blend, float turnAhead, float lean, float seconds, bool riding = true)
+        {
+            (float, float) w = (0f, 0f);
+            for (float t = 0f; t < seconds - 1e-4f; t += 0.02f) w = blend.Update(turnAhead, lean, 38f, 0.02f, riding);
+            return w;
+        }
+
+        [Test] public void CornerBlend_LegComesOutForATurnAhead_BeforeTheBikeLeans()
+        {
+            var blend = new CornerBlend();
+            var w = Run(blend, 70f, 0f, 0.4f);          // a big turn to the right is coming; the bike is still upright
+            Assert.AreEqual(1f, w.Right, 1e-4f);
+            Assert.AreEqual(0f, w.Left);
+        }
+
+        [Test] public void CornerBlend_ComesInSmoothly_NotAllAtOnce()
+        {
+            var blend = new CornerBlend();
+            var w = blend.Update(-70f, 0f, 38f, 0.02f, true);
+            Assert.Greater(w.Left, 0f);
+            Assert.Less(w.Left, 0.2f);
+        }
+
+        [Test] public void CornerBlend_StaysOutAMoment_ThenGoesBackGently()
+        {
+            var blend = new CornerBlend();
+            Run(blend, 70f, 0f, 0.4f);
+            var held = Run(blend, 0f, 0f, 0.3f);         // the turn is done, but the leg has only just come out
+            Assert.AreEqual(1f, held.Right, 1e-4f);
+            var going = Run(blend, 0f, 0f, 0.4f);
+            Assert.Greater(going.Right, 0f);              // still on its way back, not snapped in
+            Assert.Less(going.Right, 1f);
+            Assert.AreEqual(0f, Run(blend, 0f, 0f, 1f).Right, 1e-4f);
+        }
+
+        [Test] public void CornerBlend_SmallTurnsLeaveTheLegOnThePeg()
+        {
+            var blend = new CornerBlend();
+            var w = Run(blend, 8f, 2f, 1f);
+            Assert.AreEqual((0f, 0f), w);
+        }
+
+        [Test] public void CornerBlend_ChangingDirection_PutsOneLegBackBeforeTheOtherComesOut()
+        {
+            var blend = new CornerBlend();
+            Run(blend, 70f, 0f, 1f);
+            for (int i = 0; i < 200; i++)
+            {
+                var w = blend.Update(-70f, 0f, 38f, 0.02f, true);
+                Assert.False(w.Left > 0f && w.Right > 0f, "both legs out at once");
+            }
+            Assert.AreEqual(1f, blend.Left, 1e-4f);
+        }
+
+        [Test] public void CornerBlend_NotRiding_PutsTheLegBack()
+        {
+            var blend = new CornerBlend();
+            Run(blend, 70f, 0f, 1f);
+            var w = Run(blend, 70f, 0f, 1f, riding: false);
+            Assert.AreEqual((0f, 0f), w);
+        }
     }
 }

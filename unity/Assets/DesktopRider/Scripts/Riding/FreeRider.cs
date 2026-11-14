@@ -93,7 +93,8 @@ namespace DesktopRider.Riding
         Vector3 target, approachEnd;
         bool approachLeg;                     // true while heading for the run-up point, false on the last stretch
         Action approachArrived;
-        float speed, restUntil, lean, sizeScale = 1f;
+        float speed, restUntil, lean, turnAhead, sizeScale = 1f;
+        readonly CornerBlend corner = new CornerBlend();
         bool roaming = true, dragging;
         Vector3 dragOffset;
         int playedStarts = -1;
@@ -217,10 +218,12 @@ namespace DesktopRider.Riding
             speed = Mathf.MoveTowards(speed, wantedSpeed, (wantedSpeed > speed ? acceleration : braking) * Time.deltaTime);
 
             float turn = 0f;
+            turnAhead = 0f;
             if (speed > 0.05f)
             {
                 float heading = transform.eulerAngles.y;
                 float wanted = RiderSteering.HeadingTo(transform.position, target);
+                turnAhead = RiderSteering.ShortestTurn(heading, wanted);
                 float rate = maxTurnRate * Mathf.Clamp01(speed / cruiseSpeed + 0.25f);
                 turn = RiderSteering.TurnStep(heading, wanted, rate * Time.deltaTime);
                 transform.rotation = Quaternion.Euler(0f, heading + turn, 0f);
@@ -373,8 +376,8 @@ namespace DesktopRider.Riding
 
         /// <summary>
         /// In a turn the rider sits in the corner pose: inside leg straight out ahead, head into the turn, body nearer
-        /// upright than the bike. The corner clips are blended over the riding loop by how far the bike leans, on a layer
-        /// of their own, and kept in step with it so the wheels and the bob match.
+        /// upright than the bike. The corner clips are blended over the riding (or setting-off) clip on a layer of their
+        /// own. <see cref="CornerBlend"/> decides how much: the leg comes out as the turn is lined up, not halfway round.
         /// </summary>
         void UpdateCornerPose(bool moving)
         {
@@ -382,15 +385,18 @@ namespace DesktopRider.Riding
             var left = modelAnimation["CornerLeft"];
             var right = modelAnimation["CornerRight"];
             if (left == null || right == null) return;
+            string clip = Director.Clip;
+            bool on = moving && !InTrick && !dragging &&
+                      (clip == DesktopRider.Animation.ModelAnimationDirector.RidingClip || clip == DesktopRider.Animation.ModelAnimationDirector.StartClip);
+            var (toLeft, toRight) = corner.Update(on ? turnAhead : 0f, on ? lean : 0f, maxLean, Time.deltaTime, on);
             var riding = modelAnimation[DesktopRider.Animation.ModelAnimationDirector.RidingClip];
-            bool on = moving && !InTrick && riding != null && Director.Clip == DesktopRider.Animation.ModelAnimationDirector.RidingClip;
-            var (toLeft, toRight) = RiderSteering.CornerWeights(on ? lean : 0f, maxLean);
-            float at = riding != null ? riding.normalizedTime : 0f;
+            // Keep the corner clips in step with the riding loop while it plays, so the wheels and the bob match.
+            float? at = riding != null && riding.enabled && riding.weight > 0.5f ? riding.normalizedTime : (float?)null;
             SetCornerWeight(left, toLeft, at);
             SetCornerWeight(right, toRight, at);
         }
 
-        void SetCornerWeight(AnimationState state, float weight, float normalizedTime)
+        void SetCornerWeight(AnimationState state, float weight, float? normalizedTime)
         {
             state.layer = 1;
             state.wrapMode = WrapMode.Loop;
@@ -402,8 +408,12 @@ namespace DesktopRider.Riding
             }
             state.enabled = true;
             state.weight = weight;
-            state.speed = 0f;                                  // moved along with the riding loop instead
-            state.normalizedTime = normalizedTime;
+            if (normalizedTime is float t)
+            {
+                state.speed = 0f;                              // moved along with the riding loop instead
+                state.normalizedTime = t;
+            }
+            else state.speed = animationSpeed;
         }
 
         static int CommandLineInt(string name, int fallback)
