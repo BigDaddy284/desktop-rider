@@ -372,3 +372,51 @@ ends the abandoned read. The visible behaviour (a silence time limit, immediate 
 - **Free riding** – `AppSettings.Behaviour.FreeRiding` (`"freeRiding"` in `settings.json`), **off by default**,
   exposed to a settings screen as `RiderSettingsViewModel.FreeRiding`. A version 1 settings file has no such
   line and loads with it off. The logic only stores the choice; the riding itself is Unity's job.
+
+## The see-through window (Unity)
+
+Unity draws into one small window (360 by 360 pixels) that is moved about the desktop to wherever the rider is.
+`OverlayWindow` (Scripts/Overlay) turns it into a borderless, always-on-top layered window with its frame extended over the whole area, so pixels the camera clears to transparent
+show the desktop through. Windows' "transparent to the mouse" flag is switched on and off each frame: off while the
+mouse is over the rider (a ray from the camera hits the rider's collider), on everywhere else, so clicks reach the
+windows behind. The mouse is read from Windows directly, because a click-through window receives no mouse messages.
+The swap chain uses the older blit model (`useFlipModelSwapchain` off) and Direct3D 11, which a see-through window needs.
+All of this is skipped inside the editor.
+
+`DesktopView` (Scripts/Riding) is the isometric view of the whole desktop as one orthographic camera looking down at
+45 degrees would see it: it turns ground points into desktop pixels and back. The real camera is moved sideways so the
+small window shows exactly the piece of that view it covers, so the rider looks the same as if one huge window covered
+the screen, at a fraction of the drawing cost. The desktop is the ground plane at height zero.
+
+`FreeRider` (Scripts/Riding) moves the rider on that plane. Its arithmetic is in `RiderSteering`, which has no scene
+or clock and is unit tested. The model sits under a `Lean` object that rolls into turns.
+
+### Screens, tray and settings (version 2.0, phase 2)
+
+Positions in the Unity version are desktop pixels: measured from the top-left corner of the area that holds every
+screen, so they are never negative. `RidingArea` (Logic/Core/Desktop) holds each screen's work area in those pixels and
+`OverlayWindow.WindowsOffset` converts to and from Windows' own coordinates. The screens are read at start and again
+when Windows broadcasts a display or work-area change, which the tray icon's hidden window receives, so nothing polls.
+
+The rider and its window are drawn bigger by Windows' screen scaling for the main screen (`OverlayWindow.ScaleFactor`)
+and by the rider-size setting. Screens with different scaling use the main screen's; mixed scaling is a known
+limitation for now.
+
+`AppHost` (Scripts/Overlay) is the composition root: it makes the core services, loads the settings off the main
+thread, builds the tray view model with its menu contributors (free riding, start with Windows), and applies settings
+to the scene on the main thread through `MainThread.Post`. The tray icon is plain Windows calls (`TrayIcon`), because
+Unity has no tray support and Unity's class library has no Windows Forms or registry access.
+
+### Tricks and ramps (version 2.0, prepared for phase 4)
+
+- The tricks model (`DesktopRider_Tricks.fbx`) holds only takes. `TrickRunner` adds them to the rider's own `Animation`,
+  because both models have the same bones.
+- The bones never move forward. Each frame's forward distance comes from `props_layout.json`. `TrickRun` (Logic) turns
+  that into a ground position, and `TrickRunner` moves the whole rider there.
+- The props are separate objects left on the ground. They are placed once at the start, in the direction the trick is
+  ridden. `TrickRun.PickHeading` turns the trick as little as possible to keep the props, the path and the air above
+  them on a screen.
+- While a trick runs, `FreeRider` stops steering and changing clips (`InTrick`). It also grows the window to cover the
+  whole trick (`Framing`), so the landing is not cut off. Picking the rider up ends the trick.
+- The prop shapes come from `Tools/Blender/terrain_shapes.py`, following `References/Terrain/README.md`.
+

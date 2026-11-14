@@ -387,12 +387,13 @@ One thing to know: version 1 does not know about free riding, so if version 1 sa
 
 ### 5. Known limitations
 
-- **The tests have not yet been run inside the Unity editor.** They compile against .NET Standard 2.1 and pass
-  on .NET 10. Running them in the Test Runner is still needed to confirm two things that cannot be checked
-  outside Unity: that the assembly definitions resolve `Newtonsoft.Json.dll` and `nunit.framework.dll`, and
-  that Unity's test runner accepts the eight parameterised test methods that are also `async`.
-- Unity runs the logic on Mono rather than .NET 10. No test relies on behaviour known to differ, but the Unity
-  run above is what confirms it.
+- **Run inside Unity 6000.6.6f1 on 13 November 2026: 650 passed, 0 failed** (the 634 logic tests plus 16 riding tests).
+  The assembly definitions resolve `Newtonsoft.Json.dll` and `nunit.framework.dll`, and the runner accepts the
+  `async` parameterised tests.
+- **Mono differs from .NET 10 in one way that mattered.** The first Unity run failed 3 animation tests that pass on
+  .NET 10: Mono computes `TimeSpan.TotalSeconds` as ticks × 1e-7, so 0.2 s became 0.19999… and the player showed the
+  previous frame at exact frame boundaries. `AnimationPlayer` now divides ticks by `TimeSpan.TicksPerSecond`. The three
+  existing tests are the regression tests; they only catch it when run in Unity, so always run the Unity suite.
 - `OllamaProvider` is tested against a stand-in for the network, never a real Ollama. A manual check with
   Ollama running is needed once there is a conversation window in Unity.
 - A handful of tests wait on real time (tens of milliseconds) for time limits and cancellation.
@@ -403,3 +404,102 @@ Unity identifies each file by an id in a `.meta` file beside it. `logic-tests/to
 writes those for the logic and its tests, working each id out from the file's path so it is always the same.
 Run it after adding, moving or deleting a file there. It never changes an existing id. The shared folders
 above them (`Assets/DesktopRider`, `Scripts`, `Tests`) are left for Unity to create.
+
+### 7. Running the Unity tests and the proof build
+
+The Unity project is `unity/` in the repository (Assets, Packages, ProjectSettings) and lives on the development PC at
+`D:\AI\Claude\Dektop Rider 3D\Desktop Rider 3D`. `EditorBridge` (Assets/DesktopRider/Editor) lets the editor be
+driven without clicking: write one line `<id> <command> [argument]` to `Bridge/command.txt` at the project's top
+level and the answer appears in `Bridge/result-<id>.txt`. Compiler results are appended to `Bridge/compile.txt`.
+
+| Command | What it does |
+|---|---|
+| `t1 test` | Runs every EditMode test; the result file gives passed, failed and each failure |
+| `r1 refresh` | Makes Unity pick up changed files |
+| `s1 setup` | Sets up the open scene and player settings for the overlay proof |
+| `b1 build` | Builds `Builds/Proof/DesktopRider3D.exe` |
+| `u1 run` / `x1 stop` | Starts the proof, or asks it to close |
+| `p1 snapshot 270 Idle 0.5` | Draws the rider from that direction (degrees), posed at that clip and second, to `Bridge/snapshot-270.png`, and lists its materials and textures. Used to check the model without seeing the screen |
+
+The same steps are on the editor's **Desktop Rider** menu. In the Test Runner window (Window, General, Test Runner)
+the EditMode tab runs them by hand.
+
+**Riding tests** (`Tests/Riding`, 28 tests): headings, shortest turn, turn limit, braking so the bike stops on its
+target and lean angle limits for `RiderSteering`; and for `DesktopView`, where ground points appear on the desktop,
+the round trip back to the ground, aiming the small window's camera, and keeping the window on the desktop.
+
+**Known flaky test:** `OllamaProviderTests.StreamChat_ALongReplyThatKeepsArriving_IsNotTimedOut` depends on timing
+and failed once (of 662) while Unity was importing the textured model at the same time; it passed on the next run.
+Unity total: 662 passed, 0 failed.
+
+### 8. Overlay proof: manual check
+
+Automated tests cannot see the desktop. With the proof running:
+
+1. The bike rides about the main screen by itself with the desktop and windows visible behind it.
+2. Clicks anywhere except on the bike reach the windows behind.
+3. The bike can be picked up and dragged.
+4. Ctrl+Shift+Q closes it. `Builds/Proof/proof-stats.txt` records frame rate, memory and processor use every 5 s.
+
+Status on 13 November 2026: steps 1 and 3 confirmed by Boss on the PC. Step 2 still to confirm.
+
+### 9. Desktop basics: manual check (phase 2)
+
+With the built program running:
+
+1. A rider icon appears beside the clock. Left click hides the rider; left click again brings it back.
+2. Right click opens the menu: hide or show, always on top, move back to the middle, ride around freely, start with
+   Windows, exit. Ticks match the current state.
+3. "Ride around freely" off: the rider stays where it was put and can still be dragged. On: it rides about every screen.
+4. With two screens, the rider can be dragged to and ride on both, never into a gap between them.
+5. At 150% screen scaling the rider is drawn 1.5 times bigger than at 100%.
+6. "Start with Windows" adds `Desktop Rider 3D` under HKCU\Software\Microsoft\Windows\CurrentVersion\Run, and
+   unticking removes it.
+7. Close and reopen: the rider is where it was left.
+
+Status on 14 November 2026: not yet run (written with the PC off).
+
+The Unity scripts can be compile-checked outside Unity by building them against the `UnityEngine.Modules` 2021.3.33
+reference package with `UNITY_STANDALONE_WIN` defined. This catches most mistakes but is not a substitute for Unity 6.
+
+### 10. Terrain shapes and the trick runner (ready for phase 4)
+
+**Automated.**
+
+- `python -m unittest discover -s Tools/Blender/tests` runs 27 tests of `Tools/Blender/terrain_shapes.py`. They need plain
+  Python only, no Blender, and also run in CI. They check:
+  - The take-off leaves at its face angle and height, its curve tightens as it rises, and its back slopes at the dirt angle.
+  - The landing has a flat deck, a rounded knuckle, a face that steepens a little and a smooth run-out.
+  - The tabletop parts come in order. The whoops vary, have a steeper back side and cupped tops.
+  - The braking bumps grow, the wobble is small and repeatable, and the cross-section has sloped sides, a tyre groove and banking.
+  - The jump distances match References/Terrain.
+- The same command runs 32 more tests (59 in all) of the dirt itself. The texture ones need numpy, which Blender ships;
+  without it they are skipped, not failed:
+  - `prop_detail.py`: the mounds are closed solids, the riding line keeps the trick outline, sides are lumpy and
+    slope out, and the wet and dry dirt boundary is ragged.
+  - `dirt_texture.py`: sizes and ranges, real dark dirt colours, damp darkest and dry palest, no seams, normal maps of
+    unit length that lean the right way over a bump.
+  - `dirt_bake.py`: the wear weights add up to one, faces are damp, tops dry and sides loose, wet and dry fade into
+    each other along an irregular line, and the baked images fit the prop.
+- Manual: in the Unity editor, the bridge command `prop <name> [yaw] [pitch] [zoom]` renders one prop, lit by the scene,
+  to `Bridge/prop-<name>.png`, for judging the dirt close up.
+- Logic tests for `TrickLayout`, `TrickRun` and `TrickPicker` cover:
+  - Reading props_layout.json and explaining a broken file.
+  - Travel between frames.
+  - Prop placement in the way the rider faces.
+  - Speed, and finishing.
+  - Turning as little as possible to keep a trick on screen, turning round at a wall, and giving up when nothing fits.
+  - Never the same trick twice in a row.
+- A `RidingArea.IsOnScreen` test covers the gaps between screens and the margin.
+
+**Manual, in the editor** (after `setup`, with the props and tricks model imported, in play mode):
+
+1. Send `trick` through the bridge. A random trick starts, and the answer lists the tricks available.
+2. Send `trick Jump`. The ramp and landing appear ahead of the rider, the bike rides over them, and the ramp and
+   landing disappear at the end. Nothing is cut off at the window's edge.
+3. Put the rider near a screen edge, facing it, and send `trick Jump`. The trick turns away from the edge.
+4. Pick the rider up mid-trick. The props disappear and the rider is carried as normal.
+5. After a trick the rider rests, then carries on riding (free riding on) or stays parked (off).
+
+Status on 14 November 2026: automated parts pass in the cloud. The Unity side is compile-checked outside Unity only.
+The manual check is not yet run.

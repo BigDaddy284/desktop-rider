@@ -23,3 +23,5 @@ jobs:
         run: dotnet build -c Release
       - name: Test
         run: dotnet test -c Release --no-build
+      - name: Test terrain shapes (plain Python, no Blender)
+        run: python -m unittest discover -s Tools/Blender/tests

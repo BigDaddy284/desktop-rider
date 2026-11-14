@@ -150,6 +150,53 @@ None.
 Run the EditMode tests in Unity once the code is copied into the project, then build the conversation and
 settings windows on top of `RiderServices`.
 
+## Phase 1: overlay proof (in progress, 13 November 2026)
+
+- The Unity project's source is in `unity/` (Unity 6000.6.6f1, URP 17.6).
+- `OverlayWindow` makes the Unity window a see-through, click-through, always-on-top layer over the main screen.
+  Clicks are kept only while the mouse is over the rider.
+- `FreeRider` and `RiderSteering` make the bike wander the screen by itself, slowing to stop on each target,
+  leaning into turns and dragging with the mouse. Frame rate drops to 15 a second while it rests.
+- The current Blender model is in as a rough, untextured stand-in (`Models/Proof`), with its 15 clips cut at the
+  ranges recorded in the Blender file. The textured model comes from the graphics workstream.
+- Unity tests: 650 passed, 0 failed. Build: succeeded, 0 errors, 0 warnings.
+- Measurements on the development PC (Direct3D 11, 1-minute runs, processor time as a share of one core):
+
+  | Set-up | Average processor | Memory |
+  |---|---|---|
+  | Whole-screen window, 60 riding / 15 resting frames a second | 26.8 % | about 245 MB |
+  | Same, one job worker thread | 19.6 % | |
+  | Same, 5 frames a second throughout | 2.8 % | |
+  | Small window that follows the rider, 30 / 10 frames a second, one worker (now the default) | 10.3 % (1.3 % fully at rest) | about 240 MB |
+
+  The cost is about 5 ms of processor time per frame drawn, almost independent of window size, so frame rate is
+  what matters. The light's real-time shadow map is off (the bike carries its own shadow) and anti-aliasing is 2x.
+- Memory over 24 minutes: 231 MB at start, 242 MB after 2 minutes, then flat at 244 MB to the end. No leak. Average
+  processor use over the same run: 9.6 % of one core (286 samples).
+- Boss checked the proof on the PC: the rider rides about and can be picked up and moved.
+- Still to confirm: clicks reach other windows when the mouse is not over the rider.
+
+### Textured model in the overlay (13 November 2026)
+
+- The graphics workstream's `Models/DesktopRider.fbx` (bike and rider rigs, 15 clips as separate takes) and its two
+  texture atlases are now the model the overlay uses. The proof model stays as a stand-in if the textured one is missing.
+- `ProofModelImport` imports it as legacy animation, names each clip after its take and sets which clips loop.
+- The bike and rider rigs are separate roots under one model object, so moving the object moves both and every clip
+  plays on both together.
+- Fixed wrong kit colours (dark red jersey, blue plastics): the FBX carries each material's old flat colour as
+  well as the texture and Unity multiplied them. The importer now sets the colour to white wherever a texture is
+  present, so the kit matches Blender (light blue, pink and white).
+- The 18 trick clips in `DesktopRider_Tricks.fbx` (rigs only) import as play-once legacy takes; using them, with the
+  forward travel from `props_layout.json`, is part of the tricks phase.
+- Checked with the new `snapshot` bridge command: 38 materials, all URP Lit and all textured (atlases imported at
+  2048 pixels), nose facing forward, 0.88 x 1.55 x 1.90 m.
+- Per Boss, no models, textures or renders go to GitHub: `Models/` stays on the PC only, and the proof model was taken
+  out of the repository. Setting up the scene in a fresh clone needs those files copied in.
+- Unity tests: 662 passed, 0 failed (one timing test failed once during the import and passed on the re-run).
+  Build: succeeded, 0 errors, 0 warnings.
+- First run with the textured model: about 14 % of one core while riding (was about 10 % with the plain model),
+  memory about 245 MB. To look at again when the frame-rate work is revisited.
+
 ### 3D bike and rider for Unity, with the race-kit graphics
 
 **Status: complete. Bike, rider, 15 clips, 18 trick clips and 9 props are in the Unity project and approved by the owner (13 Nov 2026). A final approved copy is kept on the owner's PC.**
@@ -192,3 +239,78 @@ settings windows on top of `RiderServices`.
 #### Next
 
 - Optional, if the owner asks: repaint the peak's right side to the black-with-stripes look of the real helmet.
+
+## Phase 2: desktop app basics for the 3D rider (in progress, 14 November 2026)
+
+Order of the remaining phases, as Boss set it on 14 November 2026: desktop basics (this phase), then parked mode and
+the free-riding setting, the riding style, tricks and ramps, the chat (Boss has a different idea for it, still using
+Ollama; to be discussed when it is reached), then settings and the final check.
+
+#### Done so far (written overnight with the PC off; Unity side not yet compiled in Unity)
+
+- `RidingArea` (Logic/Core/Desktop): every screen's work area in desktop pixels, starting at 0,0 even when a screen is
+  left of or above the main one. Keeps the rider off gaps between screens of different sizes, picks places to ride to,
+  usually on the same screen and sometimes on another.
+- `TrayMenuPlan`: turns the tray view model's menu into numbered lines for a Windows pop-up menu.
+- `StartWithWindows`: the "Start with Windows" tray line and the per-user sign-in list (Run key), off by default.
+  Fixes the stored path if the program moves.
+- `FreeRidingMenu`: the "Ride around freely" tray line. Off by default, as the plan says: the rider stays parked.
+- Unity side: `TrayIcon` (Shell_NotifyIcon with a hidden window; left click hides or shows, right click opens the
+  menu, the hidden-rider reminder, icon re-added if Explorer restarts, screen-change notices), `RiderIcon` (the icon is
+  drawn from the 3D model at start-up), `WindowsStartupRegistry`, `MainThread`, and `AppHost`, which loads the settings
+  and applies them: shown or hidden (hidden draws nothing), always on top, rider size, free riding or parked, and the
+  last position. `OverlayWindow` now covers every screen and scales with Windows' screen scaling.
+- Version 2 keeps its settings in `%LOCALAPPDATA%\DesktopRider3D`, separate from version 1's, so the two can run side by
+  side during development without changing each other's settings.
+- Logic tests: 667 passed, 0 failed (`dotnet test` in `logic-tests`). The Unity scripts compile against the Unity
+  2021.3 module references outside Unity; the real check in Unity 6 is still to do.
+
+- Parked mode: with free riding off the rider stays where it was put. At rest (parked, or stopped between rides)
+  `ModelAnimationDirector` (Logic/Animation) picks the 3D clips with version 1's rules: the resting loop, a small
+  movement every 8 to 20 seconds (IdleVariation, LookLeft, LookRight), thinking and talking, tricks one after another,
+  and sleep through its start and end clips. While the bike moves the riding loop plays. The idle-animations and
+  animation-speed settings apply. Logic tests: 678 passed, 0 failed.
+
+- Ready for phase 4 (tricks and ramps), written while the PC was off:
+  - `References/Terrain/README.md`: research on real motocross and freestyle jumps and track terrain, with sources, scaled to
+    the KTM 50 world. Its key findings:
+    - A 30° face gives the rider's own "about a wheel's height" of air.
+    - Take-offs use a tightening curve, a straight face and a lip.
+    - Landings have a flat deck, a rounded knuckle, a 10–20° face and a run-out.
+    - Dirt jumps have sloping sides, never vertical walls.
+    - Whoops are cupped and uneven.
+    - The ground needs ruts, braking bumps, damp and dry dirt, clods and roost.
+  - `Tools/Blender/terrain_shapes.py`: the shapes behind those findings, as plain maths the prop builder can use, with 27
+    tests.
+  - `Logic/Tricks`: reading props_layout.json, placing the props ahead of the rider, moving the rider by each frame's
+    travel, choosing a heading that keeps the whole trick on a screen, and choosing the next trick.
+  - Unity: `TrickRunner` adds the tricks model's takes to the rider's clips, puts the props down, plays the trick and
+    widens the window over the trick while it runs. `FreeRider` hands control to it and takes it back.
+  - The bridge has a new `trick [name]` command for testing in play mode.
+  - Logic tests: 695 passed, 0 failed.
+  - Still to do in phase 4:
+    - Rebuild the props with the new shapes in Blender.
+    - Run the manual check in TESTING §10.
+    - Decide with Boss when tricks happen by themselves.
+
+- 14 November 2026, with Boss testing on the PC:
+  - Tricks now start from anywhere: if there is no room where the rider is, it rides to the nearest place that has room
+    (`TrickRun.PlanStart`), then goes. The tray menu has a "Do a trick" line.
+  - White box and lost always-on-top after a trick: `Screen.SetResolution` turns the window back into an ordinary
+    opaque, titled, non-topmost window. A first fix restyled it afterwards, which left a white flash at every resize.
+    Now the overlay resizes its own window with `SetWindowPos` (the player is built with a resizable window so Unity
+    follows) and only falls back to `Screen.SetResolution` if Unity does not follow within ten frames.
+  - Dirt (Boss: "still looks too clean and CGI"). Close-up renders in Unity (`prop` bridge command) showed why: the
+    colours were pale tan (linear values treated as if they were sRGB), the mounds were flat-shaded facets, and wet and
+    dry dirt met in straight lines along the mesh's faces. Now:
+    - real dark track-dirt colours, clods, ruts, tyre prints and cracks at a size that shows on the desktop, each with
+      a normal map so they catch the light (`dirt_texture.py`);
+    - one texture per prop, blended pixel by pixel from damp, dry and loose dirt by how each spot is worn, with ragged,
+      faded edges (`dirt_bake.py`);
+    - smooth-shaded mounds with lumpy, rain-rilled sides (`prop_detail.py`).
+  - Python tests: 59 passed (`python3 -m unittest discover -s Tools/Blender/tests`).
+
+#### Still to do in this phase
+
+- Compile and run the Unity tests on the PC, build, and check by hand: tray menu, hide and show, always on top,
+  two screens, 150% scaling, start with Windows, position kept after a restart.
