@@ -49,6 +49,9 @@ namespace DesktopRider.Overlay
         /// <summary>True while the left mouse button is held, wherever the mouse is.</summary>
         public static bool LeftButtonDown { get; private set; }
 
+        /// <summary>True while the right mouse button is held, wherever the mouse is.</summary>
+        public static bool RightButtonDown { get; private set; }
+
         /// <summary>Raised on the main thread after the screens change (one added, removed, moved, or its taskbar moved).</summary>
         public static event Action ScreensChanged;
 
@@ -67,8 +70,28 @@ namespace DesktopRider.Overlay
         /// </summary>
         public static void Resize(int width, int height)
         {
-            if (instance != null) instance.SetSize(new Vector2Int(Mathf.Max(64, width), Mathf.Max(64, height)));
+            BaseSize = new Vector2Int(Mathf.Max(64, width), Mathf.Max(64, height));
+            if (instance != null) instance.SetSize(BaseSize);
         }
+
+        /// <summary>
+        /// Makes the window at least this big (for a trick), never smaller. Once grown it stays that size while the rider
+        /// rides about in it: shrinking a window shows the last big picture squeezed into it for a moment, a flicker Boss
+        /// saw at the end of tricks (14 November); growing can be done cleanly (see <see cref="WindowStep"/>).
+        /// </summary>
+        public static void Grow(int width, int height)
+        {
+            if (instance == null) return;
+            var now = WantedSize;
+            if (width <= now.x && height <= now.y) return;
+            instance.SetSize(new Vector2Int(Mathf.Max(now.x, width), Mathf.Max(now.y, height)));
+        }
+
+        /// <summary>The size the rider's own window was last given (for his size setting), without any growth for tricks.</summary>
+        public static Vector2Int BaseSize { get; private set; }
+
+        /// <summary>The size the window is going to (it can take a frame or two to get there).</summary>
+        public static Vector2Int WantedSize => instance != null ? instance.TargetSize : new Vector2Int(WindowRect.width, WindowRect.height);
 
         /// <summary>Hides or shows the window. While hidden nothing is drawn and no clicks are taken.</summary>
         public static void SetVisible(bool visible)
@@ -105,9 +128,9 @@ namespace DesktopRider.Overlay
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
         const int GWL_STYLE = -16, GWL_EXSTYLE = -20;
         const uint WS_POPUP = 0x80000000, WS_VISIBLE = 0x10000000;
-        const uint WS_EX_LAYERED = 0x00080000, WS_EX_TRANSPARENT = 0x00000020, WS_EX_TOOLWINDOW = 0x00000080, WS_EX_NOACTIVATE = 0x08000000;
+        const uint WS_EX_TOPMOST = 0x00000008, WS_EX_LAYERED = 0x00080000, WS_EX_TRANSPARENT = 0x00000020, WS_EX_TOOLWINDOW = 0x00000080, WS_EX_NOACTIVATE = 0x08000000;
         const uint SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOACTIVATE = 0x0010, SWP_FRAMECHANGED = 0x0020, SWP_SHOWWINDOW = 0x0040;
-        const int SW_HIDE = 0, SW_SHOWNOACTIVATE = 4, VK_LBUTTON = 0x01;
+        const int SW_HIDE = 0, SW_SHOWNOACTIVATE = 4, VK_LBUTTON = 0x01, VK_RBUTTON = 0x02;
         const uint MONITORINFOF_PRIMARY = 1;
         static readonly IntPtr HWND_TOPMOST = new IntPtr(-1), HWND_NOTOPMOST = new IntPtr(-2);
 
@@ -127,6 +150,11 @@ namespace DesktopRider.Overlay
         [DllImport("user32.dll")] static extern IntPtr GetActiveWindow();
         [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr value);
         [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int index);
+        [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr hWnd, uint command);
+        [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hWnd);
+        [DllImport("user32.dll", EntryPoint = "SetClassLongPtrW")] static extern IntPtr SetClassLongPtr(IntPtr hWnd, int index, IntPtr value);
+        [DllImport("gdi32.dll")] static extern IntPtr GetStockObject(int index);
         [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int command);
         [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT p);
         [DllImport("user32.dll")] static extern short GetAsyncKeyState(int key);
@@ -151,6 +179,10 @@ namespace DesktopRider.Overlay
             yield return null;
 
             ApplyWindowStyle(true);
+            // No background brush: when the window grows, Windows would otherwise fill the new part white for a moment
+            // before Unity draws into it.
+            const int GCLP_HBRBACKGROUND = -10, NULL_BRUSH = 5;
+            SetClassLongPtr(window, GCLP_HBRBACKGROUND, GetStockObject(NULL_BRUSH));
             clickThrough = true;
             ApplyExtendedStyle();
             var centre = Area.MainCentre;
@@ -158,9 +190,48 @@ namespace DesktopRider.Overlay
             SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, corner.x - offset.X, corner.y - offset.Y, size.x, size.y,
                 SWP_FRAMECHANGED | (visible ? SWP_SHOWWINDOW : 0) | SWP_NOACTIVATE);
             placed = corner;
+            wantedCorner = corner;
+            wantedSize = size;
             WindowRect = new RectInt(corner.x, corner.y, size.x, size.y);
             IsActive = true;
             if (!visible) ShowWindow(window, SW_HIDE);
+            // Unity (and Windows, while the app is starting) can move the window back into the ordinary window order, which
+            // left "Always on top" ticked but not working until it was switched off and on (Boss, 14 November, twice).
+            // Putting it back once or twice at start was not enough, so keep checking now and then, and put it back the
+            // same way the switch does (off, then on) whenever an ordinary window has got above it.
+            var wait = new WaitForSecondsRealtime(TopmostCheckSeconds);
+            while (true)
+            {
+                yield return wait;
+                if (IsActive && visible && topmost && DroppedFromTop(out string why))
+                {
+                    if (topmostFixes++ < 20) Debug.Log("Desktop Rider was no longer on top (" + why + "); putting it back.");
+                    SetWindowPos(window, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                }
+            }
+        }
+
+        const float TopmostCheckSeconds = 1.5f;
+        const uint GW_HWNDPREV = 3;
+        int topmostFixes;
+
+        /// <summary>
+        /// True if the window has lost its always-on-top place: Windows no longer marks it so, or an ordinary (not
+        /// always-on-top) window that can be seen sits above it. Always-on-top windows all come before ordinary ones, so
+        /// only the few above it are looked at. Other always-on-top windows above it are left alone: no fighting them.
+        /// </summary>
+        bool DroppedFromTop(out string why)
+        {
+            why = null;
+            if (((long)GetWindowLongPtr(window, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0) { why = "not marked always on top"; return true; }
+            var above = GetWindow(window, GW_HWNDPREV);
+            for (int i = 0; i < 500 && above != IntPtr.Zero; i++, above = GetWindow(above, GW_HWNDPREV))
+            {
+                if (!IsWindowVisible(above)) continue;
+                if (((long)GetWindowLongPtr(above, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0) { why = "an ordinary window is above it"; return true; }
+            }
+            return false;
         }
 
         /// <summary>No border or title bar, and a see-through background.</summary>
@@ -217,29 +288,52 @@ namespace DesktopRider.Overlay
 
         void MoveTo(Vector2Int corner, bool force)
         {
-            if (!IsActive || (!force && corner == placed)) return;
-            SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, corner.x - offset.X, corner.y - offset.Y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
-            placed = corner;
-            WindowRect = new RectInt(corner.x, corner.y, size.x, size.y);
+            wantedCorner = corner;
+            if (!IsActive) return;
+            Apply(force);
         }
 
         void SetSize(Vector2Int newSize)
         {
-            if (newSize == size) return;
-            var centre = WindowRect.center;
-            size = newSize;
-            if (!IsActive)
-            {
-                Screen.SetResolution(size.x, size.y, FullScreenMode.Windowed);
-                return;
-            }
-            // Resize the window directly. Unity follows (the player is built with a resizable window) and keeps the
-            // see-through, borderless, always-on-top style. Screen.SetResolution would instead turn the window back into
-            // an ordinary opaque one for a few frames, which flashes up as a white box.
-            var corner = new Vector2Int(Mathf.RoundToInt(centre.x) - size.x / 2, Mathf.RoundToInt(centre.y) - size.y / 2);
-            SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, corner.x - offset.X, corner.y - offset.Y, size.x, size.y, SWP_NOACTIVATE);
-            placed = corner;
-            WindowRect = new RectInt(corner.x, corner.y, size.x, size.y);
+            if (newSize == wantedSize) return;
+            var centre = new Vector2(wantedCorner.x + wantedSize.x * 0.5f, wantedCorner.y + wantedSize.y * 0.5f);
+            wantedSize = newSize;
+            wantedCorner = new Vector2Int(Mathf.RoundToInt(centre.x) - newSize.x / 2, Mathf.RoundToInt(centre.y) - newSize.y / 2);
+            // Before the window is set up, only remember the size: Start sizes the window with it. Asking Unity to resize
+            // here (as before) could land after Start had made the window always-on-top, and Unity's resize puts the
+            // window back into the ordinary window order.
+            if (!IsActive) { size = newSize; return; }
+            Apply(false);
+        }
+
+        Vector2Int wantedCorner, wantedSize;
+        Vector2Int TargetSize => IsActive ? wantedSize : size;
+        int behindSince = -1;
+
+        /// <summary>
+        /// Moves and sizes the window towards where it is wanted, in the steps <see cref="WindowStep"/> picks so the
+        /// picture never jumps or flashes while Unity catches up with a new size (Boss saw a flicker at the end of tricks).
+        /// Resizes go straight to Windows; Unity follows (the player is built with a resizable window) and keeps the
+        /// see-through, borderless, always-on-top style. Screen.SetResolution would instead turn the window back into an
+        /// ordinary opaque one for a few frames, which flashes up as a white box.
+        /// </summary>
+        void Apply(bool force)
+        {
+            var now = new WindowBox(placed.x, placed.y, size.x, size.y);
+            var wanted = new WindowBox(wantedCorner.x, wantedCorner.y, wantedSize.x, wantedSize.y);
+            // If Unity has not followed after a few frames, stop waiting for it rather than leave the window behind.
+            bool behind = Screen.width < wanted.Width || Screen.height < wanted.Height;
+            if (!behind) behindSince = -1;
+            else if (behindSince < 0) behindSince = Time.frameCount;
+            var next = behind && Time.frameCount - behindSince > 10 ? wanted : WindowStep.Next(now, wanted, Screen.width, Screen.height);
+            if (!force && next.Equals(now)) return;
+            bool resized = !next.SameSize(now);
+            SetWindowPos(window, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, next.X - offset.X, next.Y - offset.Y, next.Width, next.Height,
+                SWP_NOACTIVATE | (resized ? 0 : SWP_NOSIZE));
+            placed = new Vector2Int(next.X, next.Y);
+            size = new Vector2Int(next.Width, next.Height);
+            WindowRect = new RectInt(next.X, next.Y, next.Width, next.Height);
+            if (!resized) return;
             if (restyle != null) StopCoroutine(restyle);
             restyle = StartCoroutine(CheckResize());
         }
@@ -277,14 +371,17 @@ namespace DesktopRider.Overlay
         {
             uint style = WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
             if (clickThrough) style |= WS_EX_TRANSPARENT;
+            if (topmost) style |= WS_EX_TOPMOST;      // keep the always-on-top mark this replaces
             SetWindowLongPtr(window, GWL_EXSTYLE, new IntPtr(unchecked((int)style)));
         }
 
         void Update()
         {
             if (!IsActive) return;
+            if (placed != wantedCorner || size != wantedSize) Apply(false);    // the next step of a change of size
             if (GetCursorPos(out var p)) MouseDesktop = new Vector2(p.x + offset.X, p.y + offset.Y);
             LeftButtonDown = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+            RightButtonDown = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
 
             bool shouldPassThrough = !WantsMouse || !visible;
             if (shouldPassThrough != clickThrough)
@@ -294,6 +391,7 @@ namespace DesktopRider.Overlay
             }
         }
 #else
+        Vector2Int TargetSize => new Vector2Int(WindowRect.width, WindowRect.height);
         void MoveTo(Vector2Int corner) { }
         void SetSize(Vector2Int newSize) { }
         void ApplyVisible(bool show) { }
@@ -310,6 +408,7 @@ namespace DesktopRider.Overlay
             var p = mouse.position.ReadValue();
             MouseDesktop = new Vector2(p.x, Screen.height - p.y);
             LeftButtonDown = mouse.leftButton.isPressed;
+            RightButtonDown = mouse.rightButton.isPressed;
         }
 #endif
     }

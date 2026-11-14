@@ -246,6 +246,70 @@ Order of the remaining phases, as Boss set it on 14 November 2026: desktop basic
 the free-riding setting, the riding style, tricks and ramps, the chat (Boss has a different idea for it, still using
 Ollama; to be discussed when it is reached), then settings and the final check.
 
+Update, 14 November 2026: Boss is building a separate project that the chat will use when it is ready, so the chat
+phase is on hold. The existing Ollama chat code stays in place untouched, and work moves on to settings and the final
+check, with no chat options in the settings window for now.
+
+#### Settings and final check (started 14 November 2026)
+
+- Tricks by himself (Boss chose a setting): Never, Sometimes (one every 5 to 10 minutes, the default) or Often (2 to 4
+  minutes). `OwnTrickTimer` (Logic/Tricks) times them; AppHost looks once a second and retries 20 s later when he is
+  hidden, held, busy or short of room. A trick asked for from the menu restarts the wait.
+- Settings window ("Settings..." in the tray menu, or `DesktopRider3D.exe --open-settings`): size, animation speed, ride
+  around freely, tricks by himself, little movements at rest, always on top, start with Windows, and "Move him back to
+  the corner". Changes apply at once; no Save button. `SettingsPanel` (the lines) and `SettingsLayout` (where everything
+  goes, hit testing, sliders) are plain logic with tests; `SettingsWindow` (Overlay) draws it with Windows' own calls
+  in the dark Windows 11 style (GDI+ for smooth shapes, ClearType words, dark title bar, round corners), sized for the
+  screen's scaling. Seen on Boss's PC through the new editor-bridge `capture` command (PrintWindow).
+- Always on top was ticked at start-up but not working until switched off and on (Boss). Cause: a resize asked for
+  before the window was set up went through Unity, and Unity's resize puts the window back in the ordinary window order
+  after it had been made always-on-top; also the click-through switch rewrote the window's extended style without the
+  always-on-top mark. Fixed both, and the place is put back 1 s and 5 s after start-up.
+- Free riding flows (Boss: three to five times the distance, fewer stops): each ride now goes through 3 to 5 places
+  without stopping, picking the next one before he would start braking and preferring one that needs no sharp turn,
+  then he rests.
+- Dirt while riding (Boss): a lighter trail of dirt now comes off the rear wheel the whole time he rides, more the
+  faster he goes, and two to three times as much, thrown to the outside, when he leans into a turn; none during tricks
+  or at rest. The bigger burst and the smoke still play when he sets off (`StartEffects`).
+- Always on top, second report (Boss: still behind apps at start-up). The two re-applies were not enough: the player
+  log showed Windows had taken the always-on-top mark off again after them. `OverlayWindow` now checks every 1.5 s
+  (one cheap look at the window order, nothing redrawn) whether the mark is gone or an ordinary window sits above him,
+  and puts him back the way the switch does (off, then on). Other always-on-top windows are left alone. On the next run
+  the log showed one such fix at start-up and none after.
+- A random trick where the jump and landing appeared but he rode straight through them (Boss). Cause: the trick began
+  while he was cornering; the corner pose sits on an animation layer above the trick clip and is not updated during a
+  trick, so a leg half out held the riding pose over the whole trick. `BeginTrick` now clears the corner pose at once
+  (`CornerBlend.Reset`, with a test). Tricks from the menu mostly started at rest, which is why it had not shown before.
+- Flicker at the end of a trick (Boss, twice, with a screen recording). The window changes size for a trick, and
+  Unity takes a few frames to catch up with a new size. Measured on Boss's PC with fast screen grabs (new bridge
+  command `screengrab`, and a hidden `--resize-probe` run since removed): when the window grows, Windows shows the old
+  picture pinned to its top-left corner at its real size; when it shrinks, Windows squeezes the last big picture into
+  the small window (a tiny rider in the wrong place for a moment). Hiding the picture while Unity caught up (the first
+  try) only turned that into a blank blink. Now:
+  - the window only grows (`OverlayWindow.Grow`), never shrinks after a trick; it keeps the bigger size and he rides
+    about inside it, the window moving only as far as it must to keep him in (`WindowStep.Follow`). Only a change of
+    the size setting resizes it exactly (`Resize`), and only when that setting really changed;
+  - growing is done in place first and the move waits until Unity has caught up (`WindowStep.Next`), so the old
+    picture stays exactly where it was; while the sizes differ the camera draws only the part of the window Unity's
+    picture covers (`WindowStep.DrawnPart`);
+  - no background brush, so newly uncovered parts of the window are see-through rather than white.
+  Checked with screen grabs of a jump on Boss's PC: the props go and the rider stays put, no squeeze or blink. Idle
+  processor use with the bigger window stayed the same (about 2 to 7% of one core at 10 frames a second).
+- Right-click the rider to open the settings (Boss). `FreeRider.RightClicked`: the right button pressed and let go
+  over him, not while he is carried.
+- `trick.txt` beside the proof build starts a trick (checked every 5 s by `ProofStats`), for checks from the bridge.
+- Editor bridge: `capture <window title>`, `winclick <title>|x|y`, `playerlog`, `screengrab <title>|count|ms`; `trick` also lists the clips playing (is the program running, and the end of
+  its Unity log).
+- Nothing leaves the PC (final check): the player log showed Unity's own cloud services trying to reach
+  cdp.cloud.unity3d.com and config.uca.cloud.unity3d.com at every start. `EditorBridge.KeepEverythingLocal` (run by set-up
+  and before every build) turns off the hardware statistics, Unity's connect services, engine diagnostics and crash
+  reports. Checked: a fresh run's log has no connection attempts.
+- The checking hooks in `ProofStats` (stats file, quit.txt, trick.txt, Ctrl+Shift+Q) only switch on with `--proof`,
+  which the bridge's `run` passes. A copy started any other way (double-click, Start with Windows) has none.
+- Final check by hand: 150% scaling is Boss's everyday setting, so everything Boss has tried was at 150%. Two screens:
+  Boss has one, so only the automated tests (RidingArea, overlay placement) cover it; not checked by hand.
+  Bridge command `startup` shows Desktop Rider's line in Windows' sign-in list.
+
 #### Done so far (written overnight with the PC off; Unity side not yet compiled in Unity)
 
 - `RidingArea` (Logic/Core/Desktop): every screen's work area in desktop pixels, starting at 0,0 even when a screen is

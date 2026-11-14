@@ -85,6 +85,12 @@ namespace DesktopRider.Core.Configuration
 
         public AnimationFrequency AnimationFrequency { get; set; } = AnimationFrequency.Normal;
 
+        /// <summary>
+        /// How often the rider does a trick without being asked (Boss's choice, 14 November 2026). New in version 2;
+        /// a settings file without it starts at Sometimes.
+        /// </summary>
+        public TrickFrequency TricksByHimself { get; set; } = TrickFrequency.Sometimes;
+
         /// <summary>The rider only starts conversations when the user has switched this on.</summary>
         public bool ProactiveComments { get; set; }
 
@@ -95,6 +101,14 @@ namespace DesktopRider.Core.Configuration
         public TimeOnly QuietHoursStart { get; set; } = new(22, 0);
 
         public TimeOnly QuietHoursEnd { get; set; } = new(8, 0);
+    }
+
+    /// <summary>How often the rider does a trick by himself.</summary>
+    public enum TrickFrequency
+    {
+        Never,
+        Sometimes,
+        Often,
     }
 
     public enum AnimationFrequency

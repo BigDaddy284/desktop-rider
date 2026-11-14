@@ -9,6 +9,7 @@ using DesktopRider.Core.Infrastructure;
 using DesktopRider.Core.Logging;
 using DesktopRider.Core.ViewModels;
 using DesktopRider.Riding;
+using DesktopRider.Tricks;
 using UnityEngine;
 
 namespace DesktopRider.Overlay
@@ -36,6 +37,10 @@ namespace DesktopRider.Overlay
         OverlayViewModel overlay;
         TrayViewModel trayMenu;
         TrayIcon trayIcon;
+        SettingsPanel settingsPanel;
+        SettingsWindow settingsWindow;
+        readonly OwnTrickTimer ownTricks = new OwnTrickTimer();
+        float nextOwnTrickCheck;
         ILogger<AppHost> log;
         bool ready;
 
@@ -64,7 +69,10 @@ namespace DesktopRider.Overlay
             RestorePosition();
             ApplySettings();
             if (rider != null) rider.Dropped += SavePositionSoon;
+            if (rider != null) rider.RightClicked += OpenSettings;
             ready = true;
+            // "DesktopRider3D.exe --open-settings" opens the settings window straight away (handy for a shortcut, and for checks).
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "--open-settings") >= 0) { Debug.Log("Opening the settings window (--open-settings)."); OpenSettings(); }
         }
 
         void BuildMenu()
@@ -82,7 +90,9 @@ namespace DesktopRider.Overlay
             var freeRiding = new FreeRidingMenu(settings, Logger<FreeRidingMenu>());
             var trickMenu = new TrickMenu(() => tricks != null && tricks.HasTricks);
             trickMenu.Requested += (s, e) => MainThread.Post(DoATrick);
-            trayMenu = new TrayViewModel(overlay, settings, new ITrayMenuContributor[] { trickMenu, freeRiding, startup }, Logger<TrayViewModel>());
+            settingsPanel = new SettingsPanel(settings, startup, Logger<SettingsPanel>());
+            settingsPanel.Requested += (s, e) => MainThread.Post(OpenSettings);
+            trayMenu = new TrayViewModel(overlay, settings, new ITrayMenuContributor[] { trickMenu, freeRiding, startup, settingsPanel }, Logger<TrayViewModel>());
 
             // The tray icon and the sign-in list are only for the real program, not while working in the editor.
             if (Application.isEditor) return;
@@ -100,11 +110,43 @@ namespace DesktopRider.Overlay
             if (!settings.Current.Appearance.CharacterVisible) return;
             if (!tricks.TryPerform())
                 trayIcon?.ShowHint("Desktop Rider", "There isn't enough clear space on the screen for a trick right now.");
+            else
+                ownTricks.Restart(Time.realtimeSinceStartup);   // one asked for counts: the next one by himself waits a full gap
+        }
+
+        /// <summary>
+        /// Tricks by himself ("Tricks by himself": never, sometimes or often). Looked at once a second, which costs
+        /// nothing; a trick that is due while he is hidden, held, busy or short of room is tried again a little later.
+        /// </summary>
+        void Update()
+        {
+            if (!ready || tricks == null || rider == null) return;
+            float now = Time.realtimeSinceStartup;
+            if (now < nextOwnTrickCheck) return;
+            nextOwnTrickCheck = now + 1f;
+            bool canStart = settings.Current.Appearance.CharacterVisible && rider.isActiveAndEnabled && tricks.HasTricks
+                            && !tricks.IsRunning && !rider.InTrick && !rider.Approaching && !rider.BeingDragged;
+            if (ownTricks.Due(now, settings.Current.Behaviour.TricksByHimself, canStart) && !tricks.TryPerform())
+                ownTricks.Retry(now);   // no room just now: try again shortly
         }
 
         void OnOverlayChanged(object sender, PropertyChangedEventArgs e) => MainThread.Post(ApplySettings);
 
-        void OnSettingsChanged(object sender, EventArgs e) => MainThread.Post(ApplySettings);
+        void OnSettingsChanged(object sender, EventArgs e) => MainThread.Post(() => { ApplySettings(); settingsWindow?.Refresh(); });
+
+        /// <summary>Opens the settings window, or brings it to the front if it is already open.</summary>
+        void OpenSettings()
+        {
+            if (settingsPanel == null) return;
+            if (settingsWindow == null)
+            {
+                settingsWindow = new SettingsWindow(settingsPanel, trayIcon != null ? trayIcon.Image : IntPtr.Zero);
+                settingsWindow.ResetRequested += MoveToMiddle;
+                settingsWindow.CommandFailed += ex => Log(LogLevel.Error, "A change in the settings window failed.", ex);
+            }
+            settingsWindow.Open();
+            Debug.Log(settingsWindow.IsOpen ? "The settings window is open." : "The settings window did not open.");
+        }
 
         /// <summary>Makes the rider and its window match the settings. Safe to call any number of times.</summary>
         void ApplySettings()
@@ -123,7 +165,10 @@ namespace DesktopRider.Overlay
                 rider.SetAnimationSpeed((float)appearance.AnimationSpeed);
                 rider.Director.IdleAnimations = settings.Current.Behaviour.IdleAnimations;
             }
-            if (overlayWindow != null) OverlayWindow.Resize(overlayWindow.SizeFor((float)appearance.Scale));
+            // Only when the size setting changed: any other change (or saving his place) left the window as it was. Resizing
+            // every time shrank a window grown for a trick, which flickers (see OverlayWindow.Grow).
+            int own = overlayWindow != null ? overlayWindow.SizeFor((float)appearance.Scale) : 0;
+            if (overlayWindow != null && OverlayWindow.BaseSize != new Vector2Int(own, own)) OverlayWindow.Resize(own);
             // The rider sets its own frame rate while shown; hidden, nothing is drawn, so tick over slowly.
             if (!visible) Application.targetFrameRate = hiddenFrameRate;
         }
@@ -173,18 +218,22 @@ namespace DesktopRider.Overlay
                 try { SavePositionAsync().Wait(TimeSpan.FromSeconds(1)); }
                 catch (AggregateException ex) { Log(LogLevel.Warning, "The rider's position could not be saved on exit.", ex); }
             }
+            settingsWindow?.Dispose();
+            settingsWindow = null;
             trayIcon?.Dispose();
             trayIcon = null;
         }
 
         void OnDestroy()
         {
+            settingsWindow?.Dispose();
+            settingsWindow = null;
             trayIcon?.Dispose();
             trayIcon = null;
             if (overlay != null) { overlay.PropertyChanged -= OnOverlayChanged; overlay.Dispose(); }
             trayMenu?.Dispose();
             if (settings != null) settings.Changed -= OnSettingsChanged;
-            if (rider != null) rider.Dropped -= SavePositionSoon;
+            if (rider != null) { rider.Dropped -= SavePositionSoon; rider.RightClicked -= OpenSettings; }
             services?.Dispose();
         }
 

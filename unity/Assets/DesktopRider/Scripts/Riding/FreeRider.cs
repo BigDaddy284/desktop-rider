@@ -28,6 +28,8 @@ namespace DesktopRider.Riding
         public float maxLean = 38f;
         public float arriveDistance = 0.6f;
         public Vector2 restSeconds = new Vector2(2f, 6f);
+        [Tooltip("How many places he rides through, one after another without stopping, before he stops for a rest (Boss, 14 November: three to five times the distance, fewer stops).")]
+        public Vector2Int legsPerRide = new Vector2Int(3, 5);
         [Range(0.02f, 0.3f)] public float screenMargin = 0.12f;
         [Tooltip("Chance that the next place to ride to is on another screen, when there is more than one.")]
         [Range(0f, 1f)] public float otherScreenChance = 0.25f;
@@ -66,6 +68,10 @@ namespace DesktopRider.Riding
         /// <summary>Raised when the user lets go of the rider after dragging it.</summary>
         public event Action Dropped;
 
+        /// <summary>Raised when the rider is right-clicked (the button let go over him): opens the settings.</summary>
+        public event Action RightClicked;
+        bool rightPressedOver, rightWasDown;
+
         /// <summary>Where the rider's wheels touch the desktop, in desktop pixels.</summary>
         public Vector2 DesktopPosition => View.ToDesktop(transform.position);
 
@@ -83,6 +89,15 @@ namespace DesktopRider.Riding
 
         /// <summary>True while riding to the start of a trick.</summary>
         public bool Approaching => approachArrived != null;
+
+        /// <summary>How fast the bike is going, in metres a second (0 at rest or during a trick).</summary>
+        public float Speed => InTrick ? 0f : speed;
+
+        /// <summary>How far the bike is leaned into a turn, in degrees (+ or - for the two ways).</summary>
+        public float Lean => lean;
+
+        /// <summary>True while the user is holding the rider with the mouse.</summary>
+        public bool BeingDragged => dragging;
 
         /// <summary>The rider size setting (1 is normal).</summary>
         public float SizeScale => sizeScale;
@@ -154,7 +169,17 @@ namespace DesktopRider.Riding
             speed = 0f;
             lean = 0f;
             if (leanPivot != null) leanPivot.localRotation = Quaternion.identity;
-            UpdateCornerPose(false);
+            // Take the corner pose off at once. It sits on a layer above the trick clip, and nothing updates it during a
+            // trick, so a leg half out when the trick began would hold the riding pose over the whole jump.
+            corner.Reset();
+            ClearCornerPose();
+        }
+
+        void ClearCornerPose()
+        {
+            if (modelAnimation == null) return;
+            foreach (var name in new[] { "CornerLeft", "CornerRight" })
+                if (modelAnimation[name] is AnimationState state) SetCornerWeight(state, 0f, null);
         }
 
         /// <summary>Puts the rider on a ground point during a trick, facing <paramref name="heading"/> degrees.</summary>
@@ -214,6 +239,14 @@ namespace DesktopRider.Riding
                 target = approachEnd;
                 distance = RiderSteering.FlatDistance(transform.position, target);
             }
+            // Riding on through a place on the way: pick the next one before he starts to slow down, so he flows on.
+            float flowAhead = arriveDistance + (cruiseSpeed * cruiseSpeed) / (2f * Mathf.Max(0.01f, braking)) + 0.3f;
+            if (!Approaching && roaming && !resting && legsLeft > 1 && distance < flowAhead)
+            {
+                legsLeft--;
+                PickTarget(flowing: true);
+                distance = RiderSteering.FlatDistance(transform.position, target);
+            }
             float wantedSpeed = resting ? 0f : RiderSteering.SpeedFor(distance, cruiseSpeed, braking, arriveDistance);
             speed = Mathf.MoveTowards(speed, wantedSpeed, (wantedSpeed > speed ? acceleration : braking) * Time.deltaTime);
 
@@ -247,6 +280,7 @@ namespace DesktopRider.Riding
             if (!Approaching && roaming && !resting && distance < arriveDistance && speed < 0.3f)
             {
                 restUntil = Time.time + Mathf.Lerp(restSeconds.x, restSeconds.y, (float)random.NextDouble());
+                NewRide();
                 PickTarget();
             }
 
@@ -270,18 +304,25 @@ namespace DesktopRider.Riding
             {
                 // A window the shape of the whole trick, cut to the desktop (nothing shows past its edge anyway); most of
                 // it is see-through and lets clicks pass. A square one was taller than the screen for long jumps, and
-                // Windows then cut the window short, which cut off the front wheel or the helmet.
+                // Windows then cut the window short, which cut off the front wheel or the helmet. The window only ever
+                // grows for this (see OverlayWindow.Grow), and is placed round the trick, on the desktop.
                 var fit = TrickWindow(frame, OverlayWindow.Area.Size.Width, OverlayWindow.Area.Size.Height);
-                if (window.width != fit.width || window.height != fit.height) OverlayWindow.Resize(fit.width, fit.height);
-                OverlayWindow.PlaceWindow(fit.position);
+                OverlayWindow.Grow(fit.width, fit.height);
+                var size = OverlayWindow.WantedSize;
+                var corner = OverlayWindow.Area.WindowCorner(new Numerics.Vector2(fit.center.x, fit.center.y),
+                    new DesktopRider.Core.Placement.PixelSize(size.x, size.y));
+                OverlayWindow.PlaceWindow(new Vector2Int(corner.X, corner.Y));
                 window = OverlayWindow.WindowRect;
             }
             else if (OverlayWindow.IsActive)
             {
+                // Keep him inside the window, moving it only as far as needed (a window grown for a trick stays big).
                 var centre = view.ToDesktop(transform.position + Vector3.up * framingHeight);
-                var corner = OverlayWindow.Area.WindowCorner(new Numerics.Vector2(centre.x, centre.y),
-                    new DesktopRider.Core.Placement.PixelSize(window.width, window.height));
-                OverlayWindow.PlaceWindow(new Vector2Int(corner.X, corner.Y));
+                var size = OverlayWindow.WantedSize;
+                var own = OverlayWindow.BaseSize.x > 0 ? OverlayWindow.BaseSize : size;
+                var (x, y) = DesktopRider.Core.Desktop.WindowStep.Follow(window.x, window.y, size.x, size.y, centre.x, centre.y,
+                    own.x, own.y, OverlayWindow.Area.Size.Width, OverlayWindow.Area.Size.Height);
+                OverlayWindow.PlaceWindow(new Vector2Int(x, y));
                 window = OverlayWindow.WindowRect;
             }
 
@@ -289,7 +330,29 @@ namespace DesktopRider.Riding
             viewCamera.orthographic = true;
             viewCamera.orthographicSize = window.height / (2f * view.PixelsPerMetre);
             viewCamera.transform.SetPositionAndRotation(view.CameraFor(windowCentre), view.Rotation);
+            AimAtDrawnPart(window, view.PixelsPerMetre);
         }
+
+        /// <summary>
+        /// For the frame after the window changes size Unity still draws at the old size, and Windows pins that picture
+        /// to the window's top-left corner. Draw the scene over just that part of the window so nothing jumps; once the
+        /// sizes match this is the normal view.
+        /// </summary>
+        void AimAtDrawnPart(RectInt window, float pixelsPerMetre)
+        {
+            if (!OverlayWindow.IsActive || (Screen.width == window.width && Screen.height == window.height))
+            {
+                if (aimedAtPart) { viewCamera.ResetProjectionMatrix(); aimedAtPart = false; }
+                return;
+            }
+            var (left, right, bottom, top) = DesktopRider.Core.Desktop.WindowStep.DrawnPart(window.width, window.height, Screen.width, Screen.height);
+            float m = 1f / pixelsPerMetre;
+            viewCamera.projectionMatrix = Matrix4x4.Ortho((float)left * m, (float)right * m, (float)bottom * m, (float)top * m,
+                viewCamera.nearClipPlane, viewCamera.farClipPlane);
+            aimedAtPart = true;
+        }
+
+        bool aimedAtPart;
 
         /// <summary>The window for a trick: the trick's frame in whole pixels, kept inside the desktop.</summary>
         public static RectInt TrickWindow(Rect frame, int desktopWidth, int desktopHeight)
@@ -314,6 +377,15 @@ namespace DesktopRider.Riding
                 over = Physics.Raycast(ray, out RaycastHit hit, 500f) && hit.transform.IsChildOf(transform);
             }
             OverlayWindow.WantsMouse = over || dragging;
+
+            // A right click on the rider: pressed and let go over him, not while he is being carried.
+            if (OverlayWindow.RightButtonDown) { if (over && !dragging && !rightWasDown) rightPressedOver = true; }
+            else
+            {
+                if (rightPressedOver && over && !dragging) RightClicked?.Invoke();
+                rightPressedOver = false;
+            }
+            rightWasDown = OverlayWindow.RightButtonDown;
 
             if (!dragging && over && OverlayWindow.LeftButtonDown && view.ToGround(mouse, out Vector3 start))
             {
@@ -352,12 +424,28 @@ namespace DesktopRider.Riding
             if (roaming) PickTarget(); else target = transform.position;
         }
 
-        void PickTarget()
+        int legsLeft = 1;
+
+        /// <summary>The next ride goes through a few places before it stops.</summary>
+        void NewRide() => legsLeft = random.Next(Mathf.Max(1, legsPerRide.x), Mathf.Max(legsPerRide.x, legsPerRide.y) + 1);
+
+        /// <param name="flowing">Riding on without stopping: of a few places, prefer the farthest one that needs no sharp turn.</param>
+        void PickTarget(bool flowing = false)
         {
+            if (legsLeft < 1) NewRide();
             var view = View;
             var from = view.ToDesktop(transform.position);
-            var pixel = OverlayWindow.Area.PickTarget(new Numerics.Vector2(from.x, from.y), random, screenMargin, otherScreenChance);
-            if (view.ToGround(new Vector2(pixel.X, pixel.Y), out Vector3 point)) target = point;
+            Vector3? best = null;
+            float bestScore = float.MinValue;
+            for (int i = 0; i < (flowing ? 8 : 1); i++)
+            {
+                var pixel = OverlayWindow.Area.PickTarget(new Numerics.Vector2(from.x, from.y), random, screenMargin, otherScreenChance);
+                if (!view.ToGround(new Vector2(pixel.X, pixel.Y), out Vector3 point)) continue;
+                float turn = Mathf.Abs(RiderSteering.ShortestTurn(transform.eulerAngles.y, RiderSteering.HeadingTo(transform.position, point)));
+                float score = RiderSteering.FlatDistance(transform.position, point) - (turn > 100f ? 100f : 0f) - turn * 0.01f;
+                if (score > bestScore) { bestScore = score; best = point; }
+            }
+            if (best is Vector3 chosen) target = chosen;
         }
 
         /// <summary>Plays clips at this speed (1 is normal), for the animation-speed setting.</summary>

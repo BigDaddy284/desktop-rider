@@ -6,8 +6,9 @@ using UnityEngine;
 namespace DesktopRider.Overlay
 {
     /// <summary>
-    /// Phase 1 measurement: every few seconds writes frame rate, memory and processor use to proof-stats.txt
-    /// beside the program. Also closes the program when a file called quit.txt appears there, or on Ctrl+Shift+Q.
+    /// Checks only (runs started with --proof). Phase 1 measurement: every few seconds writes frame rate, memory and processor use to proof-stats.txt
+    /// beside the program. Also closes the program when a file called quit.txt appears there, or on Ctrl+Shift+Q, and starts a
+    /// trick when trick.txt appears (for checks from the editor bridge).
     /// </summary>
     public sealed class ProofStats : MonoBehaviour
     {
@@ -21,8 +22,15 @@ namespace DesktopRider.Overlay
         DateTime lastWall;
         Process process;
 
+        /// <summary>
+        /// Only for runs started from the editor bridge (which passes --proof): a copy started any other way has no stats
+        /// file, no test files and no Ctrl+Shift+Q, so the program people use carries none of the checking hooks.
+        /// </summary>
+        static readonly bool ForChecks = Array.IndexOf(Environment.GetCommandLineArgs(), "--proof") >= 0;
+
         void Start()
         {
+            if (!ForChecks && !Application.isEditor) { enabled = false; return; }
             folder = Path.GetDirectoryName(Application.dataPath);
             process = Process.GetCurrentProcess();
             lastCpu = process.TotalProcessorTime;
@@ -40,6 +48,7 @@ namespace DesktopRider.Overlay
             if (Application.isEditor) return;
 
             if (File.Exists(Path.Combine(folder, "quit.txt"))) { Application.Quit(); return; }
+            StartTestTrick();
 
             process.Refresh();
             var cpu = process.TotalProcessorTime;
@@ -52,6 +61,22 @@ namespace DesktopRider.Overlay
             string line = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:HH:mm:ss},{1:F1},{2},{3:F0},{4:F1},{5},{6}\n",
                 DateTime.Now, fps, Application.targetFrameRate, WorkingSetBytes() / 1048576.0, cpuPercent, OverlayWindow.IsActive, SystemInfo.graphicsDeviceType);
             try { File.AppendAllText(Path.Combine(folder, "proof-stats.txt"), line); } catch (IOException) { }
+        }
+
+        /// <summary>For checks from the editor bridge: a file called trick.txt beside the program starts the trick named in it.</summary>
+        void StartTestTrick()
+        {
+            string file = Path.Combine(folder, "trick.txt");
+            if (!File.Exists(file)) return;
+            try
+            {
+                string name = File.ReadAllText(file).Trim();
+                File.Delete(file);
+                var runner = FindFirstObjectByType<DesktopRider.Riding.TrickRunner>();
+                bool started = runner != null && runner.TryPerform(name.Length == 0 ? null : name);
+                UnityEngine.Debug.Log("Test trick " + (name.Length == 0 ? "(random)" : name) + (started ? " started." : " did not start."));
+            }
+            catch (IOException) { }
         }
 
         // Mono's Process.WorkingSet64 reads 0 on Windows, so ask Windows directly.

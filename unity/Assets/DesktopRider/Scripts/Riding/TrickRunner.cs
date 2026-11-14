@@ -215,8 +215,7 @@ namespace DesktopRider.Riding
             foreach (var prop in props.Values) prop.SetActive(false);
             if (rider != null)
             {
-                rider.EndTrick();
-                if (overlayWindow != null) OverlayWindow.Resize(overlayWindow.SizeFor(rider.SizeScale));
+                rider.EndTrick();         // the window keeps its trick size: shrinking it flickers (OverlayWindow.Grow)
             }
             Finished?.Invoke(name);
         }

@@ -5,6 +5,8 @@ namespace DesktopRider.Riding
     /// <summary>
     /// What the owner's start-gate video shows as the bike launches: a spray of dirt thrown back by the rear wheel and a
     /// puff of blue two-stroke smoke. Both play each time the bike sets off from a stop (<see cref="FreeRider.SetOff"/>).
+    /// While he rides about, a lighter trail of dirt keeps coming off the rear wheel, more of it the faster he goes and
+    /// more again, thrown out to the side, when he leans into a turn (Boss, 14 November: dirt the whole time he rides).
     /// The particle systems are made here in code, so there is nothing to set up in the scene but the material.
     /// </summary>
     public sealed class StartEffects : MonoBehaviour
@@ -23,7 +25,12 @@ namespace DesktopRider.Riding
         public Color dirtColour = new Color(0.24f, 0.16f, 0.10f, 1f);
         public Color smokeColour = new Color(0.58f, 0.66f, 0.86f, 0.55f);
 
-        ParticleSystem dirt, smoke;
+        [Tooltip("Bits of dirt a second from the rear wheel while riding at full speed in a straight line.")]
+        public float trailRate = 22f;
+        [Tooltip("How many times more dirt comes off in a fully leaned turn.")]
+        public float cornerBoost = 2.2f;
+
+        ParticleSystem dirt, smoke, trail;
         Texture2D softDot;
         Material material;
 
@@ -38,6 +45,7 @@ namespace DesktopRider.Riding
             if (material.HasProperty("_MainTex")) material.SetTexture("_MainTex", softDot);
             dirt = MakeDirt();
             smoke = MakeSmoke();
+            trail = MakeTrail();
             rider.SetOff += Launch;
         }
 
@@ -65,6 +73,48 @@ namespace DesktopRider.Riding
             var exhaust = wheel + Vector3.up * 0.28f * scale + back * 0.12f * scale + rider.transform.right * 0.12f * scale;
             smoke.transform.SetPositionAndRotation(exhaust, Quaternion.LookRotation(back + Vector3.up * 0.35f));
             smoke.Play(true);
+        }
+
+        /// <summary>Keeps the riding trail at the rear wheel and sets how much comes off, from the bike's speed and lean.</summary>
+        void LateUpdate()
+        {
+            if (trail == null) return;
+            float speed01 = rider.isActiveAndEnabled && rider.cruiseSpeed > 0 ? Mathf.Clamp01(rider.Speed / rider.cruiseSpeed) : 0f;
+            float lean01 = rider.maxLean > 0 ? Mathf.Clamp01(Mathf.Abs(rider.Lean) / rider.maxLean) : 0f;
+            var emission = trail.emission;
+            emission.rateOverTime = speed01 < 0.15f ? 0f : trailRate * speed01 * (1f + cornerBoost * lean01);
+            if (speed01 < 0.15f) return;
+
+            var back = -rider.transform.forward;
+            var wheel = rearWheel != null ? rearWheel.position : rider.transform.position - rider.transform.forward * 0.55f;
+            float scale = rider.transform.lossyScale.y;
+            var ground = new Vector3(wheel.x, rider.transform.position.y, wheel.z);
+            // In a turn the back wheel throws the dirt out to the outside of the turn.
+            var outside = -rider.transform.right * Mathf.Sign(rider.Lean) * lean01 * 0.9f;   // + lean is a right-hand turn
+            trail.transform.SetPositionAndRotation(ground + back * 0.08f * scale + Vector3.up * 0.02f * scale,
+                Quaternion.LookRotation(back * 0.8f + outside + Vector3.up * 0.45f));
+        }
+
+        ParticleSystem MakeTrail()
+        {
+            var ps = NewSystem("RideDirt");
+            var main = ps.main;
+            main.loop = true;
+            main.duration = 1f;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.25f, 0.5f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.6f, 1.6f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.012f, 0.035f);
+            main.startColor = new ParticleSystem.MinMaxGradient(dirtColour, dirtColour * 0.7f + new Color(0, 0, 0, 0.3f));
+            main.gravityModifier = gravity;
+            main.maxParticles = 48;
+            var emission = ps.emission;
+            emission.rateOverTime = 0f;
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 25f;
+            shape.radius = 0.025f;
+            ps.Play(true);
+            return ps;
         }
 
         ParticleSystem MakeDirt()

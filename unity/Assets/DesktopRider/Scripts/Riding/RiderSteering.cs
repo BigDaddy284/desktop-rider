@@ -98,6 +98,14 @@ namespace DesktopRider.Riding
         public float Left => side < 0 ? amount : 0f;
         public float Right => side > 0 ? amount : 0f;
 
+        /// <summary>Puts the leg straight back on the peg, at once (a trick takes over the whole body).</summary>
+        public void Reset()
+        {
+            amount = 0f;
+            held = 0f;
+            side = 0;
+        }
+
         /// <summary>
         /// <paramref name="turnAhead"/>: degrees still to turn to face where the bike is going (positive to the right).
         /// <paramref name="lean"/>: the bike's lean now (positive to the right). Returns the left and right weights.

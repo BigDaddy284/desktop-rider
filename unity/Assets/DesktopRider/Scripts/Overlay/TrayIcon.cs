@@ -39,6 +39,9 @@ namespace DesktopRider.Overlay
             viewModel.HintRequested += OnHintRequested;
         }
 
+        /// <summary>The icon's image (owned by this object), for other windows of Desktop Rider to show too.</summary>
+        public IntPtr Image => image;
+
         /// <summary>Raised when screens are added, removed, moved, resized or their taskbars change.</summary>
         public event Action? DisplaysChanged;
 
