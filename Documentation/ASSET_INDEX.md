@@ -55,6 +55,23 @@ A separate set from the rider and bike above, with its own driver, passenger and
 | Models (`sidecar.glb`, `sidecar_crew.glb`) | Supplied by the owner on 16 Nov 2026. Their shapes are the owner's and are not altered. At the owner's request, the three black vents on the chair's front board are hidden (not deleted). |
 | Reference photographs | 12 photographs supplied on 16 Nov 2026 (project files, `References/Original-Photographs/Sidecar/`). Summary in `References/SIDECAR_VISUAL_REFERENCE_SUMMARY.md`. |
 | Painted models | **Approved by the owner** (16 Nov 2026) after six rounds of changes. White, blue and yellow O'Neal crew kit; yellow and light-blue outfit with the number 41; Duck Smart, HB Halo, O'Neal and YSS stickers redrawn by hand from the photos. Approved renders: `References/Approved-Artwork/Sidecar-41/`. |
-| Rigging, trick list, animations, sprite sheets | Not started. The trick list goes to the owner for approval first. |
+| Rigging and animations | First pass built 16 Nov 2026 and set up in the owner's Unity project for viewing; **awaiting the owner's review**. 28 clips (see below). |
+| Sprite sheets | Not needed for the 3D (Unity) version. |
 
 The painting follows the same method as the first set: images projected onto the models from the side, front and back. The driver and passenger are the same mesh in two poses, so the passenger takes the driver's rest coordinates per face corner and both wear exactly the same artwork. The Blender file (`sidecar_41_approved.blend`, with its `tex/` folder) is on the owner's computer in `Dektop Rider 3D\Sidecar`, and the scripts that build it are in the project files under `sidecar/blender/`.
+
+### Sidecar motions (first pass, 16 Nov 2026)
+
+Built by `Tools/Blender/Sidecar/` from the approved painted file: `bake.py` (joins the outfit's parts and bakes the approved paint into three textures), `rig.py` (outfit, driver and passenger rigs), `scrig.py` and `sidecar_anim.py` (keys every clip), `props.py` (dirt props), `export.py` (FBX, props and manifest for Unity) and `sheet.py` (contact sheets for checking).
+The crew model came with three pose shapes of its own (Left, Right, Jump). They are the owner's and are used as they are: Left is the passenger hanging out over the chair wheel, Right is the passenger swinging over behind the driver, Jump is both standing.
+
+| Group | Clips |
+|---|---|
+| Everyday | Idle, LookAround, Revving, Thinking, Talking, Celebration, SleepStart, Sleeping, SleepEnd |
+| Riding | RideOff, RideOn, RidingLoop, CornerLeft (towards the chair: passenger hang-out), CornerRight (away from the chair: passenger swing-over), and In/Out blends for each corner. The hang-out and swing-over are part of turning, not separate tricks. |
+| Tricks | FlyingChair, Wheelie, PowerSlide, PassengerWave, LostPassenger, Rollers. No stoppie (owner's request). |
+| Jumps | Tabletop, NoHander, PassengerSuperman, NacNac, all off the same ramp and landing with a big suspension squash on landing. |
+
+Props: `SC_Prop_JumpRamp` (0.5 m lip, 33°), `SC_Prop_JumpLanding`, and `SC_Prop_Rollers` (owner's request: wider, bigger and further apart than the first set's whoops: 4 rollers, 1.9 m long, 0.38 m high, 0.9 m of flat between, 2 m wide).
+
+Unity: `Assets/DesktopRider/Sidecar/` in the owner's project (model, textures, manifest, props, `SidecarViewer.unity`). Copies of its scripts are in `Tools/Unity/Sidecar/`. Menu **Desktop Rider > Sidecar > Open the sidecar viewer**, then Play. Harvey's scene, models and scripts are not touched. The FBX and textures stay off GitHub like the first set's.
