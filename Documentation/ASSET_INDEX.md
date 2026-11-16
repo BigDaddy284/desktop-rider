@@ -45,3 +45,16 @@ Their colours and shapes were the developer's choice so that the animations coul
 ## The in-app stand-in
 
 If the sprite files cannot be found, the application shows a grey card drawn in XAML (`OverlayWindow.xaml`). It is a labelled stand-in, not artwork, and has no asset file.
+
+## Second character set: sidecar outfit 41
+
+A separate set from the rider and bike above, with its own driver, passenger and tricks. Nothing in the first set changes.
+
+| Stage | Status |
+|---|---|
+| Models (`sidecar.glb`, `sidecar_crew.glb`) | Supplied by the owner on 16 Nov 2026. Their shapes are the owner's and are not altered. At the owner's request, the three black vents on the chair's front board are hidden (not deleted). |
+| Reference photographs | 12 photographs supplied on 16 Nov 2026 (project files, `References/Original-Photographs/Sidecar/`). Summary in `References/SIDECAR_VISUAL_REFERENCE_SUMMARY.md`. |
+| Painted models | **Approved by the owner** (16 Nov 2026) after six rounds of changes. White, blue and yellow O'Neal crew kit; yellow and light-blue outfit with the number 41; Duck Smart, HB Halo, O'Neal and YSS stickers redrawn by hand from the photos. Approved renders: `References/Approved-Artwork/Sidecar-41/`. |
+| Rigging, trick list, animations, sprite sheets | Not started. The trick list goes to the owner for approval first. |
+
+The painting follows the same method as the first set: images projected onto the models from the side, front and back. The driver and passenger are the same mesh in two poses, so the passenger takes the driver's rest coordinates per face corner and both wear exactly the same artwork. The Blender file (`sidecar_41_approved.blend`, with its `tex/` folder) is on the owner's computer in `Dektop Rider 3D\Sidecar`, and the scripts that build it are in the project files under `sidecar/blender/`.
