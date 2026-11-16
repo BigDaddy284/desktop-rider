@@ -41,24 +41,34 @@ def grips(P):
         w=V(JOINTS['driver']['wrist.'+sd]); out[sd]=inv@P['steer']@Matrix.Translation(-SJ['steer'])@w
     return out
 
-def rest_pole(c,limb,sd):
+def model_pole(c,limb,sd):
     J=c.J
     if limb=='arm': A,E,Wr=J['shoulder.'+sd],J['elbow.'+sd],J['wrist.'+sd]
     else: A,E,Wr=J['hip.'+sd],J['knee.'+sd],J['ankle.'+sd]
     return E-(A+Wr)/2
+
+# Owner's note (16 Nov 2026): the passenger's elbows sat too low holding the rail; they are carried higher and a little out.
+ELBOW_UP={'L':V((0.0,0.35,1.0)),'R':V((0.0,-0.35,1.0))}
+def rest_pole(c,limb,sd,k=1.0):
+    p=model_pole(c,limb,sd)
+    if c is CP and limb=='arm':
+        p=p.normalized().lerp(ELBOW_UP[sd].normalized(),0.8*k)
+    return p
 
 def crew_pose(c, rig, mesh, p, f, gr=None):
     """p: dict with keys (shape weights), hips_t, hips/spine/chest/head (Quaternions), arms/legs ('rest', 'grip', None or (target, pole)),
     hand_rot, root, root_t, pivot."""
     keys=p.get('keys',{})
     set_shapes(mesh,f,**keys)
+    # the owner's pose shapes carry the limbs themselves; the raised elbows fade out while a shape is in use
+    k=1.0-max([0.0]+[float(v) for v in keys.values()])
     def limb(kind,sd,val):
         if val is None: return None
         if val=='rest':
-            return (c.J[('wrist.' if kind=='arm' else 'ankle.')+sd], rest_pole(c,kind,sd))
-        if val=='grip': return (gr[sd], rest_pole(c,'arm',sd))
+            return (c.J[('wrist.' if kind=='arm' else 'ankle.')+sd], rest_pole(c,kind,sd,k))
+        if val=='grip': return (gr[sd], rest_pole(c,'arm',sd,k))
         tgt,pole=val
-        return (V(tgt), V(pole) if pole is not None else rest_pole(c,kind,sd))
+        return (V(tgt), V(pole) if pole is not None else rest_pole(c,kind,sd,k))
     arms={sd:limb('arm',sd,p.get('arms',{}).get(sd,p.get('arm_default','rest'))) for sd in 'LR'}
     legs={sd:limb('leg',sd,p.get('legs',{}).get(sd,p.get('leg_default','rest'))) for sd in 'LR'}
     c.pose(rig,hips_t=p.get('hips_t',(0,0,0)),hips=p.get('hips',I),spine=p.get('spine',I),chest=p.get('chest',I),head=p.get('head',I),

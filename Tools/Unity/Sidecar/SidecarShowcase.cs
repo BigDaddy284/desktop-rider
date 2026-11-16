@@ -114,6 +114,21 @@ namespace DesktopRider.Sidecar
         /// <summary>The move showing now, as the panel names it.</summary>
         public string Now => now;
 
+        /// <summary>The moves listed in the manifest (also read by the editor's Move Viewer).</summary>
+        public Clip[] ManifestClips() { if (data == null) data = JsonUtility.FromJson<Manifest>(manifest.text); return data.clips; }
+
+        /// <summary>The plain name shown for a move.</summary>
+        public static string LabelFor(string clip) => Labels.TryGetValue(clip, out var l) ? l : clip;
+
+        /// <summary>The outfit's forward direction in the model's space (measured when needed).</summary>
+        public Vector3 ForwardLocal()
+        {
+            if (data == null) data = JsonUtility.FromJson<Manifest>(manifest.text);
+            if (rootBone == null) foreach (var t in model.GetComponentsInChildren<Transform>()) if (t.name == "root" && t.parent != null && t.parent.name == "sidecar_rig") rootBone = t;
+            if (forwardLocal == Vector3.forward) MeasureForward();
+            return forwardLocal;
+        }
+
         /// <summary>Where things are (for the editor's checks).</summary>
         public string Report()
         {
