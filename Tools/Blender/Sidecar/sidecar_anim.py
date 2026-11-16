@@ -48,11 +48,11 @@ def model_pole(c,limb,sd):
     return E-(A+Wr)/2
 
 # Owner's note (16 Nov 2026): the passenger's elbows sat too low holding the rail; they are carried higher and a little out.
-ELBOW_UP={'L':V((0.0,0.35,1.0)),'R':V((0.0,-0.35,1.0))}
+ELBOW_UP={'L':V((-0.25,0.85,0.55)),'R':V((-0.25,-0.85,0.55))}
 def rest_pole(c,limb,sd,k=1.0):
     p=model_pole(c,limb,sd)
     if c is CP and limb=='arm':
-        p=p.normalized().lerp(ELBOW_UP[sd].normalized(),0.8*k)
+        p=p.normalized().lerp(ELBOW_UP[sd].normalized(),k)
     return p
 
 def crew_pose(c, rig, mesh, p, f, gr=None):
@@ -71,7 +71,11 @@ def crew_pose(c, rig, mesh, p, f, gr=None):
         return (V(tgt), V(pole) if pole is not None else rest_pole(c,kind,sd,k))
     arms={sd:limb('arm',sd,p.get('arms',{}).get(sd,p.get('arm_default','rest'))) for sd in 'LR'}
     legs={sd:limb('leg',sd,p.get('legs',{}).get(sd,p.get('leg_default','rest'))) for sd in 'LR'}
-    c.pose(rig,hips_t=p.get('hips_t',(0,0,0)),hips=p.get('hips',I),spine=p.get('spine',I),chest=p.get('chest',I),head=p.get('head',I),
+    hips_t=V(p.get('hips_t',(0,0,0))); spine=p.get('spine',I); chest=p.get('chest',I); head=p.get('head',I)
+    if c is CP and k>0:
+        # owner's riding stance (his photo, 16 Nov 2026): crouched forward over the rail, elbows up and out wide
+        hips_t=hips_t+V((0.02,0,0.0))*k; spine=q(Y,10*k)@spine; chest=q(Y,8*k)@chest; head=q(Y,-16*k)@head
+    c.pose(rig,hips_t=hips_t,hips=p.get('hips',I),spine=spine,chest=chest,head=head,
            arms=arms,legs=legs,hand_rot=p.get('hand_rot'),root=p.get('root',I),root_t=p.get('root_t',(0,0,0)),pivot=p.get('pivot'))
     key_rig(rig,f)
 
