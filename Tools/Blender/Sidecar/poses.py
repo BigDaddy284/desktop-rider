@@ -74,9 +74,10 @@ def aim(J, d, twist=0.0):
 def pas_hang():
     """Squatting on the outer edge of the floor: thighs level, shins upright, boots flat, backside out over the chair wheel.
     (A deeper squat folds the legs into the body on this model, so the knees stay near a right angle.)"""
-    return P(PJ, hips_t=(0.34,0.75,-0.14), root=aim(PJ,(0.5,-0.35,0.75),-15), spine=q(Y,8), chest=q(Y,8)@q(Z,-10), head=q(Z,15)@q(Y,-30),
+    # left boot right up against the back of the chair's front box, on the outer edge (owner's marked screenshot 17 Nov 2026)
+    return P(PJ, hips_t=(0.50,0.67,-0.17), root=aim(PJ,(0.5,-0.3,0.8),-15), spine=q(Y,8), chest=q(Y,8)@q(Z,-10), head=q(Z,15)@q(Y,-30),
              arms={'L':(rail(6.0),(-0.3,1,0.5)),'R':(rail(5.0),(-0.3,-0.5,0.5))},
-             legs={'L':((-0.15,0.92,FLOOR+0.05),(1,0.5,0.4)),'R':((-0.30,0.86,FLOOR+0.05),(1,0.5,0.4))})
+             legs={'L':((-0.12,0.72,FLOOR+0.05),(0.3,1,0.6)),'R':((-0.26,0.84,FLOOR+0.05),(1,0.5,0.4))})
 
 # Turning away from the chair (right): the passenger sits sideways on the back of the seat behind the driver,
 # legs hanging down into the chair, left hand on the rail, right arm round the driver's waist
