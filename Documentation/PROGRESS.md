@@ -8,6 +8,8 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 
 Second character set (sidecar outfit 41): paint approved. The owner rejected the first pass of the 28 motions; the second pass (17 Nov 2026) rebuilds every crew pose on the rig from his race photos, runs at real speed with real gravity, uses a sidecar-sized double jump and bigger rollers, and checks every frame for wheels in the ground and bodies through the bike. Corner poses redone from the owner's two corner photos (17 Nov 2026). All 27 motions approved by the owner in the Unity sidecar viewer on 17 Nov 2026 (see `Documentation/ASSET_INDEX.md`; snapshot in project files sidecar/approved/2026-11-17-all/). Version 0.9.0 brings it into the app as a second character, **Sidecar 41**, chosen in Rider settings; the sprite sheets await the owner's look on Windows (M11). Video of real sidecar runs would let the jumps and rollers be matched more closely.
 
+3D app, version 2.1 (17 Nov 2026): at the owner's choice the sidecar goes into the 3D Unity Desktop Rider (version 2, no AI), not the 2D app. Settings gain **Who rides** (Harvey or Sidecar 41) and **Riding speed** (0.5x to 2x). The owner saw the first test sidecar circle forever because its turning circle is too wide to reach its target; the steering now slows for tight turns (`RiderSteering.SpeedForTurn`, simulated over 30 cases: stuck in 23 before, 0 after). Unity EditMode tests 392 passed, 0 failed; build clean; the built app ran the sidecar for 3 minutes with no errors and did its tricks. Shareable build: `Builds/Share/Desktop Rider 2.1.zip` in the Unity project. Changed scripts copied to `Tools/Unity/DesktopRider3D-v2.1/`. Awaiting the owner's look.
+
 ## Completed tasks
 
 | Phase | Task | Result |
