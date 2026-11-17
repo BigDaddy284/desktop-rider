@@ -66,9 +66,10 @@ for name,o in P.items():
         apply_scale_options='FBX_SCALE_UNITS',bake_space_transform=True,mesh_smooth_type='OFF',bake_anim=False)
 man=dict(name='Sidecar 41',fbx='Sidecar41.fbx',fps=D['fps'],units='metres',
     note='Second character set (sidecar outfit 41). One take per clip, each starting at 0. sidecar_rig/root carries the travel along the '
-         'outfit\'s forward axis (Blender +X); driver_rig and passenger_rig are keyed to follow sidecar_rig/chassis. The crew\'s Left / Right / Jump '
-         'blend shapes are the owner\'s own poses (Left: passenger hangs out over the chair; Right: passenger swings over; Jump: standing). '
+         'outfit\'s forward axis (Blender +X); driver_rig and passenger_rig are keyed to follow sidecar_rig/chassis. Every crew pose is on the '
+         'rig (matched to the owner\'s race photos); the model\'s Left / Right / Jump blend shapes are kept at zero. '
          'Props: x is metres along the travel from the outfit\'s position at the first frame.',
+    ride_speed=D.get('ride_speed',3.0),turn_radius=D.get('turn_radius',3.2),
     rigs={n:[dict(name=b.name,parent=b.parent.name if b.parent else None) for b in o.data.bones] for n,o in X.items()},
     clips=[dict(name=c['name'],frames=c['frames'],loop=c['loop'],kind=c['kind'],props=c['props'],travel=c['travel'][-1],info=c['info']) for c in D['clips']])
 json.dump(man,open(OUT+'Models/Sidecar41_manifest.json','w'),indent=1)

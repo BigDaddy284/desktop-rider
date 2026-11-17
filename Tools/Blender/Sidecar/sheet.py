@@ -13,7 +13,7 @@ s=bpy.context.scene; s.render.engine='BLENDER_EEVEE'; s.render.film_transparent=
 s.eevee.taa_render_samples=8; s.render.resolution_x=420; s.render.resolution_y=340
 w=bpy.data.worlds.new('W'); s.world=w; w.use_nodes=True; w.node_tree.nodes['Background'].inputs[0].default_value=(0.55,0.6,0.65,1); w.node_tree.nodes['Background'].inputs[1].default_value=1.0
 sun=bpy.data.lights.new('S','SUN'); sun.energy=3.5; so=bpy.data.objects.new('S',sun); s.collection.objects.link(so); so.rotation_euler=(0.6,0.3,0.8)
-cam=bpy.data.cameras.new('C'); cam.type='ORTHO'; cam.ortho_scale=3.6
+cam=bpy.data.cameras.new('C'); cam.type='ORTHO'; cam.ortho_scale=float(os.environ.get('SCALE','3.6'))
 co=bpy.data.objects.new('Cam',cam); s.collection.objects.link(co); s.camera=co
 P=props.build(D)
 for o in P.values(): o.location=(0,0,-50)
@@ -27,7 +27,7 @@ for c in D['clips']:
     tiles=[]
     for k in range(per):
         fr=c['info'].get('take_off_t'); i=round((fr*24 + k*(c['info']['air_time']*24)/(per-1))) if (fr is not None and view.endswith('air') and view!='chair') else round(k*c['frames']/(per-1)); f=c['start']+i; s.frame_set(f)
-        x=c['travel'][i]; tgt=Vector((x,0.45,0.75))
+        SRo=bpy.data.objects['sidecar_rig']; ch=SRo.matrix_world@SRo.pose.bones['chassis'].head; x=c['travel'][i]; tgt=Vector((x,0.45,0.75+max(0,ch.z-0.0)))
         co.location=tgt+off; co.rotation_euler=(tgt-co.location).to_track_quat('-Z','Y').to_euler()
         fn=W+'tile.png'; s.render.filepath=fn; bpy.ops.render.render(write_still=True)
         tiles.append(Image.open(fn).convert('RGB').copy())

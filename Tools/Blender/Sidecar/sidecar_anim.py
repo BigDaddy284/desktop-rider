@@ -1,11 +1,13 @@
 """Keys every sidecar clip on sidecar_rigged.blend: the outfit (travel, body, steering, suspension, wheels), the driver
 and the passenger. Writes sidecar_anim.blend and clips.json (names, frame ranges, loops, props, travel).
-The crew's Left / Right / Jump shapes are the owner's own poses from the model and are used as they are."""
+Second pass (17 Nov 2026): every crew pose is built on the rig from poses.py, matched to the owner's race photos;
+the outfit runs at race speed with real gravity; every frame is checked for wheels sinking into the ground or the jumps."""
 import bpy, math, json, sys
 sys.path.insert(0,'/tmp/claude-0/sc/anim')
 from scrig import *
+from poses import *
 
-FPS=24; G=2.6; V0=3.0
+FPS=24; G=9.81; V0=6.3          # V0: riding speed (m/s), about 14 mph
 bpy.ops.wm.open_mainfile(filepath=W+'sidecar_rigged.blend')
 sc=bpy.context.scene; sc.render.fps=FPS
 SR=bpy.data.objects['sidecar_rig']; DR=bpy.data.objects['driver_rig']; PR=bpy.data.objects['passenger_rig']
@@ -16,11 +18,11 @@ STEER_UP=(V((0.33,0,0.95))-V((0.75,0,0.345))).normalized()
 
 # ================================================================= the outfit
 def outfit(s):
-    """s: x, y, yaw (root, deg), heave, pitch (+ nose up), roll (+ chair up), byaw (body yaw), pivot, steer (+ left),
+    """s: x, y, yaw (root, deg), heave, pitch (+ nose up), roll (+ chair up), byaw (body yaw), pivot, paxis (pitch axis, default across the bike), steer (+ left),
     cf / cr (front / rear compression, m, + = compressed), spin_f / spin_r / spin_c (rad)."""
     D={}; T={}
     D['root']=q(Z,s.get('yaw',0)); T['root']=(s.get('x',0),s.get('y',0),0)
-    Rb=q(Z,s.get('byaw',0))@q(Y,-s.get('pitch',0))@q(X,s.get('roll',0))
+    Rb=q(Z,s.get('byaw',0))@q(V(s.get('paxis',(0,1,0))),-s.get('pitch',0))@q(X,s.get('roll',0))
     piv=V(s.get('pivot',(0,0,0)))
     D['chassis']=D['root']@Rb
     T['chassis']=D['root']@((piv-Rb@piv)+V((0,0,s.get('heave',0))))
@@ -41,45 +43,13 @@ def grips(P):
         w=V(JOINTS['driver']['wrist.'+sd]); out[sd]=inv@P['steer']@Matrix.Translation(-SJ['steer'])@w
     return out
 
-def model_pole(c,limb,sd):
-    J=c.J
-    if limb=='arm': A,E,Wr=J['shoulder.'+sd],J['elbow.'+sd],J['wrist.'+sd]
-    else: A,E,Wr=J['hip.'+sd],J['knee.'+sd],J['ankle.'+sd]
-    return E-(A+Wr)/2
-
-# Owner's note (16 Nov 2026): the passenger's elbows sat too low holding the rail; they are carried higher and a little out.
-ELBOW_UP={'L':V((-0.25,0.85,0.55)),'R':V((-0.25,-0.85,0.55))}
-def rest_pole(c,limb,sd,k=1.0):
-    p=model_pole(c,limb,sd)
-    if c is CP and limb=='arm':
-        p=p.normalized().lerp(ELBOW_UP[sd].normalized(),k)
-    return p
-
-def crew_pose(c, rig, mesh, p, f, gr=None):
-    """p: dict with keys (shape weights), hips_t, hips/spine/chest/head (Quaternions), arms/legs ('rest', 'grip', None or (target, pole)),
-    hand_rot, root, root_t, pivot."""
-    keys=p.get('keys',{})
-    set_shapes(mesh,f,**keys)
-    # the owner's pose shapes carry the limbs themselves; the raised elbows fade out while a shape is in use
-    k=1.0-max([0.0]+[float(v) for v in keys.values()])
-    def limb(kind,sd,val):
-        if val is None: return None
-        if val=='rest':
-            return (c.J[('wrist.' if kind=='arm' else 'ankle.')+sd], rest_pole(c,kind,sd,k))
-        if val=='grip': return (gr[sd], rest_pole(c,'arm',sd,k))
-        tgt,pole=val
-        return (V(tgt), V(pole) if pole is not None else rest_pole(c,kind,sd,k))
-    arms={sd:limb('arm',sd,p.get('arms',{}).get(sd,p.get('arm_default','rest'))) for sd in 'LR'}
-    legs={sd:limb('leg',sd,p.get('legs',{}).get(sd,p.get('leg_default','rest'))) for sd in 'LR'}
-    hips_t=V(p.get('hips_t',(0,0,0))); spine=p.get('spine',I); chest=p.get('chest',I); head=p.get('head',I)
-    if c is CP and k>0:
-        # owner's riding stance (his photo, 16 Nov 2026): crouched forward over the rail, elbows up and out wide
-        hips_t=hips_t+V((0.02,0,0.0))*k; spine=q(Y,10*k)@spine; chest=q(Y,8*k)@chest; head=q(Y,-16*k)@head
-    c.pose(rig,hips_t=hips_t,hips=p.get('hips',I),spine=spine,chest=chest,head=head,
-           arms=arms,legs=legs,hand_rot=p.get('hand_rot'),root=p.get('root',I),root_t=p.get('root_t',(0,0,0)),pivot=p.get('pivot'))
+def put(c, rig, mesh, p, f):
+    set_shapes(mesh,f)      # the model's own Left / Right / Jump shapes stay at zero: every pose is on the rig
+    c.pose(rig,hips_t=p['hips_t'],hips=p['hips'],spine=p['spine'],chest=p['chest'],head=p['head'],arms=p['arms'],legs=p['legs'],
+           hand_rot=p['hand_rot'],root=p['root'],pivot=p['pivot'])
     key_rig(rig,f)
 
-# ================================================================= terrain and riding
+# ================================================================= ground, suspension and flight
 class Terrain:
     def __init__(self): self.pieces=[]
     def add(self,x0,x1,fn,name=None): self.pieces.append((x0,x1,fn,name)); return self
@@ -89,12 +59,15 @@ class Terrain:
             if x0<=x<=x1: b=max(b,fn(x-x0))
         return b
     def axle(self,x,r):
+        """Height of a wheel's centre resting on the ground at x (the tyre touches wherever the ground is highest)."""
         b=0.0
-        for i in range(-10,11):
-            dx=r*i/10; b=max(b,self.h(x+dx)+math.sqrt(max(0,r*r-dx*dx)))
+        for i in range(-12,13):
+            dx=r*i/12; b=max(b,self.h(x+dx)+math.sqrt(max(0,r*r-dx*dx)))
         return b
+FLAT=Terrain()
 
 WX={'rear':-0.75,'front':0.75,'chair':-0.595}
+SUSP={'front':(0.07,0.11),'rear':(0.08,0.14),'chair':(0.0,0.0)}     # (most extension, most compression), metres
 def plane(dr,df,dc):
     """Body heave/pitch/roll that moves the rear, front and chair axles up by dr, df, dc."""
     b=(df-dr)/1.5; a=(df+dr)/2; cc=(dc-a+0.595*b)/1.05
@@ -102,8 +75,7 @@ def plane(dr,df,dc):
 
 def smooth(seq,sig):
     if sig<=0: return list(seq)
-    n=len(seq); out=[]
-    k=int(3*sig)+1
+    n=len(seq); out=[]; k=int(3*sig)+1
     for i in range(n):
         s=w=0.0
         for j in range(-k,k+1):
@@ -111,376 +83,458 @@ def smooth(seq,sig):
         out.append(s/w)
     return out
 
-def ride_over(terr, xs, sig=0.0):
-    """Outfit following the ground at root positions xs: body smoothed by sig frames, suspension takes the rest."""
-    raw=[]
-    for x in xs:
-        raw.append({k:terr.axle(x+WX[k],RW[k][1])-RW[k][1] for k in WX})
-    body={k:smooth([r[k] for r in raw],sig) for k in WX}
+def drive(terr, xs, sig=2.0, land=0.07):
+    """The outfit driven over the ground at root positions xs (one per frame). Each axle's sprung point follows the
+    smoothed ground but can never fall faster than gravity allows, so the outfit flies off crests and lips and lands
+    with a squash; the suspension takes up the rest and the body is pushed up when a wheel bottoms out.
+    Returns per frame: x, heave, pitch, roll, cf, cr, air (wheels off the ground) and squash (0..1)."""
+    n=len(xs); dt=1.0/FPS
+    raw={k:[terr.axle(x+WX[k],RW[k][1])-RW[k][1] for x in xs] for k in WX}
+    tgt={k:smooth(raw[k],sig) for k in WX}
+    body={k:[0.0]*n for k in WX}; air={k:[False]*n for k in WX}; squash=[0.0]*n
+    hits=[]
+    for k in WX:
+        ext,comp=SUSP[k]; b=tgt[k][0]; vb=0.0; flying=False
+        for i in range(n):
+            bal=b+vb*dt-G*dt*dt if i else b
+            nb=max(tgt[k][i],bal,raw[k][i]-comp)
+            if i: vb=(nb-b)/dt
+            fl=nb>tgt[k][i]+0.01 and nb>raw[k][i]-comp+0.005
+            if flying and not fl and k!='chair': hits.append((i,max(0.0,vb-vb_prev)))
+            vb_prev=vb; flying=fl; b=nb; body[k][i]=b; air[k][i]=fl
+    # landings: a squash through the suspension and the crew's legs, bigger for a harder hit
+    for i0,v in hits:
+        amp=min(1.0,v/4.0)
+        if amp<0.15: continue
+        for i in range(i0,n):
+            sq=shock((i-i0)*dt,0.08,0.7)*amp
+            if abs(sq)<1e-4 and i>i0+4: break
+            squash[i]=max(squash[i],sq) if sq>0 else squash[i]+sq*0.3
     out=[]
     for i,x in enumerate(xs):
-        a,pt,rl=plane(body['rear'][i],body['front'][i],body['chair'][i])
-        out.append(dict(x=x,heave=a,pitch=pt,roll=rl,cf=body['front'][i]-raw[i]['front'],cr=body['rear'][i]-raw[i]['rear']))
+        b={k:body[k][i]-(land*squash[i] if k!='chair' else land*squash[i]*0.6) for k in WX}
+        c={}
+        for k in ('front','rear'):
+            ext,comp=SUSP[k]
+            w=max(raw[k][i],b[k]-ext)                 # the wheel hangs at full extension in the air
+            c[k]=min(comp,w-b[k]); b[k]=max(b[k],w-comp)
+        b['chair']=max(b['chair'],raw['chair'][i])
+        a,pt,rl=plane(b['rear'],b['front'],b['chair'])
+        out.append(dict(x=x,heave=a,pitch=pt,roll=rl,cf=c['front'],cr=c['rear'],
+                        air=air['front'][i] and air['rear'][i],rear_air=air['rear'][i],squash=squash[i]))
     return out
 
-def spins(xs):
-    """Wheel angles from distance travelled."""
-    return [dict(spin_f=x/RW['front'][1],spin_r=x/RW['rear'][1],spin_c=x/RW['chair'][1]) for x in xs]
+def loop_spin(i,n,v=None):
+    """Wheel turns for an on-the-spot loop: whole turns per loop, as near the riding speed as possible."""
+    d=(v or V0)*n/FPS; u=i/n; out={}
+    for k,key in (('front','spin_f'),('rear','spin_r'),('chair','spin_c')):
+        revs=max(1,round(d/(2*math.pi*RW[k][1]))); out[key]=2*math.pi*revs*u
+    return out
+def spins(x,slip=0.0):
+    return dict(spin_f=x/RW['front'][1],spin_r=x/RW['rear'][1]+slip,spin_c=x/RW['chair'][1])
 
-def loop_spin(i,n,revs=(2,2,2)):
-    u=i/n; return dict(spin_f=2*math.pi*revs[1]*u,spin_r=2*math.pi*revs[0]*u,spin_c=2*math.pi*revs[2]*u)
-
-# ================================================================= clip table
-CLIPS=[]; frame=[1]
-def clip(name, n, fn, loop=False, kind='everyday', props=None, info=None):
-    start=frame[0]
-    travel=[]
+# ================================================================= clip table and checks
+CLIPS=[]; frame=[1]; CHECK=[]
+def clip(name, n, fn, loop=False, kind='everyday', props=None, info=None, terr=None):
+    """fn(i) -> dict(sc=outfit state, drv=pose or fn(grips)->pose, pas=pose or fn(grips)->pose)."""
+    start=frame[0]; terr=terr or FLAT
+    travel=[]; low=(9,None); fixes=0.0
     for i in range(n+1):
         f=start+i; sc.frame_set(f)
-        st=fn(i)
-        s=st.get('sc',{})
-        P=outfit(s); key_rig(SR,f)
+        st=fn(i); s=st.get('sc',{})
+        P=outfit(s); fix=0.0
+        for it in range(4):         # tyres may squash 8 mm; anything deeper is taken up by the suspension, then the body
+            gaps={k:P[bone].to_translation().z-terr.axle(P[bone].to_translation().x,RW[k][1]) for k,bone in (('rear','rear_wheel'),('front','front_wheel'),('chair','chair_wheel'))}
+            need={k:-0.008-g for k,g in gaps.items() if g<-0.008}
+            if not need: break
+            fix=max(fix,max(need.values()))
+            for k,d in need.items():
+                if k=='chair': s['roll']=s.get('roll',0)+math.degrees(math.atan(d/1.05))
+                else:
+                    key='cf' if k=='front' else 'cr'; room=SUSP[k][1]-s.get(key,0)
+                    take=max(0.0,min(room,d)); s[key]=s.get(key,0)+take
+                    if d-take>0: s['heave']=s.get('heave',0)+(d-take)
+            P=outfit(s)
+        key_rig(SR,f); fixes=max(fixes,fix)
         gr=grips(P)
-        d=dict(st.get('drv',{})); d.setdefault('arm_default','grip')
-        crew_pose(CD,DR,DM,d,f,gr)
-        crew_pose(CP,PR,PM,st.get('pas',{}),f,gr)
+        d=st.get('drv'); d=d(gr) if callable(d) else (d or drv_ride(gr))
+        p=st.get('pas'); p=p(gr) if callable(p) else (p or pas_ride())
+        put(CD,DR,DM,d,f); put(CP,PR,PM,p,f)
         travel.append(round(s.get('x',0.0),4))
+        for k,bone in (('rear','rear_wheel'),('front','front_wheel'),('chair','chair_wheel')):
+            c=P[bone].to_translation(); gap=c.z-terr.axle(c.x,RW[k][1])
+            if gap<low[0]: low=(gap,(i,k))
+    CHECK.append((name,round(low[0],3),low[1],round(fixes,3)))
     CLIPS.append(dict(name=name,start=start,end=start+n,frames=n,loop=loop,kind=kind,props=props or [],travel=travel,info=info or {}))
     frame[0]=start+n+6
-    print('clip',name,start,start+n)
+    print('clip',name,start,start+n,'lowest wheel gap %.3f'%low[0],low[1],'ground fix %.3f'%fixes)
 
 wave=lambda t,per,amp,ph=0: amp*math.sin(2*math.pi*t/per+ph)
 
-# ---------------------------------------------------------------- everyday
+def track(t, keys):
+    """Pose at time t from (time, pose) keys, eased between neighbours. A key's pose may be a function of t."""
+    ev=lambda p: p(t) if callable(p) else p
+    if t<=keys[0][0]: return ev(keys[0][1])
+    for (t0,a),(t1,b) in zip(keys,keys[1:]):
+        if t<=t1: return blend(ev(a),ev(b),sm(t,t0,t1))
+    return ev(keys[-1][1])
+
+def lift(p, **k):
+    """add() with arm targets given as offsets from the pose's own."""
+    if 'arms_by' in k:
+        by=k.pop('arms_by'); k['arms']={sd:(p['arms'][sd][0]+V(o),None) for sd,o in by.items()}
+    return add(p,**k)
+
+PR0=pas_ride(); PH=pas_hang(); PS=pas_swing(); PST=pas_stand()
+def Dr(**m): return (lambda gr: add(drv_ride(gr),**m)) if m else drv_ride
+
+# ---------------------------------------------------------------- everyday (standing still)
 def idle(i):
     t=i/FPS; br=wave(t,2.0,1)
     return dict(sc=dict(heave=-0.004+0.002*br),
-                drv=dict(chest=q(Y,1.2*br),head=q(Z,4*math.sin(2*math.pi*t/2.0)),hips_t=(0,0,0.004*br)),
-                pas=dict(chest=q(Y,1.5*br),head=q(Z,-6*math.sin(2*math.pi*t/2.0+1))@q(Y,2*br),hips_t=(0,0,0.005*br)))
+                drv=Dr(chest=q(Y,1.2*br),head=q(Z,4*math.sin(2*math.pi*t/2.0)),hips_t=(0,0,0.004*br)),
+                pas=lift(PR0,chest=q(Y,1.5*br),head=q(Z,-6*math.sin(2*math.pi*t/2.0+1)),hips_t=(0,0,0.005*br)))
 clip('Idle',48,idle,loop=True)
 
 def look_around(i):
     t=i/FPS
     yaw=55*bump(t,0.2,0.6,1.2,1.6)-55*bump(t,1.5,1.9,2.5,2.9)
-    pyaw=-70*bump(t,0.4,0.8,1.4,1.9)+45*bump(t,1.7,2.1,2.6,2.95)
-    return dict(drv=dict(head=q(Z,yaw)@q(Y,-6*bump(t,0.2,0.6,2.5,2.9)),chest=q(Z,0.3*yaw)),
-                pas=dict(head=q(Z,pyaw)@q(X,8*bump(t,0.4,0.8,1.4,1.9)),chest=q(Z,0.35*pyaw)))
+    pyaw=-60*bump(t,0.4,0.8,1.4,1.9)+45*bump(t,1.7,2.1,2.6,2.95)
+    return dict(drv=Dr(head=q(Z,yaw)@q(Y,-6*bump(t,0.2,0.6,2.5,2.9)),chest=q(Z,0.3*yaw)),
+                pas=lift(PR0,head=q(Z,pyaw)@q(Y,-8*bump(t,0.4,0.8,1.4,1.9)),chest=q(Z,0.3*pyaw)))
 clip('LookAround',72,look_around)
 
 def revving(i):
-    t=i/FPS; n=24
-    blip=0.5-0.5*math.cos(2*math.pi*i/n)
-    vib=0.003*math.sin(2*math.pi*i/2.0)
+    n=24; blip=0.5-0.5*math.cos(2*math.pi*i/n); vib=0.003*math.sin(2*math.pi*i/2.0)
     return dict(sc=dict(heave=-0.01*blip+vib,pitch=-0.6*blip,cr=0.02*blip),
-                drv=dict(hand_rot={'R':q(Y,-28*blip)},chest=q(Y,3*blip),head=q(Y,-3*blip)),
-                pas=dict(hips_t=(0,0,vib),head=q(Z,-10)@q(Y,2*blip)))
+                drv=Dr(hand_rot={'R':q(Y,-28*blip)},chest=q(Y,3*blip),head=q(Y,-3*blip)),
+                pas=lift(PR0,hips_t=(0,0,vib),head=q(Z,-10)@q(Y,2*blip)))
 clip('Revving',24,revving,loop=True)
 
 def thinking(i):
-    t=i/FPS
-    up=sm(t,0.2,0.7)*(1-sm(t,2.4,2.9))
+    t=i/FPS; up=sm(t,0.2,0.7)*(1-sm(t,2.4,2.9))
     chin=V((0.20,0.10,1.43)); tap=0.012*math.sin(2*math.pi*t*1.5)*up
-    tgt=V(JOINTS['driver']['wrist.L']).lerp(chin+V((0,0,tap)),up)
-    return dict(drv=dict(arms={'L':(tgt,V((0,1,-0.5)))},head=q(X,-10*up)@q(Y,-6*up)@q(Z,12*up),chest=q(Z,6*up)),
-                pas=dict(head=q(Z,-25*up)@q(X,6*up)))
+    def drv(gr): return add(drv_ride(gr),arms={'L':(gr['L'].lerp(chin+V((0,0,tap)),up),(0,1,-0.5))},
+                            head=q(X,-10*up)@q(Y,-6*up)@q(Z,12*up),chest=q(Z,6*up))
+    return dict(drv=drv,pas=lift(PR0,head=q(Z,-25*up)@q(X,6*up)))
 clip('Thinking',72,thinking)
 
 def talking(i):
-    t=i/FPS; n=48
-    g=0.5-0.5*math.cos(2*math.pi*i/n)
-    nod=math.sin(2*math.pi*i/12)
-    tgt=V(JOINTS['driver']['wrist.L'])+V((0.05,0.08,0.10))*g+V((0,0,0.03*math.sin(2*math.pi*i/16)))*g
-    return dict(drv=dict(head=q(Z,40)@q(Y,5*nod),chest=q(Z,10),arms={'L':(tgt,V((0,1,-0.6)))},hand_rot={'L':q(X,-30*g)}),
-                pas=dict(head=q(Z,-35)@q(Y,4*math.sin(2*math.pi*i/24+1)),chest=q(Z,-8)))
+    t=i/FPS; n=48; g=0.5-0.5*math.cos(2*math.pi*i/n); nod=math.sin(2*math.pi*i/12)
+    def drv(gr):
+        tgt=gr['L']+V((-0.05,0.10,0.12))*g+V((0,0,0.03*math.sin(2*math.pi*i/16)))*g
+        return add(drv_ride(gr),head=q(Z,40)@q(Y,5*nod),chest=q(Z,10),arms={'L':(tgt,(0,1,-0.6))},hand_rot={'L':q(X,-30*g)})
+    return dict(drv=drv,pas=lift(PR0,head=q(Z,-35)@q(Y,4*math.sin(2*math.pi*i/24+1)),chest=q(Z,-8)))
 clip('Talking',48,talking,loop=True)
 
 def celebration(i):
-    t=i/FPS
-    up=sm(t,0.15,0.5)*(1-sm(t,2.0,2.45)); pump=0.06*math.sin(2*math.pi*t*2.2)*up
-    dL=V(JOINTS['driver']['shoulder.L'])+V((0.02,0.12,0.42+pump)); dR=V(JOINTS['driver']['shoulder.R'])+V((0.02,-0.12,0.42-pump))
-    gL=V(JOINTS['driver']['wrist.L']); gR=V(JOINTS['driver']['wrist.R'])
-    pa=V(JOINTS['passenger']['shoulder.L'])+V((0.05,0.15,0.45-pump)); pw=V(JOINTS['passenger']['wrist.L'])
-    stand=sm(t,0.1,0.45)*(1-sm(t,2.0,2.45))
-    return dict(sc=dict(heave=-0.01*stand),
-                drv=dict(arms={'L':(gL.lerp(dL,up),V((0,1,-1))),'R':(gR.lerp(dR,up),V((0,-1,-1)))},head=q(Y,-12*up),chest=q(Y,-6*up)),
-                pas=dict(keys={'Jump':stand},head=q(Y,-10*up)))
+    """Both throw their left fist in the air together: the driver keeps the right hand on the throttle, the passenger
+    comes up off his haunches with the right hand on the rail (owner's note, 16 Nov 2026)."""
+    t=i/FPS; up=sm(t,0.15,0.5)*(1-sm(t,2.0,2.45)); pump=0.07*math.sin(2*math.pi*t*2.2)*up
+    def drv(gr):
+        sh=V(JOINTS['driver']['shoulder.L'])
+        return add(drv_ride(gr),arms={'L':(gr['L'].lerp(sh+V((0.06,0.10,0.44+pump)),up),(-0.3,1,-0.2))},
+                   head=q(Y,-12*up),chest=q(Y,-5*up)@q(X,-4*up))
+    p=blend(PR0,PST,0.55*up)
+    sh=body_point(p,PJ,'shoulder.L')
+    p=add(p,arms={'L':(p['arms']['L'][0].lerp(sh+V((0.06,0.12,0.44+pump)),up),(-0.3,1,-0.2))},head=q(Y,-14*up))
+    return dict(sc=dict(heave=-0.008*up),drv=drv,pas=p)
 clip('Celebration',60,celebration)
 
 def sleep_pose(w,br=0.0):
-    return dict(drv=dict(hips_t=(0.03*w,0,-0.03*w),spine=q(Y,14*w),chest=q(Y,14*w+1.5*br),head=q(Y,30*w)@q(X,8*w),hand_rot={'R':q(Y,10*w)}),
-                pas=dict(hips_t=(0,0,-0.03*w),spine=q(Y,10*w),chest=q(X,-8*w)@q(Y,2*br),head=q(X,-28*w)@q(Y,25*w),
-                         arms={'L':(V(JOINTS['passenger']['wrist.L'])+V((-0.08,0.02,-0.12))*w,None)}))
+    return dict(drv=Dr(hips_t=(0.03*w,0,-0.03*w),spine=q(Y,14*w),chest=q(Y,14*w+1.5*br),head=q(Y,30*w)@q(X,8*w),hand_rot={'R':q(Y,10*w)}),
+                pas=lift(PR0,hips_t=(0,0,-0.04*w),spine=q(Y,6*w),chest=q(X,-6*w)@q(Y,2*br),head=q(Y,24*w)@q(X,-20*w)))
 clip('SleepStart',24,lambda i: sleep_pose(sm(i/24,0,1)))
 clip('Sleeping',96,lambda i: sleep_pose(1.0,math.sin(2*math.pi*i/48)),loop=True)
 def sleep_end(i):
-    t=i/24; p=sleep_pose(1-sm(t,0.1,0.8))
-    p['drv']['head']=p['drv']['head']@q(Z,15*bump(t,0.5,0.7,0.85,1.0)); return p
+    t=i/24; w=1-sm(t,0.1,0.8); p=sleep_pose(w)
+    jolt=bump(t,0.5,0.6,0.75,0.95)
+    p['drv']=Dr(hips_t=(0.03*w,0,-0.03*w),spine=q(Y,14*w),chest=q(Y,14*w),head=q(Y,30*w)@q(X,8*w)@q(Z,15*jolt))
+    return p
 clip('SleepEnd',24,sleep_end)
 
+# ---------------------------------------------------------------- riding
 def ride_off(i):
-    n=36; T=n/FPS; t=i/FPS; a=V0/T            # steady push from standstill to riding speed
-    x=0.5*a*t*t; acc=1-sm(t,0.6*T,T)
-    s=dict(x=x,pitch=1.8*acc*sm(t,0,0.15),cr=0.03*acc,heave=-0.005*acc,**spins([x])[0])
-    return dict(sc=s,drv=dict(hips_t=(0.02*acc,0,0),chest=q(Y,6*acc)),pas=dict(hips_t=(0.02*acc,0,-0.01*acc),chest=q(Y,8*acc)))
-clip('RideOff',36,ride_off,kind='riding')
+    """From standstill to riding speed in 1.5 s: the back squats, the rear tyre spins up and the crew lean into it."""
+    T=1.5; t=i/FPS; a=V0/T
+    x=0.5*a*t*t if t<T else 0.5*a*T*T+V0*(t-T)
+    acc=1-sm(t,0.8*T,T+0.2); go=sm(t,0,0.12)*acc
+    s=dict(x=x,pitch=1.6*go,cr=0.04*go,heave=-0.006*go,**spins(x,slip=2.2*sm(t,0,0.6)))
+    return dict(sc=s,drv=lambda gr: blend(drv_ride(gr),add(drv_attack(gr),hips_t=(0,0,-0.04)),0.7*go),
+                pas=lift(PR0,hips_t=(0.03*go,0,-0.01*go),chest=q(Y,6*go)))
+clip('RideOff',42,ride_off,kind='riding')
 
 def ride_on(i):
-    n=36; T=n/FPS; t=i/FPS; d=V0/T
-    x=V0*t-0.5*d*t*t; br=bump(t,0,0.1,0.75*T,T)
-    s=dict(x=x,pitch=-1.6*br,cf=0.035*br,heave=-0.006*br,**spins([x])[0])
-    return dict(sc=s,drv=dict(chest=q(Y,-4*br),hips_t=(-0.015*br,0,0)),pas=dict(chest=q(Y,6*br),hips_t=(0.02*br,0,0)))
-clip('RideOn',36,ride_on,kind='riding')
+    """Riding speed to a stop in 1.5 s on the brakes: the nose dives and the crew brace back."""
+    T=1.5; t=i/FPS; d=V0/T
+    x=V0*t-0.5*d*t*t if t<T else V0*T-0.5*d*T*T
+    br=bump(t,0,0.15,0.85*T,T+0.15); settle=shock(t-T,0.08,0.6)
+    s=dict(x=x,pitch=-1.8*br+0.8*settle,cf=0.05*br-0.02*settle,heave=-0.008*br,**spins(x))
+    return dict(sc=s,drv=Dr(chest=q(Y,-5*br),hips_t=(-0.02*br,0,0)),pas=lift(PR0,hips_t=(-0.03*br,0,0),chest=q(Y,-6*br),head=q(Y,4*br)))
+clip('RideOn',48,ride_on,kind='riding')
 
-def riding(i,n=32):
-    u=i/n; bob=math.sin(2*math.pi*2*u)
-    s=dict(heave=0.004*bob,pitch=0.25*math.sin(2*math.pi*u),cf=0.006*math.sin(2*math.pi*2*u+1),cr=0.006*bob,**loop_spin(i,n))
-    return s,bob
+def riding(i,n=32,rough=1.0):
+    """On-the-spot riding loop at race speed: chatter from the ground, small pitches, everything in whole cycles."""
+    u=i/n; c1=math.sin(2*math.pi*2*u); c2=math.sin(2*math.pi*5*u+0.7); c3=math.sin(2*math.pi*u+1.3)
+    s=dict(heave=rough*(0.006*c1+0.003*c2),pitch=rough*(0.5*c3+0.2*c2),roll=rough*0.4*math.sin(2*math.pi*3*u),
+           cf=rough*(0.012*math.sin(2*math.pi*4*u+1)+0.006*c2),cr=rough*(0.012*c1+0.005*c2),**loop_spin(i,n))
+    return s,c1,c2
 def riding_loop(i):
-    s,bob=riding(i)
-    return dict(sc=s,drv=dict(chest=q(Y,4),hips_t=(0,0,0.003*bob)),pas=dict(chest=q(Y,6),hips_t=(0,0,0.004*bob)))
+    s,c1,c2=riding(i)
+    return dict(sc=s,drv=Dr(chest=q(Y,4),hips_t=(0,0,0.006*c1)),pas=lift(PR0,hips_t=(0,0,0.008*c1-0.004*c2),head=q(Y,2*c2)))
 clip('RidingLoop',32,riding_loop,loop=True,kind='riding')
 
-# ---------------------------------------------------------------- natural riding: corners (passenger works the outfit)
-def corner_left(i):
-    s,bob=riding(i); s.update(steer=14,roll=-1.5,byaw=0)
-    return dict(sc=s,drv=dict(keys={'Left':1.0},hips_t=(0,0,0.003*bob)),pas=dict(keys={'Left':1.0},root_t=(0,0,0.006*bob)))
-clip('CornerLeft',32,corner_left,loop=True,kind='riding',info=dict(note='turning towards the chair: passenger hangs out over the chair wheel'))
-def corner_right(i):
-    s,bob=riding(i); s.update(steer=-14,roll=2.5)
-    return dict(sc=s,drv=dict(keys={'Right':1.0},hips_t=(0,0,0.003*bob)),pas=dict(keys={'Right':1.0},root_t=(0,0,0.006*bob)))
-clip('CornerRight',32,corner_right,loop=True,kind='riding',info=dict(note='turning away from the chair: passenger swings over behind the driver'))
+# ---------------------------------------------------------------- natural riding: corners (the passenger works the outfit)
+# Towards the chair (left): the chair wants to lift, so the passenger hangs out over the chair wheel; the back slides out.
+# Away from the chair (right): the back wheel goes light, so the passenger swings over the back of the bike.
+CORNER={'L':dict(steer=10,roll=2.0,byaw=9,pivot=(0.75,0,0)),'R':dict(steer=-13,roll=-2.5,byaw=-7,pivot=(0.75,0,0))}
+def corner_state(side,w,i):
+    s,c1,c2=riding(i,32,0.8)
+    for k,v in CORNER[side].items(): s[k]=v if k=='pivot' else s.get(k,0)+w*v
+    return s,c1,c2
+def corner(side):
+    def fn(i):
+        s,c1,c2=corner_state(side,1.0,i)
+        p=PH if side=='L' else PS
+        return dict(sc=s,drv=lambda gr: add(drv_lean(gr,side),hips_t=(0,0,0.005*c1)),
+                    pas=lift(p,hips_t=(0,0.012*c2 if side=='L' else 0,0.008*c1)))
+    return fn
+clip('CornerLeft',32,corner('L'),loop=True,kind='riding',info=dict(note='turning towards the chair: passenger hangs out over the chair wheel'))
+clip('CornerRight',32,corner('R'),loop=True,kind='riding',info=dict(note='turning away from the chair: passenger swings over the back of the bike'))
+
+def move_over(a,b,u,side):
+    """The passenger's move between the riding crouch and a corner pose: body first, hands following,
+    up and over the rail when swinging across the bike."""
+    wb=sm(u,0.0,0.8); wh=sm(u,0.2,1.0)
+    p=blend(a,b,wb)
+    arms={sd:(a['arms'][sd][0].lerp(b['arms'][sd][0],wh),a['arms'][sd][1].lerp(b['arms'][sd][1],wh)) for sd in 'LR'}
+    arc=math.sin(math.pi*min(1,max(0,u)))
+    if side=='R':
+        p['hips_t']=p['hips_t']+V((-0.10*arc,0,0.12*arc)); arms['R']=(arms['R'][0]+V((-0.06,0,0.16))*math.sin(math.pi*wh),arms['R'][1])
+    else:
+        p['hips_t']=p['hips_t']+V((0,0,-0.03*arc))
+    p['arms']=arms
+    return p
 def into_corner(side):
     def fn(i):
-        n=16; w=sm(i/n,0,1); s,bob=riding(i,32)
-        s.update(steer=(14 if side=='Left' else -14)*w, roll=(-1.5 if side=='Left' else 2.5)*w)
-        return dict(sc=s,drv=dict(keys={side:w}),pas=dict(keys={side:w}))
+        u=i/16; w=sm(u,0,1); s,c1,c2=corner_state(side,w,i)
+        return dict(sc=s,drv=lambda gr: blend(drv_ride(gr),drv_lean(gr,side),w),pas=move_over(PR0,PH if side=='L' else PS,u,side))
     return fn
 def out_of_corner(side):
     def fn(i):
-        n=16; w=1-sm(i/n,0,1); s,bob=riding(i,32)
-        s.update(steer=(14 if side=='Left' else -14)*w, roll=(-1.5 if side=='Left' else 2.5)*w)
-        return dict(sc=s,drv=dict(keys={side:w}),pas=dict(keys={side:w}))
+        u=i/16; w=1-sm(u,0,1); s,c1,c2=corner_state(side,w,i)
+        return dict(sc=s,drv=lambda gr: blend(drv_ride(gr),drv_lean(gr,side),w),pas=move_over(PH if side=='L' else PS,PR0,u,side))
     return fn
-clip('CornerLeftIn',16,into_corner('Left'),kind='riding'); clip('CornerLeftOut',16,out_of_corner('Left'),kind='riding')
-clip('CornerRightIn',16,into_corner('Right'),kind='riding'); clip('CornerRightOut',16,out_of_corner('Right'),kind='riding')
+clip('CornerLeftIn',16,into_corner('L'),kind='riding'); clip('CornerLeftOut',16,out_of_corner('L'),kind='riding')
+clip('CornerRightIn',16,into_corner('R'),kind='riding'); clip('CornerRightOut',16,out_of_corner('R'),kind='riding')
 
-# ---------------------------------------------------------------- tricks on the flat
+# ---------------------------------------------------------------- tricks on the flat (all travelling at riding speed)
 def flying_chair(i):
-    n=96; t=i/FPS; T=n/FPS
-    lift=sm(t,0.6,1.3)*(1-sm(t,2.9,3.6)); sw=sm(t,0.1,0.6)*(1-sm(t,3.4,3.9))
-    land=shock(t-3.6,0.08,0.6)
-    s,bob=riding(i%32)
-    s.update(roll=24*lift+1.5*land*-1,steer=-10*sw+4*lift*math.sin(2*math.pi*t*0.9),heave=-0.004*land)
-    return dict(sc=s,drv=dict(keys={'Right':sw},head=q(X,-5*lift)),pas=dict(keys={'Right':sw},root_t=(0,0,0.01*land)))
+    """A right-hand sweeper with the chair wheel high in the air: the passenger is right over the bike to lift it."""
+    t=i/FPS; x=V0*t
+    over=sm(t,0.1,0.6)*(1-sm(t,3.4,3.9)); lift_=sm(t,0.7,1.3)*(1-sm(t,2.9,3.5)); land=shock(t-3.5,0.08,0.6)
+    u=(i%32); s,c1,c2=riding(u,32,0.6)
+    s.update(x=x,roll=26*lift_-2*land,steer=-11*over+3*lift_*math.sin(2*math.pi*t*0.9),byaw=-4*over,pivot=(0.75,0,0),
+             heave=s['heave']-0.01*land,**spins(x))
+    p=move_over(PR0,PS,min(1.0,t/0.6),'R') if t<0.6 else (PS if t<3.4 else move_over(PS,PR0,(t-3.4)/0.5,'R'))
+    return dict(sc=s,drv=lambda gr: blend(drv_ride(gr),drv_lean(gr,'R'),over),pas=lift(p,hips_t=(0,0,-0.02*land)))
 clip('FlyingChair',96,flying_chair,kind='trick',info=dict(note='rides along on two wheels with the chair in the air'))
 
+WHEELIE_AXIS=(V((-0.595,1.05,0))-V((-0.75,0,0))).normalized()
 def wheelie(i):
-    n=84; t=i/FPS
-    up=sm(t,0.3,0.9)*(1-sm(t,2.6,3.3)); wob=1.5*math.sin(2*math.pi*t*0.8)*up
-    land=shock(t-3.3,0.08,0.55)
-    s,bob=riding(i%32)
-    piv=V((-0.69,0.5,0.0))
-    s.update(pitch=24*up+wob,pivot=(-0.70,0.5,0.0),cr=0.04*up,cf=0.06*land,heave=-0.006*land)
-    return dict(sc=s,drv=dict(hips_t=(-0.05*up,0,0.02*up),chest=q(Y,-10*up),head=q(Y,10*up)),
-                pas=dict(hips_t=(0.06*up,0,0.0),chest=q(Y,14*up),head=q(Y,8*up)))
+    """Front wheel up on the throttle, balancing on the back and chair wheels: the passenger stands up with the arms
+    at full stretch (owner's note), the driver hangs back off the bars."""
+    t=i/FPS; x=V0*t
+    up=sm(t,0.35,0.9)*(1-sm(t,2.7,3.25)); wob=1.6*math.sin(2*math.pi*t*0.8)*up
+    stand=sm(t,0.1,0.5)*(1-sm(t,3.0,3.5)); land=shock(t-3.25,0.08,0.55)
+    s=dict(x=x,pitch=17*up+wob,paxis=tuple(WHEELIE_AXIS),pivot=(-0.75,0,0),cr=0.04*up,cf=0.07*land-0.07*up,heave=-0.008*land,
+           **spins(x,slip=1.8*sm(t,0.3,0.9)))
+    return dict(sc=s,drv=lambda gr: add(drv_ride(gr),hips_t=(-0.04*up,0,0.02*up),chest=q(Y,-10*up),head=q(Y,10*up),
+                                       arms={'L':(gr['L'],(0,1,-1)),'R':(gr['R'],(0,-1,-1))}),
+                pas=lift(blend(PR0,PST,stand),hips_t=(0,0,-0.03*land)))
 clip('Wheelie',84,wheelie,kind='trick')
 
 def power_slide(i):
-    n=84; t=i/FPS
-    sl=sm(t,0.3,0.9)*(1-sm(t,2.4,3.1))
-    s,bob=riding(i%32)
-    # the back steps out (round the front wheel) and the bars go to opposite lock
-    s.update(byaw=28*sl,pivot=(0.75,0,0),steer=-22*sl,roll=-2*sl,heave=0.002*math.sin(2*math.pi*t*6)*sl)
-    return dict(sc=s,drv=dict(keys={'Left':sl}),pas=dict(keys={'Left':sl}))
+    """Sliding the back out round a left-hander towards the chair on the throttle, bars on opposite lock."""
+    t=i/FPS; x=V0*t
+    sl=sm(t,0.3,0.9)*(1-sm(t,2.4,3.1)); hang=sm(t,0.1,0.6)*(1-sm(t,2.8,3.3))
+    s,c1,c2=riding(i%32,32,0.7)
+    s.update(x=x,byaw=30*sl,pivot=(0.75,0,0),steer=-20*sl+6*hang*(1-sl),roll=2.5*sl,heave=s['heave']+0.002*math.sin(2*math.pi*t*6)*sl,
+             **spins(x,slip=6.0*sm(t,0.3,2.6)))
+    p=move_over(PR0,PH,t/0.6,'L') if t<0.6 else (PH if t<2.8 else move_over(PH,PR0,(t-2.8)/0.5,'L'))
+    return dict(sc=s,drv=lambda gr: blend(drv_ride(gr),drv_lean(gr,'L'),hang),pas=p)
 clip('PowerSlide',84,power_slide,kind='trick')
 
 def passenger_wave(i):
-    n=72; t=i/FPS
-    up=sm(t,0.2,0.6)*(1-sm(t,2.3,2.9)); wv=math.sin(2*math.pi*t*1.6)*up
-    sh=V(JOINTS['passenger']['shoulder.L']); rest=V(JOINTS['passenger']['wrist.L'])
-    tgt=rest.lerp(sh+V((0.05,0.22+0.08*wv,0.38)),up)
-    s,bob=riding(i%32)
-    return dict(sc=s,drv=dict(chest=q(Y,4)),pas=dict(arms={'L':(tgt,V((0,1,-1)))},hand_rot={'L':q(X,25*wv)},head=q(Z,25*up)@q(X,8*up)))
+    t=i/FPS; x=V0*t
+    up=sm(t,0.2,0.6)*(1-sm(t,2.3,2.9)); wv=math.sin(2*math.pi*t*1.8)*up
+    s,c1,c2=riding(i%32,32,0.8); s.update(x=x,**spins(x))
+    p=blend(PR0,PST,0.3*up); sh=body_point(p,PJ,'shoulder.L')
+    p=add(p,arms={'L':(p['arms']['L'][0].lerp(sh+V((0.10,0.22+0.07*wv,0.30)),up),(-0.4,1,-0.4))},hand_rot={'L':q(X,28*wv)},
+          head=q(Z,30*up)@q(Y,-8*up))
+    return dict(sc=s,drv=Dr(chest=q(Y,4)),pas=p)
 clip('PassengerWave',72,passenger_wave,kind='trick')
 
+def pas_thrown(t):
+    p=P(PJ, hips_t=(-0.12,0.22,0.30), root=aim(PJ,(0.55,-0.35,0.75),10), spine=q(Y,-10), chest=q(Y,-6), head=q(Y,-20),
+        arms={'L':(rail(4.6),(-0.2,1,0.6)),'R':(rail(3.4),(-0.2,-1,0.6))})
+    fl=math.sin(2*math.pi*t*3.2)
+    for sd,dy in (('L',0.12),('R',-0.06)):
+        h=body_point(p,PJ,'hip.'+sd)
+        p['legs'][sd]=(h+V((-0.30,dy,-0.32+0.10*fl*(1 if sd=='L' else -1))),V((1,0,-0.3)))
+    return p
+def pas_climb(t):
+    """Hauling back in: chest down on the rail, one knee back on the platform."""
+    p=P(PJ, hips_t=(-0.10,0.12,0.06), root=aim(PJ,(0.75,-0.2,0.6),5), spine=q(Y,10), chest=q(Y,6), head=q(Y,-25),
+        arms={'L':(rail(4.4),(-0.3,1,0.3)),'R':(rail(3.1),(-0.3,-1,0.3))},
+        legs={'L':((-0.62,0.80,0.52),(0,0,-1)),'R':((-0.70,0.45,FLOOR),(1,0,0))})
+    return p
 def lost_passenger(i):
-    n=108; t=i/FPS
-    hit=1.0
-    kick=shock(t-hit,0.06,0.5)
-    up=0.0; tt=t-hit-0.05; air=0.95
-    if 0<tt<air: up=1.9*tt-0.5*4.0*tt*tt          # thrown up out of the chair, back down in about a second
-    up=max(0.0,up)
-    inair=1.0 if 0<tt<air else 0.0
-    flail=math.sin(2*math.pi*t*3.5)
-    landed=shock(t-hit-0.05-air,0.07,0.6)
-    look=sm(t,hit+0.15,hit+0.45)*(1-sm(t,3.2,3.8))
-    s,bob=riding(i%32); s.update(heave=0.03*kick-0.012*landed,pitch=-2*kick,cf=0.05*kick,cr=-0.02*kick+0.03*landed)
-    ps=V(JOINTS['passenger']['shoulder.L']); pr=V(JOINTS['passenger']['shoulder.R'])
-    ar=inair*sm(tt,0,0.15)
-    pas=dict(root_t=(-0.12*ar,0.0,up-0.03*landed),root=q(Y,-25*ar*math.sin(math.pi*min(1,max(0,tt/air))))@q(X,10*ar*flail),
-             arms={'L':(V(JOINTS['passenger']['wrist.L']).lerp(ps+V((0.0,0.25,0.25+0.12*flail)),ar),V((0,1,-1))),
-                   'R':(V(JOINTS['passenger']['wrist.R']).lerp(pr+V((0.0,-0.25,0.25-0.12*flail)),ar),V((0,-1,-1)))},
-             legs={'L':(V(JOINTS['passenger']['ankle.L'])+V((0.10,0.05,0.10+0.08*flail))*ar,None),'R':(V(JOINTS['passenger']['ankle.R'])+V((0.10,-0.05,0.10-0.08*flail))*ar,None)},
-             head=q(Y,-15*ar))
-    # the passenger's hands and feet go with the body while airborne (targets are in the outfit's space)
-    if ar>0:
-        for k in ('arms','legs'):
-            for sd,(tg,pl) in pas[k].items(): pas[k][sd]=(tg+V((-0.12*ar,0,up)),pl)
-    return dict(sc=s,drv=dict(head=q(Z,-70*look)@q(Y,-8*look),chest=q(Z,-18*look)),pas=pas)
-clip('LostPassenger',108,lost_passenger,kind='trick',info=dict(note='a big bump throws the passenger up out of the chair; they land back in'))
+    """A big hit flings the passenger up and out of the chair. They hang on by the hands and get dragged with the legs
+    trailing off the back while the driver eases off and looks round, then haul themselves back in."""
+    t=i/FPS; hit=0.8
+    v=V0*(1-0.55*sm(t,1.1,2.2)+0.55*sm(t,3.6,4.6))
+    x=0.0
+    for j in range(i): x+=V0*(1-0.55*sm(j/FPS,1.1,2.2)+0.55*sm(j/FPS,3.6,4.6))/FPS
+    kick=shock(t-hit,0.06,0.55)
+    s,c1,c2=riding(i%32,32,0.8)
+    s.update(x=x,heave=s['heave']+0.05*kick,pitch=s['pitch']-3*kick,roll=6*kick,cf=0.09*max(0,kick),cr=0.06*max(0,kick),steer=4*math.sin(2*math.pi*t*1.1)*bump(t,1.0,1.4,3.4,4.0),
+             **spins(x))
+    p=track(t,[(hit+0.02,PR0),(hit+0.32,pas_thrown),(hit+0.75,lambda tt: pas_dragged(math.sin(2*math.pi*tt*2.6))),
+               (3.3,lambda tt: pas_dragged(math.sin(2*math.pi*tt*2.6))),(3.9,pas_climb),(4.5,PR0)])
+    look=sm(t,hit+0.2,hit+0.6)*(1-sm(t,3.7,4.3))
+    return dict(sc=s,drv=Dr(head=q(Z,65*look)@q(Y,-6*look),chest=q(Z,15*look)),pas=p)
+clip('LostPassenger',120,lost_passenger,kind='trick',info=dict(note='a big hit throws the passenger out of the chair; they hang on, get dragged, and climb back in'))
 
-# ---------------------------------------------------------------- rollers (wider, bigger and further apart than Harvey's whoops)
-ROLL=dict(count=4,length=1.9,height=0.38,gap=0.9)
+# ---------------------------------------------------------------- rollers at race speed
+ROLL=dict(count=5,length=3.0,height=0.55,gap=1.4)
+RV=7.5          # m/s, about 17 mph
 def roller_fn(u): return ROLL['height']*(0.5-0.5*math.cos(2*math.pi*u/ROLL['length']))
 def rollers_clip():
-    v=2.8; x0=2.2; pitch_len=ROLL['length']+ROLL['gap']
+    x0=4.0; pitch_len=ROLL['length']+ROLL['gap']
     terr=Terrain()
     for k in range(ROLL['count']):
         a=x0+k*pitch_len; terr.add(a,a+ROLL['length'],roller_fn)
-    end=x0+ROLL['count']*pitch_len
-    n=int(round((end+1.8)/v*FPS))+30
-    xs=[]; x=0.0
-    for i in range(n+1):
-        t=i/FPS; tb=(end+1.8)/v
-        xs.append(v*t if t<tb else v*tb+v*(t-tb)-0.5*(v/1.2)*(t-tb)**2 if t-tb<1.2 else v*tb+v*1.2/2)
-    body=ride_over(terr,xs,sig=4.0)
+    end=x0+ROLL['count']*pitch_len-ROLL['gap']
+    xs=[]; x=0.0; v=RV; t=0.0
+    while True:
+        xs.append(x)
+        if x>end+5.0: v-=7.0/FPS                     # brake once clear
+        if v<=0: break
+        x+=v/FPS
+    n=len(xs)-1
+    body=drive(terr,xs,sig=0.6)
+    # throttle on each roller's up face (front wheel lofts, back squats), rear tyre spins up when it's in the air
+    slip=[0.0]
+    for i in range(1,n+1):
+        xr=xs[i]+WX['rear']; rel=(xr-x0)%pitch_len
+        face=1.0 if (x0<=xr<=end and rel<ROLL['length']*0.5) else 0.0
+        slip.append(slip[-1]+(0.9*face+(1.6 if body[i]['rear_air'] else 0.0))*(RV/FPS)/RW['rear'][1]*0.35)
     def fn(i):
-        s=dict(body[i]); s.update(spins([xs[i]])[0])
-        pump=max(-1,min(1,(s['cf']+s['cr'])*6))
-        on=1.0 if 1.4<xs[i]<end+0.5 else 0.0
-        return dict(sc=s,drv=dict(keys={'Jump':0.55*sm(xs[i],1.0,2.0)*(1-sm(xs[i],end,end+0.8))},hips_t=(0,0,-0.03*pump)),
-                    pas=dict(root_t=(0,0,-0.02*pump),chest=q(Y,6*on)))
-    clip('Rollers',n,fn,kind='ground',props=[dict(prop='SC_Prop_Rollers',x=x0,length=end-x0-ROLL['gap'])],info=dict(rollers=ROLL,speed=v))
+        b=body[i]; xr=xs[i]+WX['rear']; rel=(xr-x0)%pitch_len
+        gas=1.0 if (x0<=xr<=end and rel<ROLL['length']*0.5) else 0.0
+        s=dict(x=xs[i],heave=b['heave'],pitch=b['pitch']+2.5*gas,roll=b['roll'],cf=b['cf'],cr=b['cr']+0.02*gas,**spins(xs[i],slip=slip[i]))
+        comp=max(-1,min(1,(b['cf']+b['cr'])*5))-b['squash']
+        on=sm(xs[i],x0-2.5,x0-1.0)*(1-sm(xs[i],end+1.0,end+3.0))
+        drv=lambda gr: add(blend(drv_ride(gr),drv_attack(gr),on),hips_t=(0,0,-0.05*max(0,comp)+0.03*max(0,-comp)*on))
+        pas=lift(blend(PR0,PST,0.35*on),hips_t=(0,0,-0.05*max(0,comp)*on+0.03*max(0,-comp)*on))
+        return dict(sc=s,drv=drv,pas=pas)
+    clip('Rollers',n,fn,kind='ground',terr=terr,props=[dict(prop='SC_Prop_Rollers',x=x0,length=end-x0)],info=dict(rollers=ROLL,speed=RV))
 rollers_clip()
 
-# ---------------------------------------------------------------- jumps
-LIP=dict(height=0.5,angle=33.0)
-def ramp_fn(u):
-    L=2*LIP['height']/math.tan(math.radians(LIP['angle'])); return LIP['height']*(u/L)**2 if u<=L else 0.0
+# ---------------------------------------------------------------- jumps: a sidecar-sized double (1 m lip, 5.5 m gap)
+LIP=dict(height=1.0,angle=30.0)
 RAMP_LEN=2*LIP['height']/math.tan(math.radians(LIP['angle']))
-LAND=dict(face=0.45,top=0.5,down=2.6,height=0.5)
+def ramp_fn(u): return LIP['height']*(u/RAMP_LEN)**2 if u<=RAMP_LEN else 0.0
+LAND=dict(face=0.9,top=1.2,down=3.4,height=1.0)
+LAND_LEN=LAND['face']+LAND['top']+LAND['down']
 def landing_fn(u):
     H=LAND['height']; a,b,c=LAND['face'],LAND['top'],LAND['down']
     if u<a: return H*sm(u,0,a)
     if u<a+b: return H
     if u<a+b+c: return H*(1-sm(u,a+b,a+b+c))
     return 0.0
-LAND_LEN=LAND['face']+LAND['top']+LAND['down']
+JV=9.5          # m/s off the lip, about 21 mph
 
 def jump_clip(name, trick, note):
-    v=V0; x_ramp=2.0; x_lip=x_ramp+RAMP_LEN
-    th=math.radians(LIP['angle']); vx=v*math.cos(th); vz=v*math.sin(th)
-    R=2*vx*vz/G
-    x_land=x_lip+R-LAND['face']-LAND['top']-0.55        # touch down on the upper part of the down slope
+    th=math.radians(LIP['angle']); vx=JV*math.cos(th); vz=JV*math.sin(th)
+    x_ramp=5.0; x_lip=x_ramp+RAMP_LEN
+    R=2*vx*vz/G                                          # back to lip height
+    x_land=x_lip+R-1.3-LAND['face']-LAND['top']          # both wheels clear the table and meet the down slope
     terr=Terrain().add(x_ramp,x_lip,ramp_fn).add(x_land,x_land+LAND_LEN,landing_fn)
-    dt=1.0/FPS; frames=[]; x=0.0; mode='ground'; t_air=None; t=0.0; z0=p0=None; land_t=None; brake_t=None
-    end_x=x_land+LAND_LEN+0.4
-    ground_x=[]
+    xs=[]; x=0.0; v=JV; end=x_land+LAND_LEN
     while True:
-        if mode=='ground':
-            ground_x.append(x)
-            raw={k:terr.axle(x+WX[k],RW[k][1])-RW[k][1] for k in WX}
-            # past the lip the front wheel is already flying on the lip's line
-            if x+WX['front']>x_lip and x+WX['rear']<x_lip:
-                raw['front']=LIP['height']+math.tan(th)*(x+WX['front']-x_lip)-0.0
-            a,pt,rl=plane(raw['rear'],raw['front'],raw['chair'])
-            frames.append(dict(x=x,heave=a,pitch=pt,roll=rl,cf=0.0,cr=0.0,mode='ground',t=t))
-            if x+WX['rear']>=x_lip and t_air is None:
-                mode='air'; t_air=t; z0=a; p0=pt
-            spd=v
-            if land_t is not None and x>end_x:
-                if brake_t is None: brake_t=t
-                spd=max(0.0,v*(1-(t-brake_t)/1.0))
-                if spd==0.0: break
-            x+=spd*dt
-        else:
-            ta=t-t_air; xa=x
-            z=z0+vz*ta-0.5*G*ta*ta
-            T_air=R/vx
-            ptc=lerp(p0,-22.0,sm(ta,0.15*T_air,0.95*T_air))
-            frames.append(dict(x=xa,heave=z,pitch=ptc,roll=0.0,cf=-0.06*sm(ta,0,0.2),cr=-0.07*sm(ta,0,0.2),mode='air',t=t,ta=ta))
-            x+=vx*dt
-            # touch down when a wheel meets the landing
-            hit=False
-            for k in ('front','rear'):
-                wx=x+WX[k]*math.cos(math.radians(ptc)); wz=z+vz*dt-0.5*G*(ta+dt)**2+0.5*G*ta*ta  # next frame height
-                axz=RW[k][0].z+ (z+vz*dt-0.5*G*(2*ta*dt+dt*dt)) + WX[k]*math.sin(math.radians(ptc))
-                if axz-RW[k][1] <= terr.axle(wx,RW[k][1])-RW[k][1]+RW[k][0].z-RW[k][1]+0.0 and ta>0.3: hit=True
-            if hit: mode='ground'; land_t=t+dt
-        t+=dt
-        if t>12: break
-    n=len(frames)-1
-    # landing: big squash through the suspension and the crew's legs
-    for f in frames:
-        if land_t is not None and f['t']>=land_t-1e-6:
-            k=shock(f['t']-land_t,0.10,0.9)
-            f['cf']+=0.10*k; f['cr']+=0.12*k; f['heave']-=0.05*k; f['squash']=k
-        else: f['squash']=0.0
-    air0=t_air; air1=land_t
+        xs.append(x)
+        if x>end+3.0: v-=7.5/FPS
+        if v<=0: break
+        # horizontal speed drops to vx in the air (the rest went upwards) - near enough constant JV on the ground
+        x+=(vx if x_lip-0.75<x<x_land+LAND['face']+LAND['top']+1.0 else v)/FPS
+    n=len(xs)-1
+    body=drive(terr,xs,sig=0.0,land=0.09)
+    airs=[i for i,b in enumerate(body) if b['air']]
+    a0=airs[0] if airs else 0; a1=airs[-1]+1 if airs else 1
+    T=(a1-a0)/FPS
     def fn(i):
-        f=frames[i]; s={k:f[k] for k in ('x','heave','pitch','roll','cf','cr')}; s.update(spins([f['x']])[0])
-        ta=f['t']-air0 if air0 is not None else -1; T=(air1-air0) if air1 else 1.0
-        u=ta/T if f['mode']=='air' else (-1 if f['t']<air0 else 2)
-        stand=sm(f['t'],air0-0.9,air0-0.4)*(1-sm(f['t'],air1+0.5,air1+1.2))
-        sq=f['squash']
-        st=dict(sc=s,drv=dict(keys={'Jump':stand*(1-0.8*max(0,sq))},hips_t=(0,0,-0.05*max(0,sq))),
-                pas=dict(keys={'Jump':0.6*stand*(1-max(0,sq))},root_t=(0,0,-0.04*max(0,sq))))
-        trick(st,u,f,T)
-        return st
-    lip_info=dict(ramp_x=x_ramp,lip_x=x_lip,landing_x=x_land,take_off_t=round(air0,3),land_t=round(air1,3),air_time=round(air1-air0,3))
-    clip(name,n,fn,kind='jump',props=[dict(prop='SC_Prop_JumpRamp',x=x_ramp,length=RAMP_LEN),dict(prop='SC_Prop_JumpLanding',x=x_land,length=LAND_LEN)],
-         info=dict(note=note,**lip_info))
+        b=body[i]; t=i/FPS
+        s=dict(x=xs[i],heave=b['heave'],pitch=b['pitch'],roll=b['roll'],cf=b['cf'],cr=b['cr'],**spins(xs[i],slip=(0.0 if i<a0 else 2.0*min(1,(i-a0)/FPS/0.3))))
+        u=(i-a0)/(a1-a0)
+        ready=sm(xs[i],x_ramp-3.0,x_ramp-1.0)*(1-sm(xs[i],end,end+2.5))
+        face=1.0 if x_ramp<xs[i]+WX['rear']<x_lip else 0.0
+        sq=max(0.0,b['squash'])
+        st=dict(sc=s,u=u,T=T,ready=ready,
+                drv=dict(base='attack',w=ready,dz=-0.05*face-0.10*sq+0.03*(1 if b['air'] else 0)),
+                pas=dict(w=ready,dz=-0.05*face-0.09*sq,stand=0.25*(1 if b['air'] else 0)))
+        trick(st,u,b)
+        dd=st['drv']; pp=st['pas']
+        def drv(gr,dd=dd):
+            base=blend(drv_ride(gr),drv_attack(gr),dd['w']); base=add(base,hips_t=(0,0,dd['dz']))
+            return dd['mod'](base,gr) if 'mod' in dd else base
+        pas=lift(blend(PR0,PST,pp['stand']),hips_t=(0,0,pp['dz']))
+        if 'mod' in pp: pas=pp['mod'](pas)
+        return dict(sc=st['sc'],drv=drv,pas=pas)
+    info=dict(note=note,ramp_x=round(x_ramp,3),lip_x=round(x_lip,3),landing_x=round(x_land,3),take_off_t=round(a0/FPS,3),land_t=round(a1/FPS,3),
+              air_time=round(T,3),speed=JV)
+    clip(name,n,fn,kind='jump',terr=terr,props=[dict(prop='SC_Prop_JumpRamp',x=x_ramp,length=RAMP_LEN),dict(prop='SC_Prop_JumpLanding',x=x_land,length=LAND_LEN)],info=info)
 
 def mid(u,a=0.12,b=0.35,c=0.62,d=0.86): return bump(u,a,b,c,d) if 0<=u<=1 else 0.0
 
-def t_tabletop(st,u,f,T):
-    w=mid(u,0.1,0.38,0.58,0.88)
-    st['sc']['roll']+=-32*w; st['sc']['byaw']=14*w; st['sc']['pivot']=(0,0.5,0.6)
-    st['drv']['keys']['Right']=0.0
-    st['pas']['keys']={'Right':w,'Jump':st['pas']['keys']['Jump']*(1-w)}
+def t_tabletop(st,u,b):
+    """The whole outfit laid over sideways in the air, chair down, the passenger hanging out to hold it there."""
+    w=mid(u,0.08,0.36,0.55,0.82)
+    st['sc']['roll']+=-30*w; st['sc']['byaw']=st['sc'].get('byaw',0)+12*w; st['sc']['pivot']=(0,0.5,0.6)
+    st['drv']['mod']=lambda p,gr,w=w: blend(p,add(drv_lean(gr,'L'),hips_t=(0,0,0.03)),w)
+    st['pas']['mod']=lambda p,w=w: blend(p,PH,w)
 jump_clip('Tabletop',t_tabletop,'lays the whole outfit over sideways in the air, then a big squash on landing')
 
-def t_nohander(st,u,f,T):
+def t_nohander(st,u,b):
     w=mid(u,0.15,0.35,0.6,0.82)
-    J=JOINTS['driver']
-    st['drv']['arms']={'L':(V(J['shoulder.L'])+V((0.0,0.40,0.10)),V((0,0,-1))),'R':(V(J['shoulder.R'])+V((0.0,-0.40,0.10)),V((0,0,-1)))} if w>0 else {}
-    if w>0:
-        st['drv']['keys']['Jump']*=(1-w)
-        for sd,g in (('L',V(J['wrist.L'])),('R',V(J['wrist.R']))):
-            tg,pl=st['drv']['arms'][sd]; st['drv']['arms'][sd]=(g.lerp(tg,w),pl)
-        st['drv']['head']=q(Y,-10*w); st['drv']['chest']=q(Y,-8*w)
+    def mod(p,gr,w=w):
+        J=DJ
+        return add(p,arms={'L':(gr['L'].lerp(J['shoulder.L']+V((0.12,0.26,0.30)),w),(0,0,-1)),'R':(gr['R'].lerp(J['shoulder.R']+V((0.0,-0.42,0.12)),w),(0,0,-1))},
+                   head=q(Y,-10*w),chest=q(Y,-8*w))
+    st['drv']['mod']=mod
 jump_clip('NoHander',t_nohander,'the driver lets go of the bars and spreads both arms in the air')
 
-def t_superman(st,u,f,T):
-    w=mid(u,0.12,0.36,0.6,0.86)
-    if w<=0: return
-    J=JOINTS['passenger']
-    st['pas']['keys']={'Jump':st['pas']['keys']['Jump']*(1-w)}
-    # body swings up and out behind, hanging on to the grab rail
-    hold=(V(J['wrist.L'])+V(J['wrist.R']))/2
-    st['pas']['root']=q(Y,-62*w)@q(X,-12*w); st['pas']['pivot']=tuple(hold)
-    st['pas']['arms']={'L':(V(J['wrist.L']),None),'R':(V(J['wrist.R']),None)}
-    pel=V(J['pelvis']); Rw=q(Y,-62*w)@q(X,-12*w)
-    for sd in 'LR':
-        a=V(J['ankle.'+sd]); tgt=hold+Rw@(pel-hold)+ (Rw@V((-0.55,0.08 if sd=='L' else -0.08,0.0)))
-        st['pas'].setdefault('legs',{})[sd]=(V(J['ankle.'+sd]).lerp(tgt,w),V((0,0,-1)))
-    st['pas']['head']=q(Y,-35*w)
-    st['drv']['head']=q(Z,-20*w)
+def t_superman(st,u,b):
+    w=mid(u,0.10,0.36,0.60,0.88)
+    st['pas']['mod']=lambda p,w=w,u=u: blend(p,pas_superman(math.sin(2*math.pi*max(0,u)*2)),w)
+    st['drv']['mod']=lambda p,gr,w=w: add(p,head=q(Z,25*w))
 jump_clip('PassengerSuperman',t_superman,'the passenger lets their body fly out flat behind, holding on by the hands')
 
-def t_nacnac(st,u,f,T):
+def t_nacnac(st,u,b):
     w=mid(u,0.12,0.36,0.6,0.86)
-    if w<=0: return
-    J=JOINTS['driver']; P_=JOINTS['passenger']
-    st['drv']['keys']['Jump']*=(1-w)
-    st['drv']['legs']={'R':(V(J['ankle.R']).lerp(V((-0.45,0.10,0.95)),w),V((0,0.3,1)))}
-    st['drv']['hips_t']=(0,0.04*w,0.03*w); st['drv']['chest']=q(X,6*w); st['drv']['head']=q(Z,-25*w)
-    st['pas']['keys']['Jump']*=(1-w)
-    st['pas']['legs']={'L':(V(P_['ankle.L']).lerp(V((-0.45,1.30,0.75)),w),V((1,0,0.3)))}
-    st['pas']['head']=q(Z,25*w)
+    def dmod(p,gr,w=w):
+        h=body_point(p,DJ,'hip.R')
+        return add(p,legs={'R':(DJ['ankle.R'].lerp(h+V((-0.55,0.12,0.30)),w)+V((0,-0.30,0.30))*math.sin(math.pi*w),(0,-0.3,1))},hips_t=(0,0.03*w,0.02*w),chest=q(X,5*w),head=q(Z,-25*w))
+    def pmod(p,w=w):
+        h=body_point(p,PJ,'hip.L')
+        return add(p,legs={'L':(p['legs']['L'][0].lerp(h+V((-0.05,0.62,0.05)),w),(1,0,0.3))},head=q(Z,25*w))
+    st['drv']['mod']=dmod; st['pas']['mod']=pmod
 jump_clip('NacNac',t_nacnac,'both kick a leg out: the driver over the back, the passenger out over the chair')
 
-json.dump(dict(fps=FPS,clips=CLIPS,rollers=ROLL,lip=LIP,landing=LAND,ramp_length=RAMP_LEN,landing_length=LAND_LEN),open(W+'clips.json','w'),indent=1)
+json.dump(dict(fps=FPS,clips=CLIPS,rollers=ROLL,lip=LIP,landing=LAND,ramp_length=RAMP_LEN,landing_length=LAND_LEN,ride_speed=V0,
+               turn_radius=4.5,checks=CHECK),open(W+'clips.json','w'),indent=1)
 sc.frame_start=1; sc.frame_end=frame[0]
 bpy.ops.wm.save_as_mainfile(filepath=W+'sidecar_anim.blend')
 print('anim saved, last frame',frame[0])
+for c in CHECK: print('CHECK',c)

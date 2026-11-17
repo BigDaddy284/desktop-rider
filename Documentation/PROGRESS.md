@@ -1,12 +1,12 @@
 # Progress
 
-Last updated: 16 November 2026
+Last updated: 17 November 2026
 
 ## Current task
 
 Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: built, tested automatically, and confirmed by the owner on Windows 11 with the 0.6.2 build, including the dark style, chat in bubbles and tricks on request. Phase 7 (personality and memory) is built and tested automatically in 0.7.0 and awaits the owner's check on Windows (M8). Version 0.8.0 adds, at the owner's request, tricks in a row ("do some tricks"), kinds of animation so that only tricks are picked as tricks, and the rider doing something by itself now and then while it may start conversations; built and tested automatically, awaiting the owner's check (M10). Next is Phase 8: settings and polish.
 
-Second character set (sidecar outfit 41): paint approved; first pass of rigging and 28 motions built and set up in the Unity project's sidecar viewer on 16 Nov 2026, awaiting the owner's review (see `Documentation/ASSET_INDEX.md`).
+Second character set (sidecar outfit 41): paint approved. The owner rejected the first pass of the 28 motions; the second pass (17 Nov 2026) rebuilds every crew pose on the rig from his race photos, runs at real speed with real gravity, uses a sidecar-sized double jump and bigger rollers, and checks every frame for wheels in the ground and bodies through the bike. Set up in the Unity sidecar viewer, awaiting the owner's review (see `Documentation/ASSET_INDEX.md`). Video of real sidecar runs would let the jumps and rollers be matched more closely.
 
 ## Completed tasks
 

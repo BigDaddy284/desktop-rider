@@ -60,18 +60,25 @@ A separate set from the rider and bike above, with its own driver, passenger and
 
 The painting follows the same method as the first set: images projected onto the models from the side, front and back. The driver and passenger are the same mesh in two poses, so the passenger takes the driver's rest coordinates per face corner and both wear exactly the same artwork. The Blender file (`sidecar_41_approved.blend`, with its `tex/` folder) is on the owner's computer in `Dektop Rider 3D\Sidecar`, and the scripts that build it are in the project files under `sidecar/blender/`.
 
-### Sidecar motions (first pass, 16 Nov 2026)
+### Sidecar motions (second pass, 17 Nov 2026)
 
-Built by `Tools/Blender/Sidecar/` from the approved painted file: `bake.py` (joins the outfit's parts and bakes the approved paint into three textures), `rig.py` (outfit, driver and passenger rigs), `scrig.py` and `sidecar_anim.py` (keys every clip), `props.py` (dirt props), `export.py` (FBX, props and manifest for Unity) and `sheet.py` (contact sheets for checking).
-The crew model came with three pose shapes of its own (Left, Right, Jump). They are the owner's and are used as they are: Left is the passenger hanging out over the chair wheel, Right is the passenger swinging over behind the driver, Jump is both standing.
+Built by `Tools/Blender/Sidecar/` from the approved painted file: `bake.py` (joins the outfit's parts and bakes the approved paint into three textures), `rig.py` (outfit, driver and passenger rigs), `scrig.py` (pose engine), `poses.py` (crew pose library), `sidecar_anim.py` (keys every clip and checks the wheels), `props.py` (dirt props), `export.py` (FBX, props and manifest for Unity), `sheet.py` (contact sheets) and `bodycheck.py` (checks the crew against the bike and each other).
+
+The owner rejected the first pass (16 Nov 2026): the passenger's arm, the corner poses (an arm through the head), the transitions, the wheelie, lost passenger, slow rollers and small, glitchy jumps. In the second pass:
+
+- Every crew pose is built on the rig in `poses.py` and matched to the owner's 12 race photos and his photo as passenger. The model's own Left / Right / Jump shapes stay at zero because blending them moved limbs through the body.
+- Riding crouch: low and forward over the rail, head down between the hands, elbows out wide (owner's photo). Hang-out (turning towards the chair): bum low and out over the chair wheel, bike-side arm stretched to the rail, other hand on the chair edge. Swing-over (turning away): chest down over the back of the seat behind the driver, far hand on the bike's right side. The move between them goes up and over the rail, body first and hands after.
+- Celebration: both throw the left fist up together. Wheelie: the passenger stands with arms straight. Lost passenger: thrown out, dragged hanging on with the legs trailing behind the chair, then climbs back in.
+- Speeds and physics are real: gravity 9.81 m/s², riding at 6.3 m/s (about 14 mph), rollers at 7.5 m/s with throttle on each face and the back tyre spinning up in the air, jumps at 9.5 m/s (about 21 mph). Each axle flies off crests and lips under gravity and lands with a squash.
+- Checks on every frame of every clip: no wheel sinks more than 9 mm (tyre squash) into the ground, rollers or jumps; the driver and passenger never pass through each other; contact with the bike stays at the level the model has as built (hands round the rail, boots on the platform, driver on the seat).
 
 | Group | Clips |
 |---|---|
 | Everyday | Idle, LookAround, Revving, Thinking, Talking, Celebration, SleepStart, Sleeping, SleepEnd |
-| Riding | RideOff, RideOn, RidingLoop, CornerLeft (towards the chair: passenger hang-out), CornerRight (away from the chair: passenger swing-over), and In/Out blends for each corner. The hang-out and swing-over are part of turning, not separate tricks. |
+| Riding | RideOff, RideOn, RidingLoop, CornerLeft (towards the chair: passenger hang-out), CornerRight (away from the chair: passenger swing-over), and In/Out moves for each corner. The hang-out and swing-over are part of turning, not separate tricks. |
 | Tricks | FlyingChair, Wheelie, PowerSlide, PassengerWave, LostPassenger, Rollers. No stoppie (owner's request). |
-| Jumps | Tabletop, NoHander, PassengerSuperman, NacNac, all off the same ramp and landing with a big suspension squash on landing. |
+| Jumps | Tabletop, NoHander, PassengerSuperman, NacNac, all over the same sidecar-sized double. |
 
-Props: `SC_Prop_JumpRamp` (0.5 m lip, 33°), `SC_Prop_JumpLanding`, and `SC_Prop_Rollers` (owner's request: wider, bigger and further apart than the first set's whoops: 4 rollers, 1.9 m long, 0.38 m high, 0.9 m of flat between, 2 m wide).
+Props: `SC_Prop_JumpRamp` (1.0 m lip at 30°, 3.5 m long), `SC_Prop_JumpLanding` (1.0 m high, 5.5 m long, 5.5 m gap from the lip), and `SC_Prop_Rollers` (5 rollers, 3.0 m long, 0.55 m high, 1.4 m of flat between, 2 m wide).
 
-Unity: `Assets/DesktopRider/Sidecar/` in the owner's project (model, textures, manifest, props, `SidecarViewer.unity`). Copies of its scripts are in `Tools/Unity/Sidecar/`. Menu **Desktop Rider > Sidecar > Open the sidecar viewer**, then Play and pick a move from the panel; or, without Play, **Desktop Rider > Sidecar > Move Viewer** to pick a move and step through it in the Scene view. In the normal riding pose the passenger is set in the owner's own stance from his race photo (16 Nov 2026): leaning forward over the rail with elbows up and out wide; the pose shapes still use the arms as modelled. Harvey's scene, models and scripts are not touched. The FBX and textures stay off GitHub like the first set's.
+Unity: `Assets/DesktopRider/Sidecar/` in the owner's project (model, textures, manifest, props, `SidecarViewer.unity`). Copies of its scripts are in `Tools/Unity/Sidecar/`. Menu **Desktop Rider > Sidecar > Open the sidecar viewer**, then Play and pick a move from the panel; or, without Play, **Desktop Rider > Sidecar > Move Viewer** to pick a move and step through it in the Scene view. The riding demo uses the riding speed and turn size from the manifest. Harvey's scene, models and scripts are not touched. The FBX and textures stay off GitHub like the first set's.

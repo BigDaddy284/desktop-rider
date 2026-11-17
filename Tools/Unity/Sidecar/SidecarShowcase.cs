@@ -20,7 +20,7 @@ namespace DesktopRider.Sidecar
         [Serializable] public class Prop { public string prop; public float x; public float length; }
         [Serializable] public class Info { public string note; }
         [Serializable] public class Clip { public string name; public int frames; public bool loop; public string kind; public Prop[] props; public float travel; public Info info; }
-        [Serializable] class Manifest { public string name; public int fps; public Clip[] clips; }
+        [Serializable] class Manifest { public string name; public int fps; public float ride_speed = 3f; public float turn_radius = 3.2f; public Clip[] clips; }
 
         static readonly Dictionary<string, string> Labels = new Dictionary<string, string>
         {
@@ -155,7 +155,7 @@ namespace DesktopRider.Sidecar
         IEnumerator RideRound(int laps)
         {
             ClearProps(); Home();
-            float v = 3f, radius = 3.2f;
+            float v = data.ride_speed > 0 ? data.ride_speed : 3f, radius = data.turn_radius > 0 ? data.turn_radius : 3.2f;   // riding speed and turn size from the manifest
             var plan = new List<(string clip, float seconds, float turn)>();
             for (int i = 0; i < laps; i++)
             {
