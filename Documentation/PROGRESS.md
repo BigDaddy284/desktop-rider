@@ -54,7 +54,7 @@ Second character set (sidecar outfit 41): paint approved. The owner rejected the
 | Check | Result |
 |---|---|
 | Build (`dotnet build`, warnings as errors) | Succeeded, 0 warnings, 0 errors |
-| Tests (`dotnet test`) | 667 passed, 0 failed, 0 skipped (Core 173, Animation 101, AI 393) |
+| Tests (`dotnet test`) | 668 passed, 0 failed, 0 skipped (Core 174, Animation 101, AI 393) |
 | GitHub Actions build and test on Windows | Passed for Phase 1; runs again on each push |
 | Standalone Windows build (`dotnet publish`, win-x64) | Succeeded |
 | Manual checks on Windows 11 | The owner ran the 0.3.0 test build: it starts, shows the animated rider and works. M1 to M3 not yet reported step by step. |
@@ -91,6 +91,10 @@ Second character set (sidecar outfit 41): paint approved. The owner rejected the
 
 
 - Multiple monitors have not been tried on real hardware. The owner uses a single 49-inch ultrawide monitor and has no second screen, so M2 steps 9 and 10 cannot be done there. The placement rules for several monitors are covered by automated tests only.
+
+## Fix 0.9.1 (17 Nov 2026)
+
+The 0.9.0 Windows build left the larger sprite sheets (every jump and trick sheet, for Harvey and the sidecar) inside the single-file exe instead of the Assets folder, so the sidecar could not load and the app fell back to Harvey. The sprite content now has `ExcludeFromSingleFile` and `CopyToPublishDirectory`; a test (`PublishLayoutTests`) checks the project keeps them that way, and the published folder was checked to hold all 110 sprite files.
 
 ## Technical decisions
 

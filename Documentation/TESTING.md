@@ -9,7 +9,7 @@ Run from the repository root.
 | Build everything (warnings are errors, analyzers on) | `dotnet build` |
 | Run all automated tests | `dotnet test` |
 | Run one test class | `dotnet test --filter FullyQualifiedName~JsonSettingsStoreTests` |
-| Make a standalone Windows build | `dotnet publish src/DesktopRider.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish` |
+| Make a standalone Windows build | `dotnet publish src/DesktopRider.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish`, then check `publish/Assets/Sprites` holds every sheet named in each sprites.json |
 
 Every push and pull request is also built and tested on Windows by GitHub Actions (`.github/workflows/ci.yml`).
 
