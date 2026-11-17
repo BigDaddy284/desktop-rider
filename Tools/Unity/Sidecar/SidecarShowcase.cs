@@ -7,7 +7,7 @@ namespace DesktopRider.Sidecar
 {
     /// <summary>
     /// The sidecar viewer: press Play, then pick a move from the panel on the left. Drag with the mouse to look round,
-    /// use the scroll wheel to zoom. "Ride round" shows the turning moves (passenger hang-out and swing-over) as part of
+    /// use the scroll wheel to zoom. "Ride round" shows the turning moves (passenger hanging out, then sitting behind the driver) as part of
     /// normal riding; "Play everything" runs through every move in turn.
     /// </summary>
     public sealed class SidecarShowcase : MonoBehaviour
@@ -27,7 +27,7 @@ namespace DesktopRider.Sidecar
             {"Idle","Waiting"},{"LookAround","Looking around"},{"Revving","Revving"},{"Thinking","Thinking"},{"Talking","Talking"},
             {"Celebration","Celebrating"},{"SleepStart","Nodding off"},{"Sleeping","Asleep"},{"SleepEnd","Waking up"},
             {"RideOff","Riding off"},{"RideOn","Pulling up"},{"RidingLoop","Riding along"},
-            {"CornerLeft","Turning towards the chair (passenger hangs out)"},{"CornerRight","Turning away from the chair (passenger swings over)"},
+            {"CornerLeft","Turning towards the chair (passenger hangs out)"},{"CornerRight","Turning away from the chair (passenger sits behind the driver)"},
             {"CornerLeftIn","Into a chair-side turn"},{"CornerLeftOut","Out of a chair-side turn"},{"CornerRightIn","Into a bike-side turn"},{"CornerRightOut","Out of a bike-side turn"},
             {"FlyingChair","Flying the chair"},{"Wheelie","Wheelie"},{"PowerSlide","Power slide"},{"PassengerWave","Passenger waves"},
             {"LostPassenger","Lost passenger!"},{"Rollers","Rollers"},{"Tabletop","Jump: Tabletop"},{"NoHander","Jump: No-hander"},
@@ -247,7 +247,7 @@ namespace DesktopRider.Sidecar
             speed = GUILayout.HorizontalSlider(speed, 0.1f, 1.5f);
             GUILayout.Label(speed.ToString("0.0") + "x", GUILayout.Width(36));
             GUILayout.EndHorizontal();
-            if (GUILayout.Button("Ride round (turning, hang-out, swing-over)")) { if (running != null) StopCoroutine(running); running = StartCoroutine(RideRound(2)); }
+            if (GUILayout.Button("Ride round (left and right turns)")) { if (running != null) StopCoroutine(running); running = StartCoroutine(RideRound(2)); }
             if (GUILayout.Button("Play everything")) { if (running != null) StopCoroutine(running); running = StartCoroutine(PlayAll()); }
             if (GUILayout.Button("Back to the start")) { if (running != null) StopCoroutine(running); ClearProps(); Home(); Play("Idle"); }
             scroll = GUILayout.BeginScrollView(scroll);
