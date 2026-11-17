@@ -97,3 +97,5 @@ Recorded in ARCHITECTURE.md.
 ## Next task
 
 Phase 8: Settings and polish (complete the settings interface, start-up options, transitions and visual polish, packaging). 
+
+- Sidecar Move Viewer (17 Nov 2026): after new model files were imported the window kept using the old, destroyed outfit and its moves, so nothing played (MissingReferenceException every frame). It now looks the outfit up again whenever the project changes, a scene opens or the old one has gone, and loads jump props straight from the Props folder if the scene's list is out of date. Checked in the owner's Unity: compiles with no errors, Double renders mid-air.

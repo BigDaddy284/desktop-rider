@@ -27,12 +27,12 @@ namespace DesktopRider.Sidecar.EditorTools
         [MenuItem("Desktop Rider/Sidecar/Move Viewer")]
         static void Open() => GetWindow<SidecarMoveViewer>("Sidecar Moves").Show();
 
-        void OnEnable() { Load(); EditorApplication.update += Tick; }
-        void OnDisable() { EditorApplication.update -= Tick; Clear(); if (show != null && show.model != null && clips.TryGetValue("Idle", out var idle)) idle.SampleAnimation(show.model.gameObject, 0f); }
+        void OnEnable() { Load(); EditorApplication.update += Tick; EditorApplication.projectChanged += Reload; EditorSceneManagerHook(true); }
+        void OnDisable() { EditorApplication.update -= Tick; EditorApplication.projectChanged -= Reload; EditorSceneManagerHook(false); Clear(); if (show != null && show.model != null && clips.TryGetValue("Idle", out var idle)) idle.SampleAnimation(show.model.gameObject, 0f); }
 
         void Load()
         {
-            show = FindFirstObjectByType<SidecarShowcase>();
+            show = FindAnyObjectByType<SidecarShowcase>();
             clips.Clear();
             if (show == null || show.model == null || show.manifest == null) { names = Array.Empty<string>(); return; }
             foreach (var c in AnimationUtility.GetAnimationClips(show.model.gameObject)) clips[c.name] = c;
@@ -42,6 +42,16 @@ namespace DesktopRider.Sidecar.EditorTools
             chosen = Mathf.Clamp(chosen, 0, Math.Max(0, names.Length - 1));
             if (names.Length > 0) Choose(chosen);
         }
+
+        // New model files replace the outfit and its moves under the window: look them up again rather than use the old ones.
+        void Reload() { int keep = chosen; Load(); if (names.Length > 0) Choose(Mathf.Clamp(keep, 0, names.Length - 1)); Repaint(); }
+        void EditorSceneManagerHook(bool on)
+        {
+            if (on) UnityEditor.SceneManagement.EditorSceneManager.sceneOpened += OnSceneOpened;
+            else UnityEditor.SceneManagement.EditorSceneManager.sceneOpened -= OnSceneOpened;
+        }
+        void OnSceneOpened(UnityEngine.SceneManagement.Scene scene, UnityEditor.SceneManagement.OpenSceneMode mode) => Reload();
+        bool Stale => show == null || show.model == null || (names.Length > 0 && (!clips.TryGetValue(names[chosen], out var c) || c == null));
 
         static string GroupOf(string kind) => kind == "everyday" ? "Everyday" : kind == "riding" ? "Riding" : kind == "jump" ? "Jumps" : "Tricks";
 
@@ -56,18 +66,20 @@ namespace DesktopRider.Sidecar.EditorTools
             if (c.props != null)
                 foreach (var p in c.props)
                 {
-                    var src = Array.Find(show.propModels, x => x != null && x.name == p.prop);
+                    var src = show.propModels == null ? null : Array.Find(show.propModels, x => x != null && x.name == p.prop);
+                    if (src == null) src = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/DesktopRider/Sidecar/Props/" + p.prop + ".fbx");
                     if (src == null) continue;
                     var go = (GameObject)Instantiate(src, m.position + m.TransformDirection(show.ForwardLocal()) * p.x, m.rotation);
                     go.hideFlags = HideFlags.DontSave; props.Add(go);
                 }
-            Show();
+            ShowFrame();
         }
 
         void Clear() { foreach (var p in props) if (p != null) DestroyImmediate(p); props.Clear(); }
 
-        void Show()
+        void ShowFrame()
         {
+            if (Stale) { Load(); if (Stale) return; }
             if (Clip == null) return;
             Clip.SampleAnimation(show.model.gameObject, Mathf.Min(frame / (float)Fps, Clip.length));
             SceneView.RepaintAll(); Repaint();
@@ -75,18 +87,21 @@ namespace DesktopRider.Sidecar.EditorTools
 
         void Tick()
         {
-            if (!playing || Clip == null || EditorApplication.isPlaying) return;
+            if (!playing || EditorApplication.isPlaying) return;
+            if (Stale) { Load(); if (Stale) { playing = false; return; } }
+            if (Clip == null) return;
             double now = EditorApplication.timeSinceStartup;
             if (now - last < 1.0 / (Fps * speed)) return;
             last = now;
             frame++;
             if (frame > Frames) frame = 0;
-            Show();
+            ShowFrame();
         }
 
         void OnGUI()
         {
             if (EditorApplication.isPlaying) { EditorGUILayout.HelpBox("Stop Play to use the Move Viewer (while playing, use the panel in the Game view).", MessageType.Info); return; }
+            if (Stale) Load();
             if (names.Length == 0)
             {
                 EditorGUILayout.HelpBox("Open the sidecar viewer scene first: Desktop Rider > Sidecar > Open the sidecar viewer.", MessageType.Info);
@@ -98,12 +113,12 @@ namespace DesktopRider.Sidecar.EditorTools
             if (EditorGUI.EndChangeCheck()) Choose(pick);
             EditorGUI.BeginChangeCheck();
             int f = EditorGUILayout.IntSlider("Frame", frame, 0, Frames);
-            if (EditorGUI.EndChangeCheck()) { frame = f; playing = false; Show(); }
+            if (EditorGUI.EndChangeCheck()) { frame = f; playing = false; ShowFrame(); }
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("◀ Previous")) { playing = false; frame = Mathf.Max(0, frame - 1); Show(); }
+                if (GUILayout.Button("◀ Previous")) { playing = false; frame = Mathf.Max(0, frame - 1); ShowFrame(); }
                 if (GUILayout.Button(playing ? "❚❚ Pause" : "▶ Play")) { playing = !playing; last = EditorApplication.timeSinceStartup; }
-                if (GUILayout.Button("Next ▶")) { playing = false; frame = Mathf.Min(Frames, frame + 1); Show(); }
+                if (GUILayout.Button("Next ▶")) { playing = false; frame = Mathf.Min(Frames, frame + 1); ShowFrame(); }
             }
             speed = EditorGUILayout.Slider("Speed", speed, 0.1f, 1.5f);
             var c = show.ManifestClips().First(x => x.name == names[chosen]);
