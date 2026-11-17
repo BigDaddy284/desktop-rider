@@ -39,6 +39,15 @@ public sealed class AppearanceSettings
 
     public bool AlwaysOnTop { get; set; } = true;
 
+    /// <summary>
+    /// Which character lives on the desktop: the name of its folder of pictures, such as "Rider" or "Sidecar41".
+    /// If the folder is missing the standard rider is shown instead.
+    /// </summary>
+    public string Character { get; set; } = DefaultCharacter;
+
+    /// <summary>The standard rider's folder of pictures.</summary>
+    public const string DefaultCharacter = "Rider";
+
     public bool CharacterVisible { get; set; } = true;
 
     /// <summary>
@@ -70,7 +79,13 @@ public sealed class BehaviourSettings
     public const int MinProactiveIntervalMinutes = 5;
     public const int MaxProactiveIntervalMinutes = 240;
 
+    public const double MinRidingSpeed = 0.25;
+    public const double MaxRidingSpeed = 2.0;
+
     public bool AutonomousMovement { get; set; } = true;
+
+    /// <summary>How fast the character rides about the screen, where 1.0 is its natural speed.</summary>
+    public double RidingSpeed { get; set; } = 1.0;
 
     public bool IdleAnimations { get; set; } = true;
 

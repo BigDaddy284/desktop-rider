@@ -55,8 +55,8 @@ A separate set from the rider and bike above, with its own driver, passenger and
 | Models (`sidecar.glb`, `sidecar_crew.glb`) | Supplied by the owner on 16 Nov 2026. Their shapes are the owner's and are not altered. At the owner's request, the three black vents on the chair's front board are hidden (not deleted). |
 | Reference photographs | 12 photographs supplied on 16 Nov 2026 (project files, `References/Original-Photographs/Sidecar/`). Summary in `References/SIDECAR_VISUAL_REFERENCE_SUMMARY.md`. |
 | Painted models | **Approved by the owner** (16 Nov 2026) after six rounds of changes. White, blue and yellow O'Neal crew kit; yellow and light-blue outfit with the number 41; Duck Smart, HB Halo, O'Neal and YSS stickers redrawn by hand from the photos. Approved renders: `References/Approved-Artwork/Sidecar-41/`. |
-| Rigging and animations | First pass built 16 Nov 2026 and set up in the owner's Unity project for viewing; **awaiting the owner's review**. 28 clips (see below). |
-| Sprite sheets | Not needed for the 3D (Unity) version. |
+| Rigging and animations | **All 27 approved by the owner** in Unity on 17 Nov 2026, after a second pass and several rounds of changes (see below). |
+| Sprite sheets (desktop app) | Rendered 17 Nov 2026 from the approved animation into `Assets/Sprites/Sidecar41/` (21 animations, both directions) at the owner's request to bring the sidecar into the desktop app. Conventions in SPRITE_SPECIFICATION.md (Characters, Sidecar 41). **Awaiting the owner's look in the app** (TESTING.md M11). |
 
 The painting follows the same method as the first set: images projected onto the models from the side, front and back. The driver and passenger are the same mesh in two poses, so the passenger takes the driver's rest coordinates per face corner and both wear exactly the same artwork. The Blender file (`sidecar_41_approved.blend`, with its `tex/` folder) is on the owner's computer in `Dektop Rider 3D\Sidecar`, and the scripts that build it are in the project files under `sidecar/blender/`.
 

@@ -20,6 +20,7 @@ public static class SettingsNormalizer
         appearance.Scale = Clamp(appearance.Scale, AppearanceSettings.MinScale, AppearanceSettings.MaxScale, 1.0);
         appearance.Opacity = Clamp(appearance.Opacity, AppearanceSettings.MinOpacity, AppearanceSettings.MaxOpacity, 1.0);
         appearance.AnimationSpeed = Clamp(appearance.AnimationSpeed, AppearanceSettings.MinAnimationSpeed, AppearanceSettings.MaxAnimationSpeed, 1.0);
+        appearance.Character = TidyCharacter(appearance.Character);
         if (appearance.Position is { } position && !(double.IsFinite(position.X) && double.IsFinite(position.Y)))
         {
             appearance.Position = null;
@@ -30,6 +31,7 @@ public static class SettingsNormalizer
             behaviour.ProactiveIntervalMinutes,
             BehaviourSettings.MinProactiveIntervalMinutes,
             BehaviourSettings.MaxProactiveIntervalMinutes);
+        behaviour.RidingSpeed = Clamp(behaviour.RidingSpeed, BehaviourSettings.MinRidingSpeed, BehaviourSettings.MaxRidingSpeed, 1.0);
         if (!Enum.IsDefined(behaviour.AnimationFrequency))
         {
             behaviour.AnimationFrequency = AnimationFrequency.Normal;
@@ -94,4 +96,13 @@ public static class SettingsNormalizer
 
     private static double Clamp(double value, double min, double max, double fallback) =>
         double.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;
+
+    // A character is named by its folder, so anything that could reach outside the pictures folder is refused.
+    private static string TidyCharacter(string? character)
+    {
+        var name = character?.Trim();
+        return string.IsNullOrEmpty(name) || name.Length > 64 || !name.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_')
+            ? AppearanceSettings.DefaultCharacter
+            : name;
+    }
 }

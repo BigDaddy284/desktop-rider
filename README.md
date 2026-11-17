@@ -45,6 +45,11 @@ The conversation is still there the next time you start Desktop Rider, and the r
 
 Right-click the rider, or the icon beside the clock, and choose **Rider settings**. Every choice is saved as you make it; there is no Save button.
 
+**Character**
+
+- **Who should be on the desktop?** Harvey (the standard rider) or Sidecar 41 (the sidecar crew: a driver and a passenger in the chair). The new character appears straight away, standing in the same spot. Each one only does the tricks it has: ask the sidecar crew for a jump and they fly the big double.
+- **Riding speed.** How fast the character rides across your screen when it goes for a ride (from the **Do something** menu, when you ask it to, or by itself). Drag the slider from very slow to very fast, or press **Normal**. It rides from one screen onto the next and turns round at the edge.
+
 **Personality**
 
 - **How should the rider talk?** Cheeky (the standard rider), friendly, or serious.

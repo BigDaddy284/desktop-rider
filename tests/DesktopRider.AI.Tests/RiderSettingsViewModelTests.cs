@@ -1,3 +1,4 @@
+using DesktopRider.Core.Characters;
 using DesktopRider.Core.Configuration;
 
 namespace DesktopRider.AI.Tests;
@@ -461,6 +462,84 @@ public class RiderSettingsViewModelTests
         Assert.Null(RiderSettingsViewModel.ReadTime(typed));
     }
 
+    [Fact]
+    public void Lists_the_characters_and_ticks_the_one_on_the_desktop()
+    {
+        using var context = new Context();
+
+        Assert.True(context.View.HasCharacterChoice);
+        Assert.Equal(["Harvey", "Sidecar 41"], context.View.Characters.Select(c => c.Name));
+        Assert.True(context.View.Characters[0].IsChosen);
+        Assert.False(context.View.Characters[1].IsChosen);
+    }
+
+    [Fact]
+    public void Choosing_another_character_saves_it_and_moves_the_tick()
+    {
+        using var context = new Context();
+        var sidecar = context.View.Characters[1];
+        var announced = 0;
+        sidecar.PropertyChanged += (_, _) => announced++;
+
+        sidecar.IsChosen = true;
+        context.View.Characters[0].IsChosen = false;
+
+        Assert.Equal("Sidecar41", context.Settings.Current.Appearance.Character);
+        Assert.True(sidecar.IsChosen);
+        Assert.False(context.View.Characters[0].IsChosen);
+        Assert.Equal(1, context.Settings.SaveCount);
+        Assert.True(announced > 0);
+    }
+
+    [Fact]
+    public void With_only_one_character_there_is_nothing_to_choose()
+    {
+        using var context = new Context();
+        using var view = new RiderSettingsViewModel(context.Settings, context.Chat, context.Memory);
+
+        Assert.Empty(view.Characters);
+        Assert.False(view.HasCharacterChoice);
+    }
+
+    [Fact]
+    public void Riding_speed_is_saved_kept_in_range_and_described_in_words()
+    {
+        using var context = new Context();
+        Assert.Equal(1.0, context.View.RidingSpeed);
+        Assert.Equal("Normal", context.View.RidingSpeedText);
+
+        context.View.RidingSpeed = 1.75;
+        Assert.Equal(1.75, context.Settings.Current.Behaviour.RidingSpeed);
+        Assert.Equal("Very fast", context.View.RidingSpeedText);
+
+        context.View.RidingSpeed = 9;
+        Assert.Equal(BehaviourSettings.MaxRidingSpeed, context.Settings.Current.Behaviour.RidingSpeed);
+
+        context.View.RidingSpeed = 0.01;
+        Assert.Equal(BehaviourSettings.MinRidingSpeed, context.Settings.Current.Behaviour.RidingSpeed);
+        Assert.Equal("Very slow", context.View.RidingSpeedText);
+
+        context.View.NormalRidingSpeedCommand.Execute(null);
+        Assert.Equal(1.0, context.Settings.Current.Behaviour.RidingSpeed);
+    }
+
+    [Fact]
+    public void Moving_the_riding_speed_slider_by_a_hair_saves_nothing()
+    {
+        using var context = new Context();
+
+        context.View.RidingSpeed = 1.0001;
+
+        Assert.Equal(0, context.Settings.SaveCount);
+    }
+
+    internal sealed class FakeCharacters : ICharacterCatalog
+    {
+        public IReadOnlyList<CharacterInfo> Available { get; } = [new("Rider", "Harvey"), new("Sidecar41", "Sidecar 41")];
+
+        public string FolderFor(string? id) => id ?? "Rider";
+    }
+
     private sealed class Context : IDisposable
     {
         public Context()
@@ -469,8 +548,10 @@ public class RiderSettingsViewModelTests
             Memory = new RiderMemory(MemoryStore, Settings, Clock);
             Service = new AiChatService(new AiProviderRegistry([Provider]), Settings, Memory);
             Chat = new ConversationViewModel(Service, Settings, store: Store, timeProvider: Clock, memory: Memory);
-            View = new RiderSettingsViewModel(Settings, Chat, Memory);
+            View = new RiderSettingsViewModel(Settings, Chat, Memory, characters: Characters);
         }
+
+        public FakeCharacters Characters { get; } = new();
 
         public FakeMemoryStore MemoryStore { get; } = new();
 

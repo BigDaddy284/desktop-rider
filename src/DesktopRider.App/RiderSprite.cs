@@ -34,6 +34,8 @@ internal sealed partial class RiderSprite : IDisposable
     private readonly HashSet<string> _unreadable = new(StringComparer.OrdinalIgnoreCase);
     private string? _stageSheet;
     private bool _disposed;
+    private double _speed = 1.0;
+    private double _ridingSpeed = 1.0;
 
     private RiderSprite(string folder, SpriteManifest manifest, ILogger logger)
     {
@@ -66,11 +68,36 @@ internal sealed partial class RiderSprite : IDisposable
     /// <summary>Where the rider's standard frame sits inside the current frame, in sprite pixels.</summary>
     public (int X, int Y) FrameOrigin { get; private set; }
 
+    /// <summary>Playback speed chosen by the user, where 1.0 is normal.</summary>
     public double Speed
     {
-        get => _player.Speed;
-        set => _player.Speed = value;
+        get => _speed;
+        set
+        {
+            _speed = value;
+            ApplySpeed();
+        }
     }
+
+    /// <summary>
+    /// How fast the character rides about, where 1.0 is its natural speed. The riding animations play this much
+    /// faster or slower too, so the wheels keep pace with the window moving.
+    /// </summary>
+    public double RidingSpeed
+    {
+        get => _ridingSpeed;
+        set
+        {
+            _ridingSpeed = RidingMotion.ClampSpeed(value);
+            ApplySpeed();
+        }
+    }
+
+    /// <summary>The name of the animation showing.</summary>
+    public string CurrentAnimation => _player.Current.Name;
+
+    /// <summary>How far through the animation showing the character is, from 0 at the start to 1 at the end.</summary>
+    public double Progress => _player.Current.FrameCount <= 1 ? 0 : _player.FrameIndex / (double)(_player.Current.FrameCount - 1);
 
     public bool IdleAnimations
     {
@@ -168,11 +195,16 @@ internal sealed partial class RiderSprite : IDisposable
             _idle.Advance(elapsed);
         }
 
+        ApplySpeed();
         if (_behaviour.Advance(elapsed))
         {
             Refresh();
         }
     }
+
+    // Riding animations follow the riding speed as well as the general animation speed.
+    private void ApplySpeed() =>
+        _player.Speed = _speed * (RidingMotion.IsRiding(_player.Current.Name) ? _ridingSpeed : 1.0);
 
     private void Refresh()
     {

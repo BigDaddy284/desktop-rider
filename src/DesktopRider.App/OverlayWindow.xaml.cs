@@ -1,9 +1,13 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using DesktopRider.AI;
 using DesktopRider.Animation;
+using DesktopRider.Core.Characters;
 using DesktopRider.Core.Configuration;
 using DesktopRider.Core.Placement;
 using DesktopRider.Core.ViewModels;
@@ -19,7 +23,13 @@ public partial class OverlayWindow : Window
     private readonly OverlayViewModel _viewModel;
     private readonly WindowPlacementController _placement;
     private readonly ISettingsService _settings;
-    private readonly RiderSprite? _rider;
+    private readonly ICharacterCatalog _characters;
+    private readonly ILogger _logger;
+    private readonly DispatcherTimer _ride;
+    private readonly Stopwatch _rideClock = new();
+    private RiderSprite? _rider;
+    private string? _character;
+    private double _rideCarry;
     private StageWindow? _stage;
     private bool _onStage;
     private bool _leavingStage;
@@ -29,6 +39,7 @@ public partial class OverlayWindow : Window
     public OverlayWindow(
         OverlayViewModel viewModel,
         ISettingsService settings,
+        ICharacterCatalog characters,
         IScreenProvider screens,
         ILogger<WindowPlacementController> placementLogger,
         ILogger<OverlayWindow> logger)
@@ -37,21 +48,17 @@ public partial class OverlayWindow : Window
         _viewModel = viewModel;
         DataContext = viewModel;
         _settings = settings;
+        _characters = characters;
+        _logger = logger;
 
-        _rider = RiderSprite.TryLoad(Path.Combine(AppContext.BaseDirectory, "Assets", "Sprites", "Rider"), logger);
-        if (_rider is not null)
-        {
-            StandIn.Visibility = Visibility.Collapsed;
-            RiderImage.Visibility = Visibility.Visible;
-            TurnAroundItem.Visibility = Visibility.Visible;
-            BuildTricksMenu(_rider);
-            _rider.FrameChanged += OnRiderFrameChanged;
-            LocationChanged += OnLocationChanged;
-            _settings.Changed += OnSettingsChanged;
-            IsVisibleChanged += OnIsVisibleChanged;
-            ApplySettings();
-            RiderImage.Source = _rider.CurrentFrame;
-        }
+        // Only runs while the character is riding about, to move the window smoothly between animation frames.
+        _ride = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(16) };
+        _ride.Tick += OnRideTick;
+
+        LoadCharacter();
+        LocationChanged += OnLocationChanged;
+        _settings.Changed += OnSettingsChanged;
+        IsVisibleChanged += OnIsVisibleChanged;
 
         _placement = new WindowPlacementController(this, settings, screens, placementLogger);
         _placement.Attach();
@@ -125,15 +132,13 @@ public partial class OverlayWindow : Window
         _viewModel.ExitRequested -= OnExitRequested;
         _placement.Clicked -= OnCharacterClicked;
         _placement.Dispose();
-        if (_rider is not null)
-        {
-            _settings.Changed -= OnSettingsChanged;
-            IsVisibleChanged -= OnIsVisibleChanged;
-            _rider.FrameChanged -= OnRiderFrameChanged;
-            LocationChanged -= OnLocationChanged;
-            _rider.Dispose();
-            _stage?.Close();
-        }
+        _ride.Stop();
+        _ride.Tick -= OnRideTick;
+        _settings.Changed -= OnSettingsChanged;
+        IsVisibleChanged -= OnIsVisibleChanged;
+        LocationChanged -= OnLocationChanged;
+        UnloadCharacter();
+        _stage?.Close();
 
         base.OnClosed(e);
     }
@@ -149,8 +154,91 @@ public partial class OverlayWindow : Window
     internal static string FriendlyName(string animation) =>
         string.Concat(animation.Select((c, i) => i > 0 && char.IsUpper(c) ? " " + char.ToLowerInvariant(c) : c.ToString()));
 
+    /// <summary>
+    /// Shows the character chosen in settings, or the standard rider if its pictures are missing. Changing character
+    /// keeps the way it faces and where its wheels stand on the screen.
+    /// </summary>
+    private void LoadCharacter()
+    {
+        var wanted = _settings.Current.Appearance.Character;
+        var facing = _rider?.Facing ?? Facing.Right;
+        var bottom = IsLoaded ? Top + ActualHeight : (double?)null;
+        UnloadCharacter();
+
+        _character = wanted;
+        _rider = RiderSprite.TryLoad(_characters.FolderFor(wanted), _logger);
+        if (_rider is null && !string.Equals(wanted, AppearanceSettings.DefaultCharacter, StringComparison.OrdinalIgnoreCase))
+        {
+            _rider = RiderSprite.TryLoad(_characters.FolderFor(AppearanceSettings.DefaultCharacter), _logger);
+        }
+
+        if (_rider is null)
+        {
+            StandIn.Visibility = Visibility.Visible;
+            RiderImage.Visibility = Visibility.Collapsed;
+            TurnAroundItem.Visibility = Visibility.Collapsed;
+            TricksMenu.Visibility = Visibility.Collapsed;
+            RiderActions.UseAnimations(null);
+            return;
+        }
+
+        StandIn.Visibility = Visibility.Collapsed;
+        RiderImage.Visibility = Visibility.Visible;
+        RiderImage.Opacity = 1;
+        TurnAroundItem.Visibility = Visibility.Visible;
+        _rider.Facing = facing;
+        BuildTricksMenu(_rider);
+        // The chat only offers the tricks this character has.
+        RiderActions.UseAnimations(_rider.Manifest.Animations.Select(clip => clip.Name));
+        _rider.FrameChanged += OnRiderFrameChanged;
+        ApplySettings();
+        RiderImage.Source = _rider.CurrentFrame;
+        if (IsVisible)
+        {
+            _rider.Start();
+        }
+
+        if (bottom is { } keep)
+        {
+            // The new character's window is a different size: once it is laid out, stand it on the same spot.
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+            {
+                Top = keep - ActualHeight;
+                _placement.KeepOnScreen();
+                _ = _placement.RememberPositionAsync();
+            });
+        }
+    }
+
+    private void UnloadCharacter()
+    {
+        _ride.Stop();
+        if (_rider is null)
+        {
+            return;
+        }
+
+        _rider.FrameChanged -= OnRiderFrameChanged;
+        _rider.Dispose();
+        _rider = null;
+        _stage?.Hide();
+        _onStage = false;
+        _leavingStage = false;
+        if (IsTrickShowing)
+        {
+            IsTrickShowing = false;
+            TrickShowingChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     private void BuildTricksMenu(RiderSprite rider)
     {
+        foreach (var old in TricksMenu.Items.OfType<MenuItem>())
+        {
+            old.Click -= OnTrickClick;
+        }
+
+        TricksMenu.Items.Clear();
         var linked = rider.Manifest.Animations.SelectMany(clip => new[] { clip.Enter, clip.Exit }).OfType<string>().ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var clip in rider.Manifest.Animations.Where(clip => !linked.Contains(clip.Name)))
         {
@@ -164,9 +252,17 @@ public partial class OverlayWindow : Window
 
     private void OnTrickClick(object sender, RoutedEventArgs e)
     {
-        if (sender is MenuItem { Tag: string name })
+        if (sender is MenuItem { Tag: string name } && _rider is not null)
         {
-            _rider?.Play(name, priority: 1);
+            // A loop such as riding about is done for a while and then finished properly, not kept up for ever.
+            if (_rider.Manifest.TryGet(name, out var clip) && clip.Loop)
+            {
+                _rider.Perform(name);
+            }
+            else
+            {
+                _rider.Play(name, priority: 1);
+            }
         }
     }
 
@@ -198,6 +294,13 @@ public partial class OverlayWindow : Window
         if (_rider?.CurrentFrame is not { } frame)
         {
             return;
+        }
+
+        if (RidingMotion.IsRiding(_rider.CurrentAnimation) && !_ride.IsEnabled)
+        {
+            _rideClock.Restart();
+            _rideCarry = 0;
+            _ride.Start();
         }
 
         if (_rider.ShowingTrick != IsTrickShowing)
@@ -255,7 +358,52 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private void OnSettingsChanged(object? sender, EventArgs e) => Dispatcher.Invoke(ApplySettings);
+    private void OnSettingsChanged(object? sender, EventArgs e) => Dispatcher.Invoke(() =>
+    {
+        if (_closed)
+        {
+            return;
+        }
+
+        if (!string.Equals(_character, _settings.Current.Appearance.Character, StringComparison.OrdinalIgnoreCase))
+        {
+            LoadCharacter();
+        }
+        else
+        {
+            ApplySettings();
+        }
+    });
+
+    // Moves the window along while the character rides, at the speed the riding animation shows, and turns it round
+    // at the edge of the screens. When the ride ends the new spot is remembered.
+    private void OnRideTick(object? sender, EventArgs e)
+    {
+        var elapsed = Math.Min(_rideClock.Elapsed.TotalSeconds, 0.1);
+        _rideClock.Restart();
+        if (_rider is null || !RidingMotion.IsRiding(_rider.CurrentAnimation) || !IsVisible)
+        {
+            _ride.Stop();
+            _ = _placement.RememberPositionAsync();
+            return;
+        }
+
+        var dpi = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        var full = RidingMotion.PixelsPerSecond(_rider.Manifest, _size * dpi, _rider.RidingSpeed);
+        _rideCarry += full * RidingMotion.SpeedShare(_rider.CurrentAnimation, _rider.Progress) * elapsed;
+        var step = (int)_rideCarry;
+        if (step == 0)
+        {
+            return;
+        }
+
+        _rideCarry -= step;
+        if (!_placement.RideBy(_rider.Facing == Facing.Right ? step : -step))
+        {
+            _rider.Facing = _rider.Facing == Facing.Right ? Facing.Left : Facing.Right;
+            _rideCarry = 0;
+        }
+    }
 
     private void OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
@@ -284,5 +432,6 @@ public partial class OverlayWindow : Window
         RiderImage.Height = _rider.Manifest.FrameHeight * size;
         _rider.Speed = Math.Clamp(appearance.AnimationSpeed, AppearanceSettings.MinAnimationSpeed, AppearanceSettings.MaxAnimationSpeed);
         _rider.IdleAnimations = _settings.Current.Behaviour.IdleAnimations;
+        _rider.RidingSpeed = _settings.Current.Behaviour.RidingSpeed;
     }
 }

@@ -60,6 +60,39 @@ public static class PlacementCalculator
         return screen is null ? position : ClampTo(screen.WorkingArea, position, size);
     }
 
+    /// <summary>
+    /// One step of the character riding sideways. It may ride from one screen onto the next, but stops at an edge with
+    /// no screen beyond it, where it should turn round.
+    /// </summary>
+    /// <param name="bounds">Where the character's window is now.</param>
+    /// <param name="dx">How far to move, in pixels: positive to the right, negative to the left.</param>
+    /// <param name="screens">The screens available.</param>
+    /// <returns>The new position, and whether the character reached an edge and could not go the whole way.</returns>
+    public static (PixelPoint Position, bool Blocked) RideStep(PixelRect bounds, int dx, IReadOnlyList<ScreenArea> screens)
+    {
+        ArgumentNullException.ThrowIfNull(screens);
+        if (dx == 0 || screens.Count == 0)
+        {
+            return (bounds.Location, false);
+        }
+
+        var middle = bounds.Y + (bounds.Height / 2);
+        var x = bounds.X + dx;
+        var leading = dx > 0 ? x + bounds.Width - 1 : x;
+        if (screens.Any(s => Holds(s.WorkingArea, leading, middle)))
+        {
+            return (new PixelPoint(x, bounds.Y), false);
+        }
+
+        // Ride up to the edge of the screen the front of the character is on, and no further.
+        var current = dx > 0 ? bounds.X + bounds.Width - 1 : bounds.X;
+        var area = (screens.FirstOrDefault(s => Holds(s.WorkingArea, current, middle)) ?? ScreenFor(bounds.Location, bounds.Size, screens)!).WorkingArea;
+        var edge = dx > 0 ? Math.Max(bounds.X, area.Right - bounds.Width) : Math.Min(bounds.X, area.X);
+        return (new PixelPoint(edge, bounds.Y), true);
+    }
+
+    private static bool Holds(PixelRect area, int x, int y) => x >= area.X && x < area.Right && y >= area.Y && y < area.Bottom;
+
     /// <summary>The screen the character is mostly on, or the nearest one if it is on none. Null when there are no screens.</summary>
     public static ScreenArea? ScreenFor(PixelPoint position, PixelSize size, IReadOnlyList<ScreenArea> screens)
     {

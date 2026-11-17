@@ -131,6 +131,41 @@
                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
                     <StackPanel>
 
+                        <!-- The character and how it rides about -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Character" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="Choose who lives on your desktop and how fast they ride about." Style="{StaticResource Explanation}" />
+
+                                <StackPanel Visibility="{Binding HasCharacterChoice, Converter={StaticResource ShowWhenTrue}}">
+                                    <TextBlock Text="Who should be on the desktop?" Style="{StaticResource Question}" />
+                                    <ItemsControl ItemsSource="{Binding Characters}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <RadioButton GroupName="Character" Style="{StaticResource Choice}" Content="{Binding Name}"
+                                                             IsChecked="{Binding IsChosen, Mode=TwoWay}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Style="{StaticResource Explanation}" Margin="0,4,0,0"
+                                               Text="The new character appears straight away, in the same spot. Right-click it and choose &quot;Do something&quot; to see what it can do." />
+                                </StackPanel>
+
+                                <TextBlock Text="Riding speed" Style="{StaticResource Question}" />
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource PlainButton}" Content="Normal" Padding="10,3" Margin="10,0,0,0"
+                                            Command="{Binding NormalRidingSpeedCommand}" ToolTip="Put the riding speed back to normal" />
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding RidingSpeedText}" Width="62" FontSize="13" Foreground="{StaticResource Ink}"
+                                               VerticalAlignment="Center" TextAlignment="Right" />
+                                    <Slider Minimum="0.25" Maximum="2" SmallChange="0.05" LargeChange="0.25" TickFrequency="0.25" IsSnapToTickEnabled="False"
+                                            IsMoveToPointEnabled="True" VerticalAlignment="Center" AutomationProperties.Name="Riding speed"
+                                            Value="{Binding RidingSpeed, Mode=TwoWay, Delay=300}" />
+                                </DockPanel>
+                                <TextBlock Style="{StaticResource Explanation}" Margin="0,4,0,0"
+                                           Text="How fast the character rides across your screen when it goes for a ride. It turns round at the edge of the screen." />
+                            </StackPanel>
+                        </Border>
+
                         <!-- Personality -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
