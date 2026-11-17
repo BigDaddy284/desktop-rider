@@ -285,8 +285,9 @@ def riding_loop(i):
 clip('RidingLoop',32,riding_loop,loop=True,kind='riding')
 
 # ---------------------------------------------------------------- natural riding: corners (the passenger works the outfit)
-# Towards the chair (left): the chair wants to lift, so the passenger hangs out over the chair wheel; the back slides out.
-# Away from the chair (right): the back wheel goes light, so the passenger swings over the back of the bike.
+# Towards the chair (left): the chair wants to lift, so the passenger crouches on the outer edge of the chair floor
+# with the backside hanging out; the back slides out.
+# Away from the chair (right): the back wheel goes light, so the passenger sits on the back of the bike behind the driver.
 CORNER={'L':dict(steer=10,roll=2.0,byaw=9,pivot=(0.75,0,0)),'R':dict(steer=-13,roll=-2.5,byaw=-7,pivot=(0.75,0,0))}
 def corner_state(side,w,i):
     s,c1,c2=riding(i,32,0.8)
@@ -299,8 +300,8 @@ def corner(side):
         return dict(sc=s,drv=lambda gr: add(drv_lean(gr,side),hips_t=(0,0,0.005*c1)),
                     pas=lift(p,hips_t=(0,0.012*c2 if side=='L' else 0,0.008*c1)))
     return fn
-clip('CornerLeft',32,corner('L'),loop=True,kind='riding',info=dict(note='turning towards the chair: passenger hangs out over the chair wheel'))
-clip('CornerRight',32,corner('R'),loop=True,kind='riding',info=dict(note='turning away from the chair: passenger swings over the back of the bike'))
+clip('CornerLeft',32,corner('L'),loop=True,kind='riding',info=dict(note='turning towards the chair: passenger crouches on the edge of the chair with the backside hanging out'))
+clip('CornerRight',32,corner('R'),loop=True,kind='riding',info=dict(note='turning away from the chair: passenger sits sideways behind the driver, arm round the waist'))
 
 def move_over(a,b,u,side):
     """The passenger's move between the riding crouch and a corner pose: body first, hands following,
@@ -310,9 +311,11 @@ def move_over(a,b,u,side):
     arms={sd:(a['arms'][sd][0].lerp(b['arms'][sd][0],wh),a['arms'][sd][1].lerp(b['arms'][sd][1],wh)) for sd in 'LR'}
     arc=math.sin(math.pi*min(1,max(0,u)))
     if side=='R':
-        p['hips_t']=p['hips_t']+V((-0.10*arc,0,0.12*arc)); arms['R']=(arms['R'][0]+V((-0.06,0,0.16))*math.sin(math.pi*wh),arms['R'][1])
+        p['hips_t']=p['hips_t']+V((-0.10*arc,0,0.12*arc)); arms['R']=(arms['R'][0]+V((-0.22,0,0.10))*math.sin(math.pi*wh),arms['R'][1])
     else:
-        p['hips_t']=p['hips_t']+V((0,0,-0.03*arc))
+        p['hips_t']=p['hips_t']+V((0.18*arc,0,0.06*arc))   # forward and over, clear of the chair wheel
+    # the feet step across rather than slide through the floor
+    p['legs']={sd:(p['legs'][sd][0]+V((0,0,0.10*arc)),p['legs'][sd][1]) for sd in 'LR'}
     p['arms']=arms
     return p
 def into_corner(side):
