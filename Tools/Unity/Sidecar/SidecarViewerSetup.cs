@@ -118,11 +118,30 @@ namespace DesktopRider.Sidecar.EditorTools
                 preview.AddSingleGO(go);
                 var clip = AnimationUtility.GetAnimationClips(model).FirstOrDefault(c => c.name == name);
                 if (clip == null) return "ERROR no clip " + name;
-                clip.SampleAnimation(go, Mathf.Min(seconds, clip.length));
                 var chassis = go.GetComponentsInChildren<Transform>().First(t => t.name == "chassis");
-                var target = chassis.position + Vector3.up * 0.6f;
-                var rot = Quaternion.Euler(22f, yaw, 0f);
-                preview.camera.transform.SetPositionAndRotation(target - rot * Vector3.forward * 5.5f, rot);
+                // "side": a wide side-on view with the move's ramps placed as the viewer places them, to check where it lands
+                bool side = parts.Length > 3 && parts[3] == "side";
+                if (side)
+                {
+                    var root = go.GetComponentsInChildren<Transform>().First(t => t.name == "root" && t.parent != null && t.parent.name == "sidecar_rig");
+                    clip.SampleAnimation(go, 0f); var a0 = go.transform.InverseTransformPoint(root.position);
+                    clip.SampleAnimation(go, clip.length); var a1 = go.transform.InverseTransformPoint(root.position);
+                    var fwd = go.transform.TransformDirection((a1 - a0).normalized);
+                    var manifest = JsonUtility.FromJson<SidecarShowcase.Manifest>(AssetDatabase.LoadAssetAtPath<TextAsset>(ManifestPath).text);
+                    var info = manifest.clips.FirstOrDefault(c => c.name == name);
+                    if (info != null && info.props != null)
+                        foreach (var p in info.props)
+                        {
+                            var src = AssetDatabase.LoadAssetAtPath<GameObject>(Folder + "Props/" + p.prop + ".fbx");
+                            if (src == null) continue;
+                            var prop = (GameObject)UnityEngine.Object.Instantiate(src, go.transform.position + fwd * p.x, go.transform.rotation);
+                            preview.AddSingleGO(prop);
+                        }
+                }
+                clip.SampleAnimation(go, Mathf.Min(seconds, clip.length));
+                var target = side ? chassis.position : chassis.position + Vector3.up * 0.6f;
+                var rot = Quaternion.Euler(side ? 0f : 22f, yaw, 0f);
+                preview.camera.transform.SetPositionAndRotation(target - rot * Vector3.forward * (side ? 14f : 5.5f), rot);
                 preview.camera.fieldOfView = 35f; preview.camera.nearClipPlane = 0.05f; preview.camera.farClipPlane = 100f;
                 preview.camera.clearFlags = CameraClearFlags.SolidColor; preview.camera.backgroundColor = new Color(0.62f, 0.72f, 0.82f);
                 preview.lights[0].intensity = 1.3f; preview.lights[0].transform.rotation = Quaternion.Euler(50f, 140f, 0f);

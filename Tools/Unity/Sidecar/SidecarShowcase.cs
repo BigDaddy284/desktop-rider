@@ -20,7 +20,7 @@ namespace DesktopRider.Sidecar
         [Serializable] public class Prop { public string prop; public float x; public float length; }
         [Serializable] public class Info { public string note; }
         [Serializable] public class Clip { public string name; public int frames; public bool loop; public string kind; public Prop[] props; public float travel; public Info info; }
-        [Serializable] class Manifest { public string name; public int fps; public float ride_speed = 3f; public float turn_radius = 3.2f; public Clip[] clips; }
+        [Serializable] public class Manifest { public string name; public int fps; public float ride_speed = 3f; public float turn_radius = 3.2f; public Clip[] clips; }
 
         static readonly Dictionary<string, string> Labels = new Dictionary<string, string>
         {

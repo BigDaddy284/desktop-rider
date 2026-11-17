@@ -469,7 +469,7 @@ def big_landing_fn(u):
     if u<a+b+c: return H*(1-sm(u,a+b,a+b+c))
     return 0.0
 BIG_LAND_LEN=BIG_LAND['face']+BIG_LAND['top']+BIG_LAND['down']
-BIG_TOUCH=2.0   # the back wheel first touches at least this far down the far slope
+BIG_TOUCH=0.6   # the back wheel first touches this far down the far slope, just past the top edge (owner 17 Nov 2026: was 2.0, too far down)
 def jump_clip(name, trick, note, big=False):
     JV_=BIG_V if big else JV
     th=math.radians(LIP['angle']); vx=JV_*math.cos(th); vz=JV_*math.sin(th)
@@ -477,7 +477,7 @@ def jump_clip(name, trick, note, big=False):
     R=2*vx*vz/G                                          # back to lip height
     if big:
         # Place the landing from the simulated flight (the real take-off off the rounded lip is lower than the ideal):
-        # move it back until the back wheel's first touch is well down the far slope, clear of the top edge.
+        # move it back until the back wheel's first touch is just over the top edge, on the start of the far slope.
         def first_touch(x_land_):
             air_end_=x_land_+BIG_LAND['face']+BIG_LAND['top']+2.0
             terr_=Terrain().add(x_ramp,x_lip,ramp_fn).add(x_land_,x_land_+BIG_LAND_LEN,big_landing_fn)
@@ -489,8 +489,9 @@ def jump_clip(name, trick, note, big=False):
                 if b_['rear_air']: up=True
                 elif up: return xs_[i_]+WX['rear']
             return None
-        x_land=x_lip+R-BIG_EDGE-BIG_LAND['face']-BIG_LAND['top']
-        for _ in range(40):
+        # start well beyond and come back, so the back wheel lands just past the top edge (not halfway down)
+        x_land=x_lip+R-BIG_EDGE-BIG_LAND['face']-BIG_LAND['top']+3.0
+        for _ in range(80):
             t_=first_touch(x_land)
             if t_ is not None and t_>x_land+BIG_LAND['face']+BIG_LAND['top']+BIG_TOUCH: break
             x_land-=0.1
