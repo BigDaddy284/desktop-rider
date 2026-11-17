@@ -562,10 +562,11 @@ def t_nohander(st,u,b):
 jump_clip('NoHander',t_nohander,'the driver lets go of the bars and spreads both arms in the air')
 
 def t_superman(st,u,b):
-    w=mid(u,0.10,0.36,0.60,0.88)
+    # on the big double (owner's notes 17 Nov 2026): out quickly, held flat for most of the flight, back in before the landing
+    w=mid(u,0.05,0.20,0.78,0.92)
     st['pas']['mod']=lambda p,w=w,u=u: blend(p,pas_superman(math.sin(2*math.pi*max(0,u)*2)),w)
     st['drv']['mod']=lambda p,gr,w=w: add(p,head=q(Z,25*w))
-jump_clip('PassengerSuperman',t_superman,'the passenger lets their body fly out flat behind, holding on by the hands')
+jump_clip('PassengerSuperman',t_superman,'on the big double: the passenger lets their body fly out flat behind, holding on by the hands, and holds it',big=True)
 
 json.dump(dict(fps=FPS,clips=CLIPS,rollers=ROLL,lip=LIP,landing=LAND,ramp_length=RAMP_LEN,landing_length=LAND_LEN,big_landing=BIG_LAND,ride_speed=V0,
                turn_radius=4.5,checks=CHECK),open(W+'clips.json','w'),indent=1)

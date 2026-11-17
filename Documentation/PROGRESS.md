@@ -99,3 +99,4 @@ Recorded in ARCHITECTURE.md.
 Phase 8: Settings and polish (complete the settings interface, start-up options, transitions and visual polish, packaging). 
 
 - Sidecar Move Viewer (17 Nov 2026): after new model files were imported the window kept using the old, destroyed outfit and its moves, so nothing played (MissingReferenceException every frame). It now looks the outfit up again whenever the project changes, a scene opens or the old one has gone, and loads jump props straight from the Props folder if the scene's list is out of date. Checked in the owner's Unity: compiles with no errors, Double renders mid-air.
+- PassengerSuperman moved onto the big double with a longer hold (17 Nov 2026): fully out from 20% to 78% of the flight (about 0.6 s, was about 0.2 s). Bodycheck pas_in_bike 23, drv 84 (baseline). Checked in the owner's Unity.

@@ -78,7 +78,7 @@ The owner rejected the first pass (16 Nov 2026): the passenger's arm, the corner
 | Everyday | Idle, LookAround, Revving, Thinking, Talking, Celebration, SleepStart, Sleeping, SleepEnd |
 | Riding | RideOff, RideOn, RidingLoop, CornerLeft (towards the chair: passenger hangs out off the chair edge), CornerRight (away from the chair: passenger sits behind the driver), and In/Out moves for each corner. The hang-out and swing-over are part of turning, not separate tricks. |
 | Tricks | FlyingChair, Wheelie, PowerSlide, PassengerWave, LostPassenger, Rollers. No stoppie (owner's request). |
-| Jumps | Double (big double, no trick), NoHander and PassengerSuperman. |
+| Jumps | Double (big double, no trick), NoHander and PassengerSuperman (on the big double, pose held about 0.6 s of the 1.04 s flight). |
 
 Props: `SC_Prop_JumpRamp` (1.0 m lip at 28°, 3.8 m long), `SC_Prop_JumpLanding` (1.0 m high, 5.5 m long, about 2 m gap from the lip), and `SC_Prop_Rollers` (5 rollers, 3.0 m long, 0.55 m high, 1.4 m of flat between, 2 m wide).
 
