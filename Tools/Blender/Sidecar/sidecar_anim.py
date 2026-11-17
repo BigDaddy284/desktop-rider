@@ -459,24 +459,44 @@ def landing_fn(u):
     return 0.0
 JV=8.8          # m/s off the lip, about 20 mph: about 0.85 s in the air, as in the race footage
 
-TABLE_V=10.8    # m/s off the lip for the long tabletop, about 24 mph: about a second in the air
-TABLE_DOWN=3.4
-def table_top_len():
-    th=math.radians(LIP['angle']); return 2*TABLE_V*math.cos(th)*TABLE_V*math.sin(th)/G-2.4
-def jump_clip(name, trick, note, table=False):
-    JV_=TABLE_V if table else JV
+BIG_V=13.0      # m/s off the lip for the big double, about 29 mph: about 1.2 s in the air
+BIG_LAND=dict(face=1.0,top=1.0,down=4.5,height=1.0)
+BIG_EDGE=1.0    # the landing's top edge sits this far short of where the outfit would be back at lip height, so the back wheel clears it and lands on the far slope
+def big_landing_fn(u):
+    H=BIG_LAND['height']; a,b,c=BIG_LAND['face'],BIG_LAND['top'],BIG_LAND['down']
+    if u<a: return H*sm(u,0,a)
+    if u<a+b: return H
+    if u<a+b+c: return H*(1-sm(u,a+b,a+b+c))
+    return 0.0
+BIG_LAND_LEN=BIG_LAND['face']+BIG_LAND['top']+BIG_LAND['down']
+BIG_TOUCH=2.0   # the back wheel first touches at least this far down the far slope
+def jump_clip(name, trick, note, big=False):
+    JV_=BIG_V if big else JV
     th=math.radians(LIP['angle']); vx=JV_*math.cos(th); vz=JV_*math.sin(th)
     x_ramp=5.0; x_lip=x_ramp+RAMP_LEN
     R=2*vx*vz/G                                          # back to lip height
-    if table:
-        # one long tabletop: up the ramp, a flat table at lip height, and a down slope to land on (back wheel first)
-        top=R-2.4
-        def table_fn(u,top=top):
-            H=LIP['height']
-            return H if u<top else (H*(1-sm(u,top,top+TABLE_DOWN)) if u<top+TABLE_DOWN else 0.0)
-        x_land=x_lip; land_end=x_lip+top+TABLE_DOWN; air_end=x_lip+top+1.0
-        terr=Terrain().add(x_ramp,x_lip,ramp_fn).add(x_lip,land_end,table_fn)
-        props_=[dict(prop='SC_Prop_Tabletop',x=x_ramp,length=RAMP_LEN+top+TABLE_DOWN)]
+    if big:
+        # Place the landing from the simulated flight (the real take-off off the rounded lip is lower than the ideal):
+        # move it back until the back wheel's first touch is well down the far slope, clear of the top edge.
+        def first_touch(x_land_):
+            air_end_=x_land_+BIG_LAND['face']+BIG_LAND['top']+2.0
+            terr_=Terrain().add(x_ramp,x_lip,ramp_fn).add(x_land_,x_land_+BIG_LAND_LEN,big_landing_fn)
+            xs_=[]; x_=0.0
+            while x_<x_land_+BIG_LAND_LEN+2.0:
+                xs_.append(x_); x_+=(vx if x_lip-0.75<x_<air_end_ else JV_)/FPS
+            bd=drive(terr_,xs_,sig=0.0,land=0.09); up=False
+            for i_,b_ in enumerate(bd):
+                if b_['rear_air']: up=True
+                elif up: return xs_[i_]+WX['rear']
+            return None
+        x_land=x_lip+R-BIG_EDGE-BIG_LAND['face']-BIG_LAND['top']
+        for _ in range(40):
+            t_=first_touch(x_land)
+            if t_ is not None and t_>x_land+BIG_LAND['face']+BIG_LAND['top']+BIG_TOUCH: break
+            x_land-=0.1
+        land_end=x_land+BIG_LAND_LEN; air_end=x_land+BIG_LAND['face']+BIG_LAND['top']+2.0
+        terr=Terrain().add(x_ramp,x_lip,ramp_fn).add(x_land,land_end,big_landing_fn)
+        props_=[dict(prop='SC_Prop_JumpRamp',x=x_ramp,length=RAMP_LEN),dict(prop='SC_Prop_DoubleLanding',x=x_land,length=BIG_LAND_LEN)]
     else:
         x_land=x_lip+R-2.4-LAND['face']-LAND['top']          # both wheels clear the table and meet the down slope (back wheel first)
         land_end=x_land+LAND_LEN; air_end=x_land+LAND['face']+LAND['top']+1.0
@@ -527,10 +547,10 @@ def jump_clip(name, trick, note, table=False):
 
 def mid(u,a=0.12,b=0.35,c=0.62,d=0.86): return bump(u,a,b,c,d) if 0<=u<=1 else 0.0
 
-def t_tabletop(st,u,b):
-    """No trick: a big, long tabletop jump (owner's note 17 Nov 2026). Both crew stand up through the air as on every jump."""
+def t_double(st,u,b):
+    """No trick: a big double (owner's notes 17 Nov 2026). Both crew stand up through the air as on every jump."""
     pass
-jump_clip('Tabletop',t_tabletop,'a big, long tabletop jump: off the lip, over the whole table and down the far slope',table=True)
+jump_clip('Double',t_double,'a big double: off the lip, over a 7.9 m gap and down the landing\'s far slope',big=True)
 
 def t_nohander(st,u,b):
     w=mid(u,0.15,0.35,0.6,0.82)
@@ -547,23 +567,7 @@ def t_superman(st,u,b):
     st['drv']['mod']=lambda p,gr,w=w: add(p,head=q(Z,25*w))
 jump_clip('PassengerSuperman',t_superman,'the passenger lets their body fly out flat behind, holding on by the hands')
 
-def t_nacnac(st,u,b):
-    """The driver swings his right leg back over the seat and twists his whole body with it (hips turn, chest stays
-    to the bars); the passenger throws his right leg the same way, out over the chair, twisting a little and holding
-    on with both hands (owner's note 17 Nov 2026)."""
-    w=mid(u,0.12,0.36,0.6,0.86)
-    def dmod(p,gr,w=w):
-        p=add(p,root=q(Z,-35*w),chest=q(Z,25*w),head=q(Z,12*w),hips_t=(-0.03*w,0.03*w,0.05*w))
-        h=body_point(p,DJ,'hip.R')
-        return add(p,legs={'R':(DJ['ankle.R'].lerp(h+V((-0.50,0.45,0.25)),w)+V((0,0.05,0.30))*math.sin(math.pi*w),(0,-0.3,1))})
-    def pmod(p,w=w):
-        p=add(p,root=q(Z,15*w),head=q(Z,-9*w))
-        h=body_point(p,PJ,'hip.R')
-        return add(p,legs={'R':(p['legs']['R'][0].lerp(h+V((-0.10,0.75,0.10)),w)+V((0,0,0.25))*math.sin(math.pi*w),(1,0,0.4))})
-    st['drv']['mod']=dmod; st['pas']['mod']=pmod
-jump_clip('NacNac',t_nacnac,'both throw the right leg the same way: the driver back over the seat, twisting with it; the passenger out over the chair')
-
-json.dump(dict(fps=FPS,clips=CLIPS,rollers=ROLL,lip=LIP,landing=LAND,ramp_length=RAMP_LEN,landing_length=LAND_LEN,table=dict(top=table_top_len(),down=TABLE_DOWN),ride_speed=V0,
+json.dump(dict(fps=FPS,clips=CLIPS,rollers=ROLL,lip=LIP,landing=LAND,ramp_length=RAMP_LEN,landing_length=LAND_LEN,big_landing=BIG_LAND,ride_speed=V0,
                turn_radius=4.5,checks=CHECK),open(W+'clips.json','w'),indent=1)
 sc.frame_start=1; sc.frame_end=frame[0]
 bpy.ops.wm.save_as_mainfile(filepath=W+'sidecar_anim.blend')

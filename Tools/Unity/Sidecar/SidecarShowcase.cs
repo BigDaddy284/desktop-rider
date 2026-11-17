@@ -30,8 +30,8 @@ namespace DesktopRider.Sidecar
             {"CornerLeft","Turning towards the chair (passenger hangs out)"},{"CornerRight","Turning away from the chair (passenger sits behind the driver)"},
             {"CornerLeftIn","Into a chair-side turn"},{"CornerLeftOut","Out of a chair-side turn"},{"CornerRightIn","Into a bike-side turn"},{"CornerRightOut","Out of a bike-side turn"},
             {"FlyingChair","Flying the chair"},{"Wheelie","Wheelie"},{"PowerSlide","Power slide"},{"PassengerWave","Passenger waves"},
-            {"LostPassenger","Lost passenger!"},{"Rollers","Rollers"},{"Tabletop","Jump: Tabletop"},{"NoHander","Jump: No-hander"},
-            {"PassengerSuperman","Jump: Passenger Superman"},{"NacNac","Jump: Nac-nac"},
+            {"LostPassenger","Lost passenger!"},{"Rollers","Rollers"},{"Double","Jump: Big double"},{"NoHander","Jump: No-hander"},
+            {"PassengerSuperman","Jump: Passenger Superman"},
         };
         static readonly (string title, string[] kinds)[] Groups =
         {
