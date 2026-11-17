@@ -443,7 +443,7 @@ def rollers_clip():
 rollers_clip()
 
 # ---------------------------------------------------------------- jumps: a sidecar-sized double (1 m lip, 5.5 m gap)
-LIP=dict(height=1.0,angle=30.0)
+LIP=dict(height=1.0,angle=28.0)
 RAMP_LEN=2*LIP['height']/math.tan(math.radians(LIP['angle']))
 def ramp_fn(u): return LIP['height']*(u/RAMP_LEN)**2 if u<=RAMP_LEN else 0.0
 LAND=dict(face=0.9,top=1.2,down=3.4,height=1.0)
@@ -454,13 +454,13 @@ def landing_fn(u):
     if u<a+b: return H
     if u<a+b+c: return H*(1-sm(u,a+b,a+b+c))
     return 0.0
-JV=9.5          # m/s off the lip, about 21 mph
+JV=8.8          # m/s off the lip, about 20 mph: about 0.85 s in the air, as in the race footage
 
 def jump_clip(name, trick, note):
     th=math.radians(LIP['angle']); vx=JV*math.cos(th); vz=JV*math.sin(th)
     x_ramp=5.0; x_lip=x_ramp+RAMP_LEN
     R=2*vx*vz/G                                          # back to lip height
-    x_land=x_lip+R-1.3-LAND['face']-LAND['top']          # both wheels clear the table and meet the down slope
+    x_land=x_lip+R-2.4-LAND['face']-LAND['top']          # both wheels clear the table and meet the down slope (back wheel first)
     terr=Terrain().add(x_ramp,x_lip,ramp_fn).add(x_land,x_land+LAND_LEN,landing_fn)
     xs=[]; x=0.0; v=JV; end=x_land+LAND_LEN
     while True:
@@ -474,16 +474,25 @@ def jump_clip(name, trick, note):
     airs=[i for i,b in enumerate(body) if b['air']]
     a0=airs[0] if airs else 0; a1=airs[-1]+1 if airs else 1
     T=(a1-a0)/FPS
+    # In the air the outfit keeps its nose up (race footage: it flies nearly level, nose a little high, and lands
+    # back wheel first), settling onto the ground's line over a fifth of a second after touching down.
+    p_take=body[a0]['pitch'] if airs else 0.0
+    def air_pitch(i):
+        g=body[i]['pitch']
+        if not airs or i<a0: return g
+        if i<a1: return lerp(p_take,7.0,sm((i-a0)/max(1,a1-a0),0,0.55))
+        return lerp(7.0,g,sm((i-a1)/FPS,0,0.2))
     def fn(i):
         b=body[i]; t=i/FPS
-        s=dict(x=xs[i],heave=b['heave'],pitch=b['pitch'],roll=b['roll'],cf=b['cf'],cr=b['cr'],**spins(xs[i],slip=(0.0 if i<a0 else 2.0*min(1,(i-a0)/FPS/0.3))))
+        s=dict(x=xs[i],heave=b['heave'],pitch=air_pitch(i),roll=b['roll'],cf=b['cf'],cr=b['cr'],**spins(xs[i],slip=(0.0 if i<a0 else 2.0*min(1,(i-a0)/FPS/0.3))))
         u=(i-a0)/(a1-a0)
         ready=sm(xs[i],x_ramp-3.0,x_ramp-1.0)*(1-sm(xs[i],end,end+2.5))
         face=1.0 if x_ramp<xs[i]+WX['rear']<x_lip else 0.0
         sq=max(0.0,b['squash'])
+        fly=(sm(i,a0-3,a0+3)*(1-sm(i,a1-2,a1+3))) if airs else 0.0
         st=dict(sc=s,u=u,T=T,ready=ready,
-                drv=dict(base='attack',w=ready,dz=-0.05*face-0.10*sq+0.03*(1 if b['air'] else 0)),
-                pas=dict(w=ready,dz=-0.05*face-0.09*sq,stand=0.25*(1 if b['air'] else 0)))
+                drv=dict(base='attack',w=ready,dz=-0.05*face-0.10*sq+0.10*fly),
+                pas=dict(w=ready,dz=-0.05*face-0.09*sq,stand=fly))
         trick(st,u,b)
         dd=st['drv']; pp=st['pas']
         def drv(gr,dd=dd):

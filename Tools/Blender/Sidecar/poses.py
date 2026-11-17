@@ -68,19 +68,20 @@ def aim(J, d, twist=0.0):
     d0=(J['neck']-J['pelvis']).normalized(); d=V(d).normalized()
     return q(d,twist)@d0.rotation_difference(d)
 
-# Turning towards the chair (left): the passenger hangs out over the chair wheel, bum low and out,
-# the bike-side arm stretched to the rail, the other hand on the front hoop (race photos 1, 4, 5 and 6).
+# Turning towards the chair (left): the passenger hangs right out over the chair wheel, bum above the wheel guard,
+# body leaning out beyond the chair with the head outside the wheel, hands on the chair's edge
+# (race footage supplied 17 Nov 2026, e.g. 5:14 and 1:26; the owner's photos 1, 4, 5 and 6).
 def pas_hang():
-    return P(PJ, hips_t=(-0.08,0.30,-0.17), root=aim(PJ,(0.22,0.12,0.97),-10), spine=q(Y,10), chest=q(Y,8)@q(Z,-12), head=q(Z,35)@q(Y,-15),
-             arms={'L':((-0.33,0.97,0.78),(-0.3,1,0.3)),'R':(rail(3.7),(-0.2,-0.3,-1))},
-             legs={'L':((-0.50,0.78,FLOOR+0.02),(1,0.1,0)),'R':((-0.64,0.56,FLOOR+0.02),(1,0,0))})
+    return P(PJ, hips_t=(-0.20,0.40,-0.08), root=aim(PJ,(0.15,0.9,0.7),0), spine=q(Y,5), chest=q(Y,5)@q(Z,-10), head=q(Z,30)@q(Y,-25),
+             arms={'L':((-0.55,1.00,0.70),(-0.3,1,0.5)),'R':((-0.40,0.90,0.78),(0,-0.3,-1))},
+             legs={'L':((-0.42,0.70,FLOOR+0.02),(1,-0.4,0.3)),'R':((-0.55,0.58,FLOOR+0.02),(1,-0.2,0.2))})
 
-# Turning away from the chair (right): the passenger swings over the back of the bike behind the driver,
-# chest down over the seat, far hand on the bike's right side, near hand on the rail post (race photos 9 and 11).
+# Turning away from the chair (right): the passenger stands up and leans right across the back of the bike behind
+# the driver, head by the driver's right shoulder, far hand on the bike's right side (race footage 5:11-5:13; photos 9 and 11).
 def pas_swing():
-    return P(PJ, hips_t=(-0.04,-0.20,0.14), root=aim(PJ,(0.35,-0.80,0.40),-20), spine=q(Y,10), chest=q(Y,8), head=q(Z,-25)@q(Y,-30),
-             arms={'L':(rail(1.4),(-0.3,0.5,0.6)),'R':((-0.40,-0.16,0.84),(-0.3,-0.3,1))},
-             legs={'L':((-0.36,0.42,FLOOR),(1,0.3,0)),'R':((-0.62,0.27,FLOOR),(1,-0.2,0))})
+    return P(PJ, hips_t=(-0.06,-0.16,0.24), root=aim(PJ,(0.35,-0.65,0.70),-20), spine=q(Y,6), chest=q(Y,6), head=q(Z,-25)@q(Y,-20),
+             arms={'L':(rail(1.6),(-0.3,0.5,0.6)),'R':((-0.36,-0.18,0.86),(-0.3,-0.6,1))},
+             legs={'L':((-0.40,0.42,FLOOR+0.02),(1,0.3,0)),'R':((-0.62,0.27,FLOOR+0.02),(1,-0.2,0))})
 
 # Standing tall, arms straight down to the rail (race photo 7: chair wheel up over the bumps) - used for the wheelie.
 def pas_stand():
