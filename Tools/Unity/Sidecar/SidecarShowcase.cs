@@ -200,7 +200,11 @@ namespace DesktopRider.Sidecar
             if (c.props == null) return;
             foreach (var p in c.props)
             {
-                var source = Array.Find(propModels, m => m != null && m.name == p.prop);
+                var source = propModels == null ? null : Array.Find(propModels, m => m != null && m.name == p.prop);
+#if UNITY_EDITOR
+                // a prop added after the viewer scene was built is picked up straight from the Props folder
+                if (source == null) source = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/DesktopRider/Sidecar/Props/" + p.prop + ".fbx");
+#endif
                 if (source == null) continue;
                 var prop = Instantiate(source, model.transform.position + model.transform.TransformDirection(forwardLocal) * p.x, model.transform.rotation);
                 prop.transform.localScale = model.transform.lossyScale;

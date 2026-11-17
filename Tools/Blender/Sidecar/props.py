@@ -42,6 +42,13 @@ def build(clipdata):
     def rollers(u):
         k=int(u//pitch); v=u-k*pitch
         return R['height']*(0.5-0.5*math.cos(2*math.pi*v/R['length'])) if v<=R['length'] else 0.0
-    return {'SC_Prop_JumpRamp':profile_prop('SC_Prop_JumpRamp',ramp_len,ramp),
+    T=clipdata['table']
+    def tabletop(u):
+        if u<ramp_len: return ramp(u)
+        v=u-ramp_len
+        if v<T['top']: return L['height']
+        return L['height']*(1-sm(v,T['top'],T['top']+T['down']))
+    return {'SC_Prop_Tabletop':profile_prop('SC_Prop_Tabletop',ramp_len+T['top']+T['down'],tabletop),
+            'SC_Prop_JumpRamp':profile_prop('SC_Prop_JumpRamp',ramp_len,ramp),
             'SC_Prop_JumpLanding':profile_prop('SC_Prop_JumpLanding',land_len,landing),
             'SC_Prop_Rollers':profile_prop('SC_Prop_Rollers',total,rollers,step=0.03)}
