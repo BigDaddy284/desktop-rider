@@ -12,6 +12,8 @@ Second character set (sidecar outfit 41): paint approved. The owner rejected the
 
 3D app, version 2.2 (18 Nov 2026): the owner's video showed the sidecar crawling round near a trick's start, snapping to face the jump, and setting off at full speed from a stop. The rider now rides a proper run-up along the trick's line, arrives at the trick's own speed and facing the way it goes, and rides on after a trick that ends moving. Unity tests 400 passed, 0 failed; build clean; in the built app the sidecar lined up for and rode Double, Wheelie and NoHander, and Harvey Backflip and Whoops. Shareable build: `Builds/Share/Desktop Rider 2.2.zip`. Awaiting the owner's look.
 
+3D app, version 2.3 (18 Nov 2026): the rider now plans the whole way to a trick and follows it at speed (no crawling), never turns on the spot as a trick starts (at most 4 degrees), and the corner pose no longer flicks out and snaps off. Unity tests 403 passed, 0 failed; build clean; checked in frame-by-frame recordings of the built app at normal and largest size. The owner's "big flashes" were not seen in those recordings (they record only the app's own picture); awaiting a screen recording from the owner if they remain. Shareable build: `Builds/Share/Desktop Rider 2.3.zip`.
+
 ## Completed tasks
 
 | Phase | Task | Result |

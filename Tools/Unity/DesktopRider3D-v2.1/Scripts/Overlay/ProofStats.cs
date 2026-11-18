@@ -32,6 +32,7 @@ namespace DesktopRider.Overlay
         {
             if (!ForChecks && !Application.isEditor) { enabled = false; return; }
             folder = Path.GetDirectoryName(Application.dataPath);
+            if (!Application.isEditor && GetComponent<ProofRecorder>() == null) gameObject.AddComponent<ProofRecorder>();
             process = Process.GetCurrentProcess();
             lastCpu = process.TotalProcessorTime;
             lastWall = DateTime.UtcNow;
@@ -49,6 +50,7 @@ namespace DesktopRider.Overlay
 
             if (File.Exists(Path.Combine(folder, "quit.txt"))) { Application.Quit(); return; }
             UseTestCharacter();
+            UseTestSize();
             StartTestTrick();
 
             process.Refresh();
@@ -79,6 +81,29 @@ namespace DesktopRider.Overlay
                 var list = FindFirstObjectByType<DesktopRider.Riding.RiderCharacters>();
                 if (list != null && Enum.TryParse(name, out DesktopRider.Core.Configuration.RiderCharacter id)) list.Use(id);
                 UnityEngine.Debug.Log("Test character " + name + (list != null ? ": riding " + list.Current : ": no characters in the scene"));
+            }
+            catch (IOException) { }
+        }
+
+        /// <summary>
+        /// For checks from the editor bridge: a file called size.txt beside the program (a size such as 2) draws the rider at
+        /// that size for this run, as the size setting would, without changing the saved settings.
+        /// </summary>
+        void UseTestSize()
+        {
+            string file = Path.Combine(folder, "size.txt");
+            if (!File.Exists(file)) return;
+            try
+            {
+                string text = File.ReadAllText(file).Trim();
+                File.Delete(file);
+                if (!float.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float size)) return;
+                size = Mathf.Clamp(size, 0.5f, 2f);
+                var rider = FindFirstObjectByType<DesktopRider.Riding.FreeRider>();
+                var window = FindFirstObjectByType<OverlayWindow>();
+                if (rider != null) rider.SetSizeScale(size);
+                if (window != null) OverlayWindow.Resize(window.SizeFor(size));
+                UnityEngine.Debug.Log("Test size " + size);
             }
             catch (IOException) { }
         }

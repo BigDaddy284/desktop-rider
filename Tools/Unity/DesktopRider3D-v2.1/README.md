@@ -32,3 +32,21 @@ round to face the jump, and setting off at full speed from a standstill. Now:
 Checked: Unity EditMode tests 400 passed, 0 failed (including a run-up simulation from 120 starts each for Harvey and
 two sidecar tricks); build succeeded; in the built app the sidecar lined up for and rode Double, Wheelie and NoHander
 on request, and Harvey Backflip and Whoops, with no errors.
+
+## 2.3 – planned route to tricks, no turning on the spot (18 Nov 2026)
+
+A frame-by-frame recording of the app's own window (`ProofRecorder`, checks only) showed the sidecar still slowing
+to under 2 m/s for tight turns on the way to a trick, the leg-out corner pose fully out at the slightest wobble and
+snapping off as a trick began, and a full loop when a trick went roughly the way he was already riding. Now:
+
+- The way to a trick is planned once (`RunUpPath`: turn, straight, turn, with turns 1.2 times the tightest turn at
+  cruising speed) and followed at cruising speed. Simulated from 900 starts: none slowed below 0.6 of cruising speed,
+  every one arrived within 6 degrees of the trick's heading.
+- A trick that goes roughly the way he is riding starts further on, so he does not loop back.
+- A trick begins facing the way he arrived, turned at most 4 degrees; if it does not fit that way it is given up.
+  (Boss saw the bike jump from facing north to facing west as a trick began.)
+- The corner pose is measured against the same lean for every rider and fades out over a fifth of a second into a trick.
+- `size.txt` beside a proof build sets the rider size for a test run.
+
+Checked: Unity tests 403 passed, 0 failed; build succeeded; recordings of the built app at normal and largest size
+showed no heading jumps of more than 5 degrees in a frame and no slowing on the way to tricks.

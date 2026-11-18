@@ -169,12 +169,13 @@ namespace DesktopRider.Riding
                 // Already facing the right way and going the trick's speed (Harvey's tricks start from a stop): go now.
                 if (Mathf.Abs(TrickRun.TurnBetween(current, heading.Value)) < 1f && Mathf.Abs(rider.Speed - entry) < 0.5f)
                     return Begin(trick, heading.Value);
-                // Otherwise ride round and line up for it rather than being snapped to face it. Going straight on,
-                // start a run-up's length ahead if the trick fits there too, so he does not loop back first.
+                // Otherwise ride round and line up for it rather than being snapped to face it. When the trick goes
+                // roughly the way he is going, start it further on if it fits there too, so he does not ride a whole
+                // loop to come back to where he is (seen in a recording, 18 November 2026).
                 var start = here;
-                if (Mathf.Abs(TrickRun.TurnBetween(current, heading.Value)) < 1f)
+                if (Mathf.Abs(TrickRun.TurnBetween(current, heading.Value)) <= 60f)
                 {
-                    var ahead = here + TrickRun.Direction(heading.Value) * rider.RunUpFor(entry);
+                    var ahead = here + TrickRun.Direction(current) * (rider.RunUpFor(entry) + 1.5f * rider.PathTurnRadius);
                     if (TrickRun.Fits(trick, ahead, heading.Value, fits, halfWidth)) start = ahead;
                 }
                 Approach(trick, start, heading.Value, entry, "lining up first");
@@ -210,21 +211,22 @@ namespace DesktopRider.Riding
             PrepareCheck(trick);
             var here = new Numerics.Vector2(at.x, at.z);
             Func<Numerics.Vector2, bool> fits = ground => FitsOnScreen(view, ground);
-            // Go the way he is actually facing if the trick fits that way, so he is not turned on the spot.
+            // Go the way he is actually facing, or within a few degrees of it, never turning him on the spot: a turn of
+            // 30 degrees in one frame showed as the bike jumping round to face the jump (Boss, 18 November 2026).
             float facing = rider.transform.eulerAngles.y;
-            if (Mathf.Abs(TrickRun.TurnBetween(planned, facing)) <= 31f && TrickRun.Fits(trick, here, facing, fits, HalfWidth(trick)))
-            {
-                Begin(trick, facing);
-                return;
-            }
-            float? heading = TrickRun.PickHeading(trick, here, planned, fits, HalfWidth(trick));
-            if (heading == null || Mathf.Abs(TrickRun.TurnBetween(planned, heading.Value)) > 31f)
-            {
-                Debug.Log("Trick " + trick.Name + " given up at its start: " + (heading == null ? "no room there after all" : "facing too far off") + ".");
-                return;   // no room after all: the rider just carries on
-            }
-            Begin(trick, heading.Value);
+            if (Mathf.Abs(TrickRun.TurnBetween(planned, facing)) <= MaxStartTurn + 10f)
+                foreach (float nudge in StartNudges)
+                    if (TrickRun.Fits(trick, here, facing + nudge, fits, HalfWidth(trick)))
+                    {
+                        Begin(trick, TrickRun.Normalise(facing + nudge));
+                        return;
+                    }
+            Debug.Log("Trick " + trick.Name + " given up at its start: no room facing the way he arrived.");
         }
+
+        /// <summary>The most the bike may be turned as a trick begins: too little to see.</summary>
+        const float MaxStartTurn = 4f;
+        static readonly float[] StartNudges = { 0f, 2f, -2f, MaxStartTurn, -MaxStartTurn };
 
         float HalfWidth(TrickAnimation trick) => HalfWidth(layout, trick);
 

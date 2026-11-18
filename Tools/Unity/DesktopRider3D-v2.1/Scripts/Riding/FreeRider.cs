@@ -134,9 +134,17 @@ namespace DesktopRider.Riding
         /// <summary>How the ground maps to desktop pixels at the moment.</summary>
         public DesktopView CurrentView => View;
 
-        Vector3 target, approachStart, approachForward;
-        bool approachLeg;                     // true while heading for the run-up point, false on the last stretch
+        Vector3 target;
+        DesktopRider.Tricks.RunUpPath approachPath;   // the way to a trick's start, while riding to one
+        int approachIndex;
         float approachEntry, approachRunUp;
+
+        /// <summary>
+        /// The lean at which the corner pose is fully out, the same for every rider. The sidecar hardly leans (4 degrees),
+        /// so measuring against its own lean put the corner pose fully out at the slightest wobble.
+        /// </summary>
+        const float CornerFullLean = 38f;
+        float cornerLean;
         Action approachArrived;
         float speed, restUntil, lean, turnAhead, sizeScale = 1f;
         readonly CornerBlend corner = new CornerBlend();
@@ -191,6 +199,7 @@ namespace DesktopRider.Riding
         /// <summary>Changes how the ground maps to the desktop while the rider (and where he is heading) stay put on it.</summary>
         void KeepPlaceWhile(Action change)
         {
+            CancelApproach();                 // the way to a trick was planned on the old ground
             var at = DesktopPosition;
             var aim = View.ToDesktop(target);
             change();
@@ -233,10 +242,20 @@ namespace DesktopRider.Riding
             speed = 0f;
             lean = 0f;
             if (leanPivot != null) leanPivot.localRotation = Quaternion.identity;
-            // Take the corner pose off at once. It sits on a layer above the trick clip, and nothing updates it during a
-            // trick, so a leg half out when the trick began would hold the riding pose over the whole jump.
+            // Take the corner pose off as the trick's clip fades in (FadeCornerPose). It sits on a layer above the trick
+            // clip, so a leg left half out would hold the riding pose over the whole jump; taking it off at once made the
+            // body jump at the start of the trick.
             corner.Reset();
-            ClearCornerPose();
+            cornerLean = 0f;
+        }
+
+        /// <summary>Takes the corner pose off over a fifth of a second.</summary>
+        void FadeCornerPose(float seconds)
+        {
+            if (modelAnimation == null) return;
+            foreach (var name in new[] { "CornerLeft", "CornerRight" })
+                if (modelAnimation[name] is AnimationState state && state.enabled)
+                    SetCornerWeight(state, state.weight - seconds / 0.2f, state.speed == 0f ? state.normalizedTime : (float?)null);
         }
 
         void ClearCornerPose()
@@ -254,22 +273,28 @@ namespace DesktopRider.Riding
 
         /// <summary>
         /// Rides to the start of a trick, lining up to face <paramref name="heading"/>, and calls <paramref name="arrived"/>
-        /// as it reaches the start going <paramref name="entrySpeed"/> metres a second (0: stopped there). First it heads
-        /// for a point a run-up's length behind the start (<see cref="RunUpFor"/>), then rides along the trick's line.
-        /// Works parked or free riding; picking the rider up cancels it.
+        /// as it reaches the start going <paramref name="entrySpeed"/> metres a second (0: stopped there). The way there is
+        /// planned once (<see cref="DesktopRider.Tricks.RunUpPath"/>): round in turns wide enough to take at speed, onto
+        /// the trick's line a run-up's length (<see cref="RunUpFor"/>) before the start. Works parked or free riding;
+        /// picking the rider up cancels it.
         /// </summary>
         public void RideTo(Vector3 start, float heading, float entrySpeed, Action arrived)
         {
-            var forward = Quaternion.Euler(0f, heading, 0f) * Vector3.forward;
-            approachStart = start;
-            approachForward = forward;
             approachEntry = Mathf.Max(0f, entrySpeed);
             approachRunUp = RunUpFor(approachEntry);
-            target = start - forward * approachRunUp;
-            approachLeg = true;
+            var at = transform.position;
+            approachPath = DesktopRider.Tricks.RunUpPath.Plan(new Numerics.Vector2(at.x, at.z), transform.eulerAngles.y,
+                new Numerics.Vector2(start.x, start.z), heading, PathTurnRadius, approachRunUp);
+            approachIndex = 0;
             approachArrived = arrived;
             restUntil = 0f;
         }
+
+        /// <summary>
+        /// The turns on the way to a trick: a little wider than the tightest turn at cruising speed, so the rider can follow
+        /// them without slowing (simulated: from 1,200 starts, none slowed below 0.6 of cruising speed).
+        /// </summary>
+        public float PathTurnRadius => Mathf.Max(0.5f, 1.2f * TurnRadius);
 
         /// <summary>Stops riding to a trick's start, if it was.</summary>
         public void CancelApproach()
@@ -299,20 +324,20 @@ namespace DesktopRider.Riding
             UpdateMouse();
             if (dragging && (InTrick || Approaching)) { CancelApproach(); TrickInterrupted?.Invoke(); }
             if (dragging) { Animate(false); UpdateCornerPose(false); SetFrameRate(movingFrameRate); return; }
-            if (InTrick) { SetFrameRate(movingFrameRate); return; }
+            if (InTrick) { FadeCornerPose(Time.deltaTime); SetFrameRate(movingFrameRate); return; }
 
             bool resting = !Approaching && (!roaming || Time.time < restUntil);
-            float distance = RiderSteering.FlatDistance(transform.position, target);
-            if (Approaching && approachLeg && distance < Mathf.Max(arriveDistance + 0.4f, TurnRadius))
-                approachLeg = false;               // near the run-up point: carry on along the trick's line without stopping
             float toStart = 0f;
-            if (Approaching && !approachLeg)
+            if (Approaching)
             {
-                // Steer for a point a little ahead on the trick's line, so he settles onto it facing the right way.
-                toStart = -RiderSteering.Along(transform.position, approachStart, approachForward);
-                target = RiderSteering.LineUpAim(transform.position, approachStart, approachForward, Mathf.Max(0.6f, 0.7f * TurnRadius));
-                distance = RiderSteering.FlatDistance(transform.position, target);
+                // Follow the planned way: steer for a point a little ahead along it.
+                var here = new Numerics.Vector2(transform.position.x, transform.position.z);
+                approachIndex = approachPath.Advance(here, approachIndex);
+                toStart = approachPath.ToStart(approachIndex);
+                var aim = approachPath.Aim(approachIndex, Mathf.Max(0.8f, 0.5f * PathTurnRadius));
+                target = new Vector3(aim.X, transform.position.y, aim.Y);
             }
+            float distance = RiderSteering.FlatDistance(transform.position, target);
             // Riding on through a place on the way: pick the next one before he starts to slow down, so he flows on.
             float flowAhead = arriveDistance + (Cruise * Cruise) / (2f * Mathf.Max(0.01f, braking)) + 0.3f;
             if (!Approaching && roaming && !resting && legsLeft > 1 && distance < flowAhead)
@@ -321,20 +346,21 @@ namespace DesktopRider.Riding
                 PickTarget(flowing: true);
                 distance = RiderSteering.FlatDistance(transform.position, target);
             }
-            float wantedSpeed, top = Cruise, topTurn = TurnRate;
-            if (!Approaching) wantedSpeed = resting ? 0f : RiderSteering.SpeedFor(distance, Cruise, braking, arriveDistance);
-            else if (approachLeg) wantedSpeed = RiderSteering.SpeedToEnter(distance + approachRunUp, approachEntry, braking, Cruise);
-            else
+            float wantedSpeed;
+            if (Approaching)
             {
-                // The last stretch: get to the trick's own speed (it may be faster than cruising) by the start.
-                top = Mathf.Max(Cruise, approachEntry);
-                topTurn = TurnRate * top / Cruise;
+                // Cruise round the turns; on the run-up get to the trick's own speed (it may be faster than cruising) by the start.
+                float top = toStart < approachRunUp + 0.5f ? Mathf.Max(Cruise, approachEntry) : Cruise;
                 wantedSpeed = RiderSteering.SpeedToEnter(toStart, approachEntry, braking, top);
             }
-            if (wantedSpeed > 0f)
+            else
             {
-                float offHeading = RiderSteering.ShortestTurn(transform.eulerAngles.y, RiderSteering.HeadingTo(transform.position, target));
-                wantedSpeed = Mathf.Min(wantedSpeed, RiderSteering.SpeedForTurn(distance, offHeading, topTurn, top));
+                wantedSpeed = resting ? 0f : RiderSteering.SpeedFor(distance, Cruise, braking, arriveDistance);
+                if (wantedSpeed > 0f)
+                {
+                    float offHeading = RiderSteering.ShortestTurn(transform.eulerAngles.y, RiderSteering.HeadingTo(transform.position, target));
+                    wantedSpeed = Mathf.Min(wantedSpeed, RiderSteering.SpeedForTurn(distance, offHeading, TurnRate, Cruise));
+                }
             }
             speed = Mathf.MoveTowards(speed, wantedSpeed, (wantedSpeed > speed ? Acceleration : braking) * Time.deltaTime);
 
@@ -354,9 +380,10 @@ namespace DesktopRider.Riding
             float turnRate = Time.deltaTime > 0f ? turn / Time.deltaTime : 0f;
             float wantedLean = RiderSteering.LeanFor(turnRate, speed, maxLean);
             lean = Mathf.Lerp(lean, wantedLean, 1f - Mathf.Exp(-8f * Time.deltaTime));
+            cornerLean = Mathf.Lerp(cornerLean, RiderSteering.LeanFor(turnRate, speed, CornerFullLean), 1f - Mathf.Exp(-8f * Time.deltaTime));
             if (leanPivot != null) leanPivot.localRotation = Quaternion.Euler(0f, 0f, -lean);
 
-            if (Approaching && !approachLeg && toStart <= 0.05f && speed <= approachEntry + 0.15f)
+            if (Approaching && toStart <= 0.05f && speed <= approachEntry + 0.15f)
             {
                 var arrived = approachArrived;
                 approachArrived = null;
@@ -575,7 +602,7 @@ namespace DesktopRider.Riding
             string clip = Director.Clip;
             bool on = moving && !InTrick && !dragging &&
                       (clip == DesktopRider.Animation.ModelAnimationDirector.RidingClip || clip == DesktopRider.Animation.ModelAnimationDirector.StartClip);
-            var (toLeft, toRight) = corner.Update(on ? turnAhead : 0f, on ? lean : 0f, maxLean, Time.deltaTime, on);
+            var (toLeft, toRight) = corner.Update(on ? turnAhead : 0f, on ? cornerLean : 0f, CornerFullLean, Time.deltaTime, on);
             var riding = modelAnimation[DesktopRider.Animation.ModelAnimationDirector.RidingClip];
             // Keep the corner clips in step with the riding loop while it plays, so the wheels and the bob match.
             float? at = riding != null && riding.enabled && riding.weight > 0.5f ? riding.normalizedTime : (float?)null;
