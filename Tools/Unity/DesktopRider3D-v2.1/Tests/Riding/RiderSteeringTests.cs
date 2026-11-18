@@ -182,5 +182,97 @@ namespace DesktopRider.Tests
 
         [Test] public void SpeedForTurn_HarveyCruisingToANearPlace_IsBarelyChanged() =>
             Assert.AreEqual(2.6f, RiderSteering.SpeedForTurn(6f, 30f, 110f, 2.6f), 1e-4f);
+
+        [Test] public void TurnRadius_SidecarAtCruise_IsAbout4_5Metres() =>
+            Assert.AreEqual(4.51f, RiderSteering.TurnRadius(6.3f, 80f), 0.01f);
+
+        [Test] public void RunUpLength_IsThreeTurnRadii_OrEnoughToGetUpToSpeed()
+        {
+            Assert.AreEqual(1.2f, RiderSteering.RunUpLength(0.2f, 0f, 2.5f), 1e-4f);            // never shorter than 1.2 m
+            Assert.AreEqual(3f * 1.35f, RiderSteering.RunUpLength(1.35f, 0f, 2.5f), 1e-4f);     // Harvey: lining up decides
+            Assert.AreEqual(13f * 13f / 12f + 4.5f, RiderSteering.RunUpLength(4.5f, 13f, 6f), 1e-3f);   // the sidecar's Double: speed decides
+        }
+
+        [Test] public void LineUpAim_IsOnTheLine_AheadOfTheBike()
+        {
+            var aim = RiderSteering.LineUpAim(new Vector3(2f, 0f, -5f), Vector3.zero, Vector3.forward, 1.5f);
+            Assert.AreEqual(0f, aim.x, 1e-4f);
+            Assert.AreEqual(-3.5f, aim.z, 1e-4f);
+            Assert.AreEqual(-5f, RiderSteering.Along(new Vector3(2f, 0f, -5f), Vector3.zero, Vector3.forward), 1e-4f);
+        }
+
+        [Test] public void SpeedToEnter_ReachesTheEntrySpeedAtTheStart()
+        {
+            Assert.AreEqual(6.3f, RiderSteering.SpeedToEnter(0f, 6.3f, 9f, 13f), 1e-4f);
+            Assert.AreEqual(0f, RiderSteering.SpeedToEnter(-1f, 0f, 4f, 2.6f), 1e-4f);
+            Assert.AreEqual(Mathf.Sqrt(2f * 4f * 0.5f), RiderSteering.SpeedToEnter(0.5f, 0f, 4f, 2.6f), 1e-4f);
+            Assert.AreEqual(13f, RiderSteering.SpeedToEnter(50f, 13f, 9f, 13f), 1e-4f);
+        }
+
+        // Rides the run-up to a trick the way FreeRider does, with the same steering pieces, 1/30 s a step.
+        static (float Seconds, float HeadingError, float Speed, float Miss)? RideRunUp(float cruise, float accel, float braking, float turnRate,
+            float entry, Vector3 from, float heading, Vector3 start, float trickHeading)
+        {
+            const float dt = 1f / 30f, arrive = 0.6f;
+            var forward = Quaternion.Euler(0f, trickHeading, 0f) * Vector3.forward;
+            float radius = RiderSteering.TurnRadius(cruise, turnRate);
+            float runUp = RiderSteering.RunUpLength(radius, entry, accel);
+            var target = start - forward * runUp;
+            bool firstLeg = true;
+            Vector3 at = from;
+            float speed = 0f;
+            for (int i = 0; i < 30 * 60; i++)
+            {
+                float distance = RiderSteering.FlatDistance(at, target);
+                if (firstLeg && distance < Mathf.Max(arrive + 0.4f, radius)) firstLeg = false;
+                float toStart = 0f, top = cruise, topTurn = turnRate, wanted;
+                if (firstLeg) wanted = RiderSteering.SpeedToEnter(distance + runUp, entry, braking, cruise);
+                else
+                {
+                    toStart = -RiderSteering.Along(at, start, forward);
+                    target = RiderSteering.LineUpAim(at, start, forward, Mathf.Max(0.6f, 0.7f * radius));
+                    distance = RiderSteering.FlatDistance(at, target);
+                    top = Mathf.Max(cruise, entry);
+                    topTurn = turnRate * top / cruise;
+                    wanted = RiderSteering.SpeedToEnter(toStart, entry, braking, top);
+                }
+                float off = RiderSteering.ShortestTurn(heading, RiderSteering.HeadingTo(at, target));
+                if (wanted > 0f) wanted = Mathf.Min(wanted, RiderSteering.SpeedForTurn(distance, off, topTurn, top));
+                speed = Mathf.MoveTowards(speed, wanted, (wanted > speed ? accel : braking) * dt);
+                if (speed > 0.05f)
+                {
+                    float rate = turnRate * Mathf.Clamp01(speed / cruise + 0.25f);
+                    heading += RiderSteering.TurnStep(heading, RiderSteering.HeadingTo(at, target), rate * dt);
+                    at += Quaternion.Euler(0f, heading, 0f) * Vector3.forward * (speed * dt);
+                }
+                if (!firstLeg && toStart <= 0.05f && speed <= entry + 0.15f)
+                    return (i * dt, Mathf.Abs(RiderSteering.ShortestTurn(heading, trickHeading)), speed, RiderSteering.FlatDistance(at, start));
+            }
+            return null;
+        }
+
+        [TestCase(2.6f, 2.5f, 4f, 110f, 0f, TestName = "RunUp_Harvey_LinesUpAndStops")]
+        [TestCase(6.3f, 6f, 9f, 80f, 6.3f, TestName = "RunUp_Sidecar_GroundTrick_LinesUpAtSpeed")]
+        [TestCase(6.3f, 6f, 9f, 80f, 13f, TestName = "RunUp_Sidecar_Double_LinesUpAtSpeed")]
+        public void RunUp_FromAnywhere_ArrivesFacingTheTrick(float cruise, float accel, float braking, float turnRate, float entry)
+        {
+            // The sidecar circled slowly near the start, then was snapped round to face the jump (Boss, 17 November 2026).
+            var random = new System.Random(7);
+            float[] turns = { 0f, 30f, -30f, 60f, -60f, 90f, -90f, 135f, -135f, 180f };
+            for (int k = 0; k < 120; k++)
+            {
+                float heading = (float)random.NextDouble() * 360f;
+                bool inPlace = k % 2 == 0;
+                var start = inPlace ? Vector3.zero : new Vector3((float)random.NextDouble() * 16f - 8f, 0f, (float)random.NextDouble() * 16f - 8f);
+                float trickHeading = inPlace ? heading + turns[k / 2 % turns.Length] : (float)random.NextDouble() * 360f;
+                var result = RideRunUp(cruise, accel, braking, turnRate, entry, Vector3.zero, heading, start, trickHeading);
+                Assert.IsTrue(result.HasValue, "case " + k + ": never got to the start");
+                var r = result.Value;
+                Assert.Less(r.Seconds, 15f, "case " + k + ": took too long");
+                Assert.Less(r.HeadingError, 15f, "case " + k + ": arrived facing the wrong way");
+                Assert.Less(r.Miss, 1.5f, "case " + k + ": arrived off the line");
+                if (entry > 1f) Assert.Greater(r.Speed, 0.7f * Mathf.Min(entry, cruise), "case " + k + ": should arrive moving");
+            }
+        }
     }
 }

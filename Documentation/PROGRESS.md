@@ -10,6 +10,8 @@ Second character set (sidecar outfit 41): paint approved. The owner rejected the
 
 3D app, version 2.1 (17 Nov 2026): at the owner's choice the sidecar goes into the 3D Unity Desktop Rider (version 2, no AI), not the 2D app. Settings gain **Who rides** (Harvey or Sidecar 41) and **Riding speed** (0.5x to 2x). The owner saw the first test sidecar circle forever because its turning circle is too wide to reach its target; the steering now slows for tight turns (`RiderSteering.SpeedForTurn`, simulated over 30 cases: stuck in 23 before, 0 after). Unity EditMode tests 392 passed, 0 failed; build clean; the built app ran the sidecar for 3 minutes with no errors and did its tricks. Shareable build: `Builds/Share/Desktop Rider 2.1.zip` in the Unity project. Changed scripts copied to `Tools/Unity/DesktopRider3D-v2.1/`. Awaiting the owner's look.
 
+3D app, version 2.2 (18 Nov 2026): the owner's video showed the sidecar crawling round near a trick's start, snapping to face the jump, and setting off at full speed from a stop. The rider now rides a proper run-up along the trick's line, arrives at the trick's own speed and facing the way it goes, and rides on after a trick that ends moving. Unity tests 400 passed, 0 failed; build clean; in the built app the sidecar lined up for and rode Double, Wheelie and NoHander, and Harvey Backflip and Whoops. Shareable build: `Builds/Share/Desktop Rider 2.2.zip`. Awaiting the owner's look.
+
 ## Completed tasks
 
 | Phase | Task | Result |

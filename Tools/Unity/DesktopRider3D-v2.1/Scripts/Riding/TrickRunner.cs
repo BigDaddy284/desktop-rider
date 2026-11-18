@@ -161,18 +161,43 @@ namespace DesktopRider.Riding
             float halfWidth = HalfWidth(trick);
             PrepareCheck(trick);
             Func<Numerics.Vector2, bool> fits = ground => FitsOnScreen(view, ground);
-            float? heading = TrickRun.PickHeading(trick, here, rider.transform.eulerAngles.y, fits, halfWidth);
-            if (heading != null) return Begin(trick, heading.Value);
+            float current = rider.transform.eulerAngles.y;
+            float entry = EntrySpeed(trick);
+            float? heading = TrickRun.PickHeading(trick, here, current, fits, halfWidth);
+            if (heading != null)
+            {
+                // Already facing the right way and going the trick's speed (Harvey's tricks start from a stop): go now.
+                if (Mathf.Abs(TrickRun.TurnBetween(current, heading.Value)) < 1f && Mathf.Abs(rider.Speed - entry) < 0.5f)
+                    return Begin(trick, heading.Value);
+                // Otherwise ride round and line up for it rather than being snapped to face it. Going straight on,
+                // start a run-up's length ahead if the trick fits there too, so he does not loop back first.
+                var start = here;
+                if (Mathf.Abs(TrickRun.TurnBetween(current, heading.Value)) < 1f)
+                {
+                    var ahead = here + TrickRun.Direction(heading.Value) * rider.RunUpFor(entry);
+                    if (TrickRun.Fits(trick, ahead, heading.Value, fits, halfWidth)) start = ahead;
+                }
+                Approach(trick, start, heading.Value, entry, "lining up first");
+                return true;
+            }
 
             // No room here: ride to the nearest place with room, then go. A trick needs several metres of desktop.
-            var plan = TrickRun.PlanStart(trick, here, rider.transform.eulerAngles.y, Candidates(view), fits, halfWidth);
+            var plan = TrickRun.PlanStart(trick, here, current, Candidates(view), fits, halfWidth);
             if (plan == null) return false;
-            var (start, planned) = plan.Value;
-            pending = trick;
-            Debug.Log("Trick " + trick.Name + ": riding to a place with room first.");
-            rider.RideTo(new Vector3(start.X, at.y, start.Y), planned, () => StartWhereArrived(planned));
+            Approach(trick, plan.Value.Start, plan.Value.Heading, entry, "riding to a place with room first");
             return true;
         }
+
+        void Approach(TrickAnimation trick, Numerics.Vector2 start, float heading, float entry, string why)
+        {
+            pending = trick;
+            Debug.Log("Trick " + trick.Name + ": " + why + ".");
+            var y = rider.transform.position.y;
+            rider.RideTo(new Vector3(start.X, y, start.Y), heading, entry, () => StartWhereArrived(heading));
+        }
+
+        /// <summary>How fast the trick begins, in metres a second at the animation speed in use.</summary>
+        float EntrySpeed(TrickAnimation trick) => (float)(trick.EntrySpeed * rider.Director.Speed);
 
         /// <summary>At the start point the bike stops near, not exactly on, the planned spot; check the room again from there.</summary>
         void StartWhereArrived(float planned)
@@ -183,7 +208,16 @@ namespace DesktopRider.Riding
             var at = rider.transform.position;
             var view = rider.CurrentView;
             PrepareCheck(trick);
-            float? heading = TrickRun.PickHeading(trick, new Numerics.Vector2(at.x, at.z), planned, ground => FitsOnScreen(view, ground), HalfWidth(trick));
+            var here = new Numerics.Vector2(at.x, at.z);
+            Func<Numerics.Vector2, bool> fits = ground => FitsOnScreen(view, ground);
+            // Go the way he is actually facing if the trick fits that way, so he is not turned on the spot.
+            float facing = rider.transform.eulerAngles.y;
+            if (Mathf.Abs(TrickRun.TurnBetween(planned, facing)) <= 31f && TrickRun.Fits(trick, here, facing, fits, HalfWidth(trick)))
+            {
+                Begin(trick, facing);
+                return;
+            }
+            float? heading = TrickRun.PickHeading(trick, here, planned, fits, HalfWidth(trick));
             if (heading == null || Mathf.Abs(TrickRun.TurnBetween(planned, heading.Value)) > 31f)
             {
                 Debug.Log("Trick " + trick.Name + " given up at its start: " + (heading == null ? "no room there after all" : "facing too far off") + ".");
@@ -237,11 +271,12 @@ namespace DesktopRider.Riding
             }
             if (run == null) return;
             string name = run.Animation.Name;
+            float exit = run.IsFinished ? (float)(run.Animation.ExitSpeed * rider.Director.Speed) : 0f;
             run = null;
             foreach (var prop in props.Values) prop.SetActive(false);
             if (rider != null)
             {
-                rider.EndTrick();         // the window keeps its trick size: shrinking it flickers (OverlayWindow.Grow)
+                rider.EndTrick(exit);     // the window keeps its trick size: shrinking it flickers (OverlayWindow.Grow)
             }
             Finished?.Invoke(name);
         }
