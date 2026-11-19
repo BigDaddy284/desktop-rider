@@ -80,7 +80,7 @@ namespace DesktopRider.Core.Desktop
         public const string WindowsSection = "Windows";
 
         /// <summary>The names on the "Who rides" buttons, in the order of <see cref="RiderCharacter"/>.</summary>
-        public static readonly IReadOnlyList<string> CharacterNames = new[] { "Harvey", "Sidecar 41" };
+        public static readonly IReadOnlyList<string> CharacterNames = new[] { "Harvey", "Roy/Dad" };
 
         private readonly ISettingsService _settings;
         private readonly StartWithWindows? _startup;

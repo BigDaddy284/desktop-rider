@@ -50,3 +50,8 @@ snapping off as a trick began, and a full loop when a trick went roughly the way
 
 Checked: Unity tests 403 passed, 0 failed; build succeeded; recordings of the built app at normal and largest size
 showed no heading jumps of more than 5 degrees in a frame and no slowing on the way to tricks.
+
+## 2.4 – the sidecar is called Roy/Dad (19 Nov 2026)
+
+At the owner's request the sidecar's name on the "Who rides" choice is now **Roy/Dad**. The saved setting keeps its
+old value (`Sidecar41`), so a sidecar already chosen stays chosen. Unity tests 403 passed, 0 failed; build clean.

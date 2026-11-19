@@ -102,7 +102,7 @@ namespace DesktopRider.Core.Tests
             var (panel, settings, _) = Make();
             var row = panel["character"];
             Assert.Equal(SettingKind.Choice, row.Kind);
-            Assert.Equal(new[] { "Harvey", "Sidecar 41" }, row.Choices);
+            Assert.Equal(new[] { "Harvey", "Roy/Dad" }, row.Choices);
             Assert.Equal(0.0, row.Value);
             await row.SetAsync(1);
             Assert.Equal(RiderCharacter.Sidecar41, settings.Current.Appearance.Character);

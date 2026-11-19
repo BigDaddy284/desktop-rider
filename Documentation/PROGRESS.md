@@ -14,6 +14,8 @@ Second character set (sidecar outfit 41): paint approved. The owner rejected the
 
 3D app, version 2.3 (18 Nov 2026): the rider now plans the whole way to a trick and follows it at speed (no crawling), never turns on the spot as a trick starts (at most 4 degrees), and the corner pose no longer flicks out and snaps off. Unity tests 403 passed, 0 failed; build clean; checked in frame-by-frame recordings of the built app at normal and largest size. The owner's "big flashes" were not seen in those recordings (they record only the app's own picture); awaiting a screen recording from the owner if they remain. Shareable build: `Builds/Share/Desktop Rider 2.3.zip`.
 
+3D app, version 2.4 (19 Nov 2026): the sidecar is named **Roy/Dad** in the app at the owner's request (the saved setting value stays `Sidecar41`). Unity tests 403 passed, 0 failed; build clean. Shareable build: `Builds/Share/Desktop Rider 2.4.zip`.
+
 ## Completed tasks
 
 | Phase | Task | Result |
