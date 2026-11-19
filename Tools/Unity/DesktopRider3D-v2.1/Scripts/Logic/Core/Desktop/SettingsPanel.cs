@@ -52,6 +52,20 @@ namespace DesktopRider.Core.Desktop
 
         public bool IsOn => Kind == SettingKind.Toggle && Value >= 0.5;
 
+        /// <summary>
+        /// A <see cref="SettingKind.Choice"/> where several buttons can be on at once ("Who rides"). Its value is one bit
+        /// per button; setting it to a button's index turns that button on or off.
+        /// </summary>
+        public bool Several { get; internal set; }
+
+        /// <summary>Whether the <paramref name="index"/>th button of a <see cref="SettingKind.Choice"/> is lit.</summary>
+        public bool IsPicked(int index)
+        {
+            if (Kind != SettingKind.Choice || index < 0 || index >= Choices.Count) return false;
+            int value = (int)Math.Round(Value);
+            return Several ? ((value >> index) & 1) == 1 : value == index;
+        }
+
         /// <summary>Sets the value (kept inside the row's range) and saves it.</summary>
         public Task SetAsync(double value)
         {
@@ -75,12 +89,12 @@ namespace DesktopRider.Core.Desktop
     {
         public const string MenuText = "Settings...";
         public const string Title = "Desktop Rider settings";
-        public const string RiderSection = "The rider";
-        public const string BehaviourSection = "What he does";
+        public const string RiderSection = "The riders";
+        public const string BehaviourSection = "What they do";
         public const string WindowsSection = "Windows";
 
         /// <summary>The names on the "Who rides" buttons, in the order of <see cref="RiderCharacter"/>.</summary>
-        public static readonly IReadOnlyList<string> CharacterNames = new[] { "Harvey", "Roy/Dad" };
+        public static readonly IReadOnlyList<string> CharacterNames = new[] { "Harvey", "Roy/Dad", "Louie" };
 
         private readonly ISettingsService _settings;
         private readonly StartWithWindows? _startup;
@@ -112,26 +126,26 @@ namespace DesktopRider.Core.Desktop
         {
             var rows = new List<SettingRow>
             {
-                new("character", RiderSection, "Who rides", "Harvey on his bike, or the sidecar crew. The change happens straight away.", SettingKind.Choice,
-                    () => (int)_settings.Current.Appearance.Character, v => Save(s => s.Appearance.Character = (RiderCharacter)(int)v))
-                { Choices = CharacterNames },
-                new("size", RiderSection, "Size", "How big the rider is on your screen.", SettingKind.Slider,
+                new("character", RiderSection, "Who rides", "Click a name to bring that rider out or send them home. All three can ride at once.", SettingKind.Choice,
+                    RidersOut, v => ToggleRider((RiderCharacter)(int)v))
+                { Choices = CharacterNames, Several = true },
+                new("size", RiderSection, "Size", "How big the riders are on your screen. A smaller screen has a lower top size.", SettingKind.Slider,
                     () => _settings.Current.Appearance.Scale, v => Save(s => s.Appearance.Scale = v))
                 { Min = AppearanceSettings.MinScale, Max = AppearanceSettings.MaxScale, LowLabel = "Smaller", HighLabel = "Bigger" },
-                new("speed", RiderSection, "Animation speed", "How quickly he moves when he rides, rests and does tricks.", SettingKind.Slider,
+                new("speed", RiderSection, "Animation speed", "How quickly they move when they ride, rest and do tricks.", SettingKind.Slider,
                     () => _settings.Current.Appearance.AnimationSpeed, v => Save(s => s.Appearance.AnimationSpeed = v))
                 { Min = AppearanceSettings.MinAnimationSpeed, Max = AppearanceSettings.MaxAnimationSpeed, LowLabel = "Slower", HighLabel = "Faster" },
-                new("roam", BehaviourSection, "Ride around freely", "He rides about your screens by himself. Off: he stays where you put him.", SettingKind.Toggle,
+                new("roam", BehaviourSection, "Ride around freely", "They ride about your screens by themselves. Off: they stay where you put them.", SettingKind.Toggle,
                     () => _settings.Current.Behaviour.FreeRiding ? 1 : 0, v => Save(s => s.Behaviour.FreeRiding = v >= 0.5)),
-                new("ridingspeed", BehaviourSection, "Riding speed", "How fast he rides about your screens.", SettingKind.Slider,
+                new("ridingspeed", BehaviourSection, "Riding speed", "How fast they ride about your screens.", SettingKind.Slider,
                     () => _settings.Current.Behaviour.RidingSpeed, v => Save(s => s.Behaviour.RidingSpeed = v))
                 { Min = BehaviourSettings.MinRidingSpeed, Max = BehaviourSettings.MaxRidingSpeed, LowLabel = "Slower", HighLabel = "Faster" },
-                new("tricks", BehaviourSection, "Tricks by himself", "How often he does a trick without being asked.", SettingKind.Choice,
+                new("tricks", BehaviourSection, "Tricks by themselves", "How often they do a trick without being asked.", SettingKind.Choice,
                     () => (int)_settings.Current.Behaviour.TricksByHimself, v => Save(s => s.Behaviour.TricksByHimself = (TrickFrequency)(int)v))
                 { Choices = new[] { "Never", "Sometimes", "Often" } },
-                new("idle", BehaviourSection, "Little movements at rest", "He looks around and fidgets now and then while he waits.", SettingKind.Toggle,
+                new("idle", BehaviourSection, "Little movements at rest", "They look around and fidget now and then while they wait.", SettingKind.Toggle,
                     () => _settings.Current.Behaviour.IdleAnimations ? 1 : 0, v => Save(s => s.Behaviour.IdleAnimations = v >= 0.5)),
-                new("ontop", WindowsSection, "Always on top", "Keep him in front of your other windows.", SettingKind.Toggle,
+                new("ontop", WindowsSection, "Always on top", "Keep them in front of your other windows.", SettingKind.Toggle,
                     () => _settings.Current.Appearance.AlwaysOnTop ? 1 : 0, v => Save(s => s.Appearance.AlwaysOnTop = v >= 0.5)),
             };
             if (_startup != null)
@@ -141,6 +155,18 @@ namespace DesktopRider.Core.Desktop
                     () => startup.Enabled ? 1 : 0, v => startup.SetAsync(v >= 0.5)));
             }
             return rows;
+        }
+
+        /// <summary>One bit for each rider out, in button order.</summary>
+        private double RidersOut() =>
+            RiderLineUp.Out(_settings.Current.Appearance).Aggregate(0, (bits, who) => bits | (1 << (int)who));
+
+        /// <summary>Brings a rider out or sends them home; the last one out stays, so nothing is saved for that click.</summary>
+        private Task ToggleRider(RiderCharacter who)
+        {
+            var copy = new AppearanceSettings { Character = _settings.Current.Appearance.Character, Riders = new List<RiderCharacter>(_settings.Current.Appearance.Riders ?? new List<RiderCharacter>()) };
+            if (!RiderLineUp.Toggle(copy, who)) return Task.CompletedTask;
+            return Save(s => { s.Appearance.Character = copy.Character; s.Appearance.Riders = copy.Riders; });
         }
 
         private async Task Save(Action<AppSettings> change)

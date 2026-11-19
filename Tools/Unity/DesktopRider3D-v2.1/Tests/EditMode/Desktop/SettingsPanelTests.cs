@@ -63,8 +63,8 @@ namespace DesktopRider.Core.Tests
         {
             var (panel, settings, registry) = Make();
 
-            await panel["size"].SetAsync(1.5);
-            Assert.Equal(1.5, settings.Current.Appearance.Scale);
+            await panel["size"].SetAsync(1.1);
+            Assert.Equal(1.1, settings.Current.Appearance.Scale);
             await panel["size"].SetAsync(9);
             Assert.Equal(AppearanceSettings.MaxScale, settings.Current.Appearance.Scale);
             await panel["speed"].SetAsync(0.1);
@@ -97,21 +97,49 @@ namespace DesktopRider.Core.Tests
         }
 
         [Test]
-        public async Task Who_rides_picks_Harvey_or_the_sidecar()
+        public async Task Who_rides_buttons_bring_riders_out_and_send_them_home()
         {
             var (panel, settings, _) = Make();
             var row = panel["character"];
             Assert.Equal(SettingKind.Choice, row.Kind);
-            Assert.Equal(new[] { "Harvey", "Roy/Dad" }, row.Choices);
-            Assert.Equal(0.0, row.Value);
-            await row.SetAsync(1);
-            Assert.Equal(RiderCharacter.Sidecar41, settings.Current.Appearance.Character);
-            Assert.Equal(1.0, row.Value);
-            await row.SetAsync(5);
-            Assert.Equal(RiderCharacter.Sidecar41, settings.Current.Appearance.Character);
-            await row.SetAsync(0);
+            Assert.True(row.Several);
+            Assert.Equal(new[] { "Harvey", "Roy/Dad", "Louie" }, row.Choices);
+            Assert.True(row.IsPicked(0));
+            Assert.False(row.IsPicked(1));
+            Assert.False(row.IsPicked(2));
+
+            await row.SetAsync(2);                       // Louie comes out beside Harvey
+            Assert.True(row.IsPicked(0));
+            Assert.True(row.IsPicked(2));
             Assert.Equal(RiderCharacter.Harvey, settings.Current.Appearance.Character);
+            Assert.Equal(new[] { RiderCharacter.Louie }, RiderLineUp.Companions(settings.Current.Appearance));
+
+            await row.SetAsync(1);                       // and Roy/Dad: all three out
+            Assert.True(row.IsPicked(0) && row.IsPicked(1) && row.IsPicked(2));
+
+            await row.SetAsync(0);                       // Harvey goes home; Roy/Dad takes the main window
+            Assert.False(row.IsPicked(0));
+            Assert.Equal(RiderCharacter.Sidecar41, settings.Current.Appearance.Character);
+            await row.SetAsync(1);
+            await row.SetAsync(5);                       // past the last button: Louie, who is out, so he would go home...
+            Assert.True(row.IsPicked(2));                // ...but the last rider out always stays
+            Assert.Equal(RiderCharacter.Louie, settings.Current.Appearance.Character);
+            int saves = settings.SaveCount;
+            await row.SetAsync(2);
+            Assert.Equal(saves, settings.SaveCount);
             Assert.Equal(Enum.GetValues(typeof(RiderCharacter)).Length, SettingsPanel.CharacterNames.Count);
+        }
+
+        [Test]
+        public void A_one_pick_choice_lights_only_its_picked_button()
+        {
+            var (panel, _, _) = Make();
+            var row = panel["tricks"];
+            Assert.False(row.Several);
+            Assert.False(row.IsPicked(0));
+            Assert.True(row.IsPicked(1));
+            Assert.False(row.IsPicked(2));
+            Assert.False(row.IsPicked(7));
         }
 
         [Test]
@@ -179,7 +207,58 @@ namespace DesktopRider.Core.Tests
 
             Assert.Equal(SettingsLayout.CloseButton, layout.HitTest(layout.Close.X + 5, layout.Close.Y + 5).Button);
             Assert.Equal(SettingsLayout.ResetButton, layout.HitTest(layout.Reset.X + 5, layout.Reset.Y + 5).Button);
+            Assert.Equal(SettingsLayout.TrickButton, layout.HitTest(layout.Trick.X + 5, layout.Trick.Y + 5).Button);
             Assert.True(layout.HitTest(2, 2).IsEmpty);
+        }
+
+        [Test]
+        public void The_three_buttons_sit_side_by_side_at_any_width()
+        {
+            var (panel, _, _) = Make();
+            foreach (double w in new[] { SettingsLayout.MinWidth, SettingsLayout.Width, SettingsLayout.MaxWidth })
+            {
+                var layout = new SettingsLayout(panel, w);
+                Assert.True(layout.Reset.Right < layout.Trick.X && layout.Trick.Right < layout.Close.X, "buttons overlap at " + w);
+                Assert.True(layout.Close.Right <= w - SettingsLayout.Margin + 0.001, "Close is off the edge at " + w);
+            }
+        }
+
+        [Test]
+        public void A_short_window_leaves_out_the_descriptions_but_keeps_every_control()
+        {
+            var (panel, _, _) = Make();
+            double full = SettingsLayout.FullHeight(panel);
+            Assert.True(SettingsLayout.Fit(panel, SettingsLayout.Width, full).ShowsDescriptions);
+            Assert.True(SettingsLayout.Fit(panel, SettingsLayout.Width, full + 300).ShowsDescriptions);
+
+            var (minW, minH) = SettingsLayout.SmallestSize(panel);
+            Assert.True(minH < full - 100, "the short form should be a good deal shorter");
+            var small = SettingsLayout.Fit(panel, minW, minH);
+            Assert.False(small.ShowsDescriptions);
+            Assert.False(SettingsLayout.Fit(panel, SettingsLayout.Width, full - 1).ShowsDescriptions);
+
+            var areas = panel.Rows.Select(small.RowArea).Concat(small.Headings.Select(h => h.Area)).OrderBy(a => a.Y).ToList();
+            for (int i = 1; i < areas.Count; i++) Assert.True(areas[i].Y >= areas[i - 1].Bottom - 0.001, "overlap at " + areas[i]);
+            foreach (var row in panel.Rows)
+            {
+                var c = small.Control(row);
+                var t = small.TextArea(row);
+                Assert.True(c.X >= 0 && c.Right <= minW - SettingsLayout.Margin + 0.001, row.Id);
+                Assert.True(t.Right <= c.X && t.Width >= 100, row.Id + ": no room for the name");
+                Assert.True(c.Y >= small.RowArea(row).Y && c.Bottom <= small.RowArea(row).Bottom, row.Id);
+            }
+            Assert.True(small.Close.Bottom <= small.Height + 0.001 && small.Height <= minH + 0.001);
+        }
+
+        [Test]
+        public void A_wider_window_stretches_the_lines_and_keeps_controls_on_the_right()
+        {
+            var (panel, _, _) = Make();
+            var wide = new SettingsLayout(panel, 800);
+            Assert.Equal(800.0, wide.PanelWidth);
+            Assert.Equal(SettingsLayout.MaxWidth, new SettingsLayout(panel, 5000).PanelWidth);
+            Assert.Equal(SettingsLayout.MinWidth, new SettingsLayout(panel, 10).PanelWidth);
+            foreach (var row in panel.Rows) Assert.Equal(800 - SettingsLayout.Margin, wide.Control(row).Right, 6);
         }
 
         [Test]

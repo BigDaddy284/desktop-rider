@@ -19,13 +19,15 @@ namespace DesktopRider.Core.Configuration
             settings.Application ??= new ApplicationSettings();
 
             var appearance = settings.Appearance;
-            appearance.Scale = Clamp(appearance.Scale, AppearanceSettings.MinScale, AppearanceSettings.MaxScale, 1.0);
+            appearance.Scale = Clamp(appearance.Scale, AppearanceSettings.MinScale, AppearanceSettings.MaxScale, AppearanceSettings.DefaultScale);
             appearance.Opacity = Clamp(appearance.Opacity, AppearanceSettings.MinOpacity, AppearanceSettings.MaxOpacity, 1.0);
             appearance.AnimationSpeed = Clamp(appearance.AnimationSpeed, AppearanceSettings.MinAnimationSpeed, AppearanceSettings.MaxAnimationSpeed, 1.0);
             if (!Enum.IsDefined(typeof(RiderCharacter), appearance.Character))
             {
                 appearance.Character = RiderCharacter.Harvey;
             }
+
+            RiderLineUp.Normalize(appearance);
 
             if (appearance.Position is { } position && !(double.IsFinite(position.X) && double.IsFinite(position.Y)))
             {

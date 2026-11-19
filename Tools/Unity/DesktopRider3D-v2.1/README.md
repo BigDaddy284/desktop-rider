@@ -55,3 +55,17 @@ showed no heading jumps of more than 5 degrees in a frame and no slowing on the 
 
 At the owner's request the sidecar's name on the "Who rides" choice is now **Roy/Dad**. The saved setting keeps its
 old value (`Sidecar41`), so a sidecar already chosen stays chosen. Unity tests 403 passed, 0 failed; build clean.
+
+## 2.5 – Louie and several riders at once (19 Nov 2026)
+
+- **Louie** (electric bike) is a third rider. Who rides is now a set of name buttons; one, two or three riders can be
+  out at once. Each extra rider is its own process (`--companion Name --host pid`), started and stopped by
+  `CompanionRiders`; requests between windows go through named events (`RiderSignal`).
+- Same on-screen height and speeds for every rider; Size 0.5 to 1.3, lower top size on screens under 1920 px wide.
+- Right-click any rider for settings; "Move to corner" lines them all up bottom right; "Do a trick" (tray and settings
+  window) picks a random rider who is out.
+- The settings window can be resized (`SettingsLayout.Fit`): short windows drop the descriptions.
+- Louie's editor scripts are in `Tools/Unity/Louie/`; his Blender build scripts in `Tools/Blender/Louie/`.
+  His models and textures stay out of the repository, like Harvey's.
+
+Checked: Unity EditMode tests 420 passed, 0 failed; build succeeded with no errors.

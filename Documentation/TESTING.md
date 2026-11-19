@@ -262,3 +262,14 @@ Status: not yet run. Never run by the developer (Linux build machine).
 10. Close and reopen Desktop Rider. **Expect:** the character last chosen comes back.
 
 Status: not yet run. Never run by the developer (Linux build machine).
+
+### M12. Several riders, Louie, and the settings window (3D app 2.5)
+
+1. Open settings (right-click any rider). **Expect:** Harvey, Roy/Dad and Louie buttons; the ones out are lit.
+2. Click Louie and Roy/Dad. **Expect:** each appears beside the main rider in the bottom-right corner and rides about; all three are the same height.
+3. Click **Do a trick** in the tray menu and in the settings window several times. **Expect:** different riders take turns.
+4. Click **Move to corner**. **Expect:** all riders line up in the bottom-right corner.
+5. Drag the settings window's bottom edge up. **Expect:** the descriptions disappear and only headings, names, switches, sliders and buttons remain; it stops at that size. Drag it wider. **Expect:** the lines stretch and controls stay on the right.
+6. Turn the last rider out off. **Expect:** it stays on (one rider always rides).
+
+Status: steps 1 to 5 checked by the owner on 19 Nov 2026 (step 5 partly: resizing confirmed working).

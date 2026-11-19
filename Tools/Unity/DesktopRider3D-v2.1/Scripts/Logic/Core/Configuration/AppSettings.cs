@@ -1,5 +1,7 @@
 #nullable enable
 
+using System;
+
 
 namespace DesktopRider.Core.Configuration
 {
@@ -22,22 +24,47 @@ namespace DesktopRider.Core.Configuration
 
     public sealed class AppearanceSettings
     {
+        // Size is shared by every rider. Top end set by Boss (19 November 2026) where his slider sat, about a third of the
+        // way past normal; the bottom end is unchanged.
         public const double MinScale = 0.5;
-        public const double MaxScale = 2.0;
+        public const double MaxScale = 1.3;
+
+        /// <summary>The screen width (in pixels at 100% Windows scaling) that <see cref="MaxScale"/> is meant for.</summary>
+        public const double MaxScaleScreenWidth = 1920;
+
+        /// <summary>
+        /// The biggest size that suits a screen this wide (pixels at 100% Windows scaling): <see cref="MaxScale"/> on a
+        /// 1920-pixel screen or wider, and less in step on a narrower one (Boss, 19 November 2026: "a smaller screen's max
+        /// can't be 1.3"), never below <see cref="MinScale"/>. Keeps the sidecar's longest trick on the screen.
+        /// </summary>
+        public static double MaxScaleFor(double screenWidth) =>
+            double.IsFinite(screenWidth) && screenWidth > 0
+                ? Math.Max(MinScale, Math.Min(MaxScale, MaxScale * screenWidth / MaxScaleScreenWidth))
+                : MaxScale;
+
+        /// <summary>The size actually drawn: the chosen <paramref name="scale"/>, but no bigger than suits the screen.</summary>
+        public static double ScaleFor(double scale, double screenWidth) => Math.Min(scale, MaxScaleFor(screenWidth));
+        public const double DefaultScale = 1.0;
         public const double MinOpacity = 0.2;
         public const double MaxOpacity = 1.0;
         public const double MinAnimationSpeed = 0.5;
         public const double MaxAnimationSpeed = 2.0;
 
         /// <summary>Character size, where 1.0 is the normal size.</summary>
-        public double Scale { get; set; } = 1.0;
+        public double Scale { get; set; } = DefaultScale;
 
         public double Opacity { get; set; } = 1.0;
 
         public double AnimationSpeed { get; set; } = 1.0;
 
-        /// <summary>Who rides about the desktop: Harvey on his bike, or the sidecar crew (Sidecar 41).</summary>
+        /// <summary>Who rides about the desktop: Harvey on his bike, the sidecar crew (Sidecar 41) or Louie on his electric bike.</summary>
         public RiderCharacter Character { get; set; } = RiderCharacter.Harvey;
+
+        /// <summary>
+        /// Everyone out riding at once, in button order, always including <see cref="Character"/> (who rides in the main
+        /// window); the others ride in windows of their own. See <see cref="RiderLineUp"/>.
+        /// </summary>
+        public System.Collections.Generic.List<RiderCharacter> Riders { get; set; } = new();
 
         public bool AlwaysOnTop { get; set; } = true;
 
@@ -95,6 +122,7 @@ namespace DesktopRider.Core.Configuration
     {
         Harvey,
         Sidecar41,
+        Louie,
     }
 
     public enum TrickFrequency

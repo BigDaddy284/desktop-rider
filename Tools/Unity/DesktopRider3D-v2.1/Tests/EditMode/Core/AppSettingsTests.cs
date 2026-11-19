@@ -19,7 +19,7 @@ namespace DesktopRider.Core.Tests
             Assert.False(settings.Application.StartWithWindows);
             Assert.False(settings.Application.TrayHintShown);
             Assert.False(settings.Application.CheckForUpdates); // No network requests unless the user opts in.
-            Assert.Equal(1.0, settings.Appearance.Scale);
+            Assert.Equal(AppearanceSettings.DefaultScale, settings.Appearance.Scale);
         }
 
         [Test]
@@ -43,11 +43,25 @@ namespace DesktopRider.Core.Tests
             Assert.NotNull(settings.Behaviour);
             Assert.NotNull(settings.Application);
         }
+        [TestCase(1920, 1.3)]
+        [TestCase(3840, 1.3)]
+        [TestCase(1600, 1.3 * 1600 / 1920)]
+        [TestCase(1280, 1.3 * 1280 / 1920)]
+        [TestCase(320, AppearanceSettings.MinScale)]
+        [TestCase(double.NaN, AppearanceSettings.MaxScale)]
+        public void The_biggest_size_is_less_on_a_narrower_screen(double screenWidth, double expected)
+        {
+            Assert.Equal(expected, AppearanceSettings.MaxScaleFor(screenWidth), 6);
+            Assert.Equal(System.Math.Min(1.0, expected), AppearanceSettings.ScaleFor(1.0, screenWidth), 6);
+            Assert.Equal(expected, AppearanceSettings.ScaleFor(AppearanceSettings.MaxScale, screenWidth), 6);
+            Assert.Equal(AppearanceSettings.MinScale, AppearanceSettings.ScaleFor(AppearanceSettings.MinScale, screenWidth), 6);
+        }
+
         [TestCase(0.01, AppearanceSettings.MinScale)]
         [TestCase(99, AppearanceSettings.MaxScale)]
         [TestCase(1.25, 1.25)]
-        [TestCase(double.NaN, 1.0)]
-        [TestCase(double.PositiveInfinity, 1.0)]
+        [TestCase(double.NaN, AppearanceSettings.DefaultScale)]
+        [TestCase(double.PositiveInfinity, AppearanceSettings.DefaultScale)]
         public void Normalize_KeepsScaleInRange(double input, double expected)
         {
             var settings = new AppSettings();
@@ -118,6 +132,10 @@ namespace DesktopRider.Core.Tests
             SettingsNormalizer.Normalize(settings);
             Assert.Equal(BehaviourSettings.MaxRidingSpeed, settings.Behaviour.RidingSpeed);
             Assert.Equal(RiderCharacter.Sidecar41, settings.Appearance.Character);
+
+            settings.Appearance.Character = RiderCharacter.Louie;
+            SettingsNormalizer.Normalize(settings);
+            Assert.Equal(RiderCharacter.Louie, settings.Appearance.Character);
         }
     }
 }
