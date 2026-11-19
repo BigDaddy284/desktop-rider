@@ -1,0 +1,512 @@
+{
+ "name": "Sidecar 41",
+ "fbx": "Sidecar41.fbx",
+ "fps": 24,
+ "units": "metres",
+ "note": "Second character set (sidecar outfit 41). One take per clip, each starting at 0. sidecar_rig/root carries the travel along the outfit's forward axis (Blender +X); driver_rig and passenger_rig are keyed to follow sidecar_rig/chassis. Every crew pose is on the rig (matched to the owner's race photos); the model's Left / Right / Jump blend shapes are kept at zero. Props: x is metres along the travel from the outfit's position at the first frame.",
+ "ride_speed": 6.3,
+ "turn_radius": 4.5,
+ "rigs": {
+  "sidecar_rig": [
+   {
+    "name": "root",
+    "parent": null
+   },
+   {
+    "name": "chassis",
+    "parent": "root"
+   },
+   {
+    "name": "steer",
+    "parent": "chassis"
+   },
+   {
+    "name": "front_link",
+    "parent": "steer"
+   },
+   {
+    "name": "front_wheel",
+    "parent": "front_link"
+   },
+   {
+    "name": "swingarm",
+    "parent": "chassis"
+   },
+   {
+    "name": "rear_wheel",
+    "parent": "swingarm"
+   },
+   {
+    "name": "chair_wheel",
+    "parent": "chassis"
+   }
+  ],
+  "driver_rig": [
+   {
+    "name": "root",
+    "parent": null
+   },
+   {
+    "name": "hips",
+    "parent": "root"
+   },
+   {
+    "name": "spine",
+    "parent": "hips"
+   },
+   {
+    "name": "chest",
+    "parent": "spine"
+   },
+   {
+    "name": "head",
+    "parent": "chest"
+   },
+   {
+    "name": "upper_arm.L",
+    "parent": "chest"
+   },
+   {
+    "name": "forearm.L",
+    "parent": "upper_arm.L"
+   },
+   {
+    "name": "hand.L",
+    "parent": "forearm.L"
+   },
+   {
+    "name": "upper_arm.R",
+    "parent": "chest"
+   },
+   {
+    "name": "forearm.R",
+    "parent": "upper_arm.R"
+   },
+   {
+    "name": "hand.R",
+    "parent": "forearm.R"
+   },
+   {
+    "name": "thigh.L",
+    "parent": "hips"
+   },
+   {
+    "name": "shin.L",
+    "parent": "thigh.L"
+   },
+   {
+    "name": "foot.L",
+    "parent": "shin.L"
+   },
+   {
+    "name": "thigh.R",
+    "parent": "hips"
+   },
+   {
+    "name": "shin.R",
+    "parent": "thigh.R"
+   },
+   {
+    "name": "foot.R",
+    "parent": "shin.R"
+   }
+  ],
+  "passenger_rig": [
+   {
+    "name": "root",
+    "parent": null
+   },
+   {
+    "name": "hips",
+    "parent": "root"
+   },
+   {
+    "name": "spine",
+    "parent": "hips"
+   },
+   {
+    "name": "chest",
+    "parent": "spine"
+   },
+   {
+    "name": "head",
+    "parent": "chest"
+   },
+   {
+    "name": "upper_arm.L",
+    "parent": "chest"
+   },
+   {
+    "name": "forearm.L",
+    "parent": "upper_arm.L"
+   },
+   {
+    "name": "hand.L",
+    "parent": "forearm.L"
+   },
+   {
+    "name": "upper_arm.R",
+    "parent": "chest"
+   },
+   {
+    "name": "forearm.R",
+    "parent": "upper_arm.R"
+   },
+   {
+    "name": "hand.R",
+    "parent": "forearm.R"
+   },
+   {
+    "name": "thigh.L",
+    "parent": "hips"
+   },
+   {
+    "name": "shin.L",
+    "parent": "thigh.L"
+   },
+   {
+    "name": "foot.L",
+    "parent": "shin.L"
+   },
+   {
+    "name": "thigh.R",
+    "parent": "hips"
+   },
+   {
+    "name": "shin.R",
+    "parent": "thigh.R"
+   },
+   {
+    "name": "foot.R",
+    "parent": "shin.R"
+   }
+  ]
+ },
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 48,
+   "loop": true,
+   "kind": "everyday",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "LookAround",
+   "frames": 72,
+   "loop": false,
+   "kind": "everyday",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "Revving",
+   "frames": 24,
+   "loop": true,
+   "kind": "everyday",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "Thinking",
+   "frames": 72,
+   "loop": false,
+   "kind": "everyday",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "Talking",
+   "frames": 48,
+   "loop": true,
+   "kind": "everyday",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "Celebration",
+   "frames": 60,
+   "loop": false,
+   "kind": "everyday",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "SleepStart",
+   "frames": 24,
+   "loop": false,
+   "kind": "everyday",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "Sleeping",
+   "frames": 96,
+   "loop": true,
+   "kind": "everyday",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "SleepEnd",
+   "frames": 24,
+   "loop": false,
+   "kind": "everyday",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "RideOff",
+   "frames": 42,
+   "loop": false,
+   "kind": "riding",
+   "props": [],
+   "travel": 6.3,
+   "info": {}
+  },
+  {
+   "name": "RideOn",
+   "frames": 48,
+   "loop": false,
+   "kind": "riding",
+   "props": [],
+   "travel": 4.725,
+   "info": {}
+  },
+  {
+   "name": "RidingLoop",
+   "frames": 32,
+   "loop": true,
+   "kind": "riding",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "CornerLeft",
+   "frames": 32,
+   "loop": true,
+   "kind": "riding",
+   "props": [],
+   "travel": 0.0,
+   "info": {
+    "note": "turning towards the chair: passenger crouches on the edge of the chair with the backside hanging out"
+   }
+  },
+  {
+   "name": "CornerRight",
+   "frames": 32,
+   "loop": true,
+   "kind": "riding",
+   "props": [],
+   "travel": 0.0,
+   "info": {
+    "note": "turning away from the chair: passenger sits sideways behind the driver, arm round the waist"
+   }
+  },
+  {
+   "name": "CornerLeftIn",
+   "frames": 16,
+   "loop": false,
+   "kind": "riding",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "CornerLeftOut",
+   "frames": 16,
+   "loop": false,
+   "kind": "riding",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "CornerRightIn",
+   "frames": 16,
+   "loop": false,
+   "kind": "riding",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "CornerRightOut",
+   "frames": 16,
+   "loop": false,
+   "kind": "riding",
+   "props": [],
+   "travel": 0.0,
+   "info": {}
+  },
+  {
+   "name": "FlyingChair",
+   "frames": 96,
+   "loop": false,
+   "kind": "trick",
+   "props": [],
+   "travel": 25.2,
+   "info": {
+    "note": "rides along on two wheels with the chair in the air"
+   }
+  },
+  {
+   "name": "Wheelie",
+   "frames": 84,
+   "loop": false,
+   "kind": "trick",
+   "props": [],
+   "travel": 22.05,
+   "info": {}
+  },
+  {
+   "name": "PowerSlide",
+   "frames": 84,
+   "loop": false,
+   "kind": "trick",
+   "props": [],
+   "travel": 22.05,
+   "info": {}
+  },
+  {
+   "name": "PassengerWave",
+   "frames": 72,
+   "loop": false,
+   "kind": "trick",
+   "props": [],
+   "travel": 18.9,
+   "info": {}
+  },
+  {
+   "name": "LostPassenger",
+   "frames": 120,
+   "loop": false,
+   "kind": "trick",
+   "props": [],
+   "travel": 23.0108,
+   "info": {
+    "note": "a big hit throws the passenger out of the chair; they hang on, get dragged, and climb back in"
+   }
+  },
+  {
+   "name": "Rollers",
+   "frames": 120,
+   "loop": false,
+   "kind": "ground",
+   "props": [
+    {
+     "prop": "SC_Prop_Rollers",
+     "x": 4.0,
+     "length": 20.6
+    }
+   ],
+   "travel": 33.5503,
+   "info": {
+    "rollers": {
+     "count": 5,
+     "length": 3.0,
+     "height": 0.55,
+     "gap": 1.4
+    },
+    "speed": 7.5
+   }
+  },
+  {
+   "name": "Double",
+   "frames": 94,
+   "loop": false,
+   "kind": "jump",
+   "props": [
+    {
+     "prop": "SC_Prop_JumpRamp",
+     "x": 5.0,
+     "length": 3.761452930692664
+    },
+    {
+     "prop": "SC_Prop_DoubleLanding",
+     "x": 17.143547707634685,
+     "length": 6.5
+    }
+   ],
+   "travel": 37.9304,
+   "info": {
+    "note": "a big double: off the lip, over a 7.9 m gap and down the landing's far slope",
+    "ramp_x": 5.0,
+    "lip_x": 8.761,
+    "landing_x": 17.144,
+    "take_off_t": 0.75,
+    "land_t": 1.875,
+    "air_time": 1.125,
+    "speed": 13.0
+   }
+  },
+  {
+   "name": "NoHander",
+   "frames": 83,
+   "loop": false,
+   "kind": "jump",
+   "props": [
+    {
+     "prop": "SC_Prop_JumpRamp",
+     "x": 5.0,
+     "length": 3.761452930692664
+    },
+    {
+     "prop": "SC_Prop_JumpLanding",
+     "x": 10.805863697121048,
+     "length": 5.5
+    }
+   ],
+   "travel": 24.3314,
+   "info": {
+    "note": "the driver lets go of the bars and spreads both arms in the air",
+    "ramp_x": 5.0,
+    "lip_x": 8.761,
+    "landing_x": 10.806,
+    "take_off_t": 1.125,
+    "land_t": 1.917,
+    "air_time": 0.792,
+    "speed": 8.8
+   }
+  },
+  {
+   "name": "PassengerSuperman",
+   "frames": 94,
+   "loop": false,
+   "kind": "jump",
+   "props": [
+    {
+     "prop": "SC_Prop_JumpRamp",
+     "x": 5.0,
+     "length": 3.761452930692664
+    },
+    {
+     "prop": "SC_Prop_DoubleLanding",
+     "x": 17.143547707634685,
+     "length": 6.5
+    }
+   ],
+   "travel": 37.9304,
+   "info": {
+    "note": "on the big double: the passenger lets their body fly out flat behind, holding on by the hands, and holds it",
+    "ramp_x": 5.0,
+    "lip_x": 8.761,
+    "landing_x": 17.144,
+    "take_off_t": 0.75,
+    "land_t": 1.875,
+    "air_time": 1.125,
+    "speed": 13.0
+   }
+  }
+ ]
+}

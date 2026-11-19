@@ -1,0 +1,2737 @@
+{
+ "objects": [
+  [
+   "bike_rig",
+   "ARMATURE",
+   null,
+   null,
+   null
+  ],
+  [
+   "Camera",
+   "CAMERA",
+   null,
+   null,
+   null
+  ],
+  [
+   "Chin End Flush",
+   "EMPTY",
+   "race_rider",
+   null,
+   null
+  ],
+  [
+   "Helmet Rim Flush",
+   "EMPTY",
+   "race_rider",
+   null,
+   null
+  ],
+  [
+   "Helmet Size",
+   "EMPTY",
+   "race_rider",
+   null,
+   null
+  ],
+  [
+   "Light",
+   "LIGHT",
+   null,
+   null,
+   null
+  ],
+  [
+   "Mouth Guard",
+   "EMPTY",
+   "race_rider",
+   null,
+   null
+  ],
+  [
+   "race_bike_youth",
+   "MESH",
+   "bike_rig",
+   [
+    "Trim_3b3c45_UV",
+    "Trim_rim_blue_UV",
+    "Trim_b1aeaf_UV",
+    "Trim_fork_gold_UV",
+    "Frame_UV",
+    "Trim_918e93_UV",
+    "Trim_a39997_UV",
+    "Trim_exhaust_UV",
+    "Trim_ecbe2a_UV",
+    "Trim_4b4c57_UV",
+    "Trim_radiator_UV",
+    "Plastics_UV",
+    "Trim_eaebeb_UV",
+    "Plate_UV",
+    "DR_ForkGuard_UV",
+    "DR_Grip_UV",
+    "DR_HubGold_UV",
+    "DR_BarBlack_UV",
+    "DR_Silencer_UV",
+    "DR_Swingarm_UV",
+    "DR_PegBlue_UV",
+    "DR_HeadGold_UV",
+    "DR_Ignition_UV"
+   ],
+   [
+    "ARMATURE:Armature"
+   ]
+  ],
+  [
+   "race_rider",
+   "MESH",
+   "rider_rig",
+   [
+    "Helmet_UV",
+    "Trim_helmet_dark_UV",
+    "Visor_UV",
+    "Trim_lens_UV",
+    "Trim_neck_UV",
+    "Pants_UV",
+    "Jersey_UV",
+    "Gloves_UV",
+    "Trim_knee_UV",
+    "Trim_sole_UV",
+    "Boots_UV",
+    "Trim_boot_plate_UV",
+    "Trim_buckle_UV",
+    "DR_GoggleFrame_UV",
+    "DR_BootStrap_UV"
+   ],
+   [
+    "HOOK:Helmet Size",
+    "HOOK:Mouth Guard",
+    "HOOK:Helmet Rim Flush",
+    "HOOK:Chin End Flush",
+    "NODES:Seam Fix",
+    "ARMATURE:Armature"
+   ]
+  ],
+  [
+   "rider_rig",
+   "ARMATURE",
+   "bike_rig",
+   null,
+   null
+  ]
+ ],
+ "images": [
+  [
+   "bike_front.png",
+   "D:\\AI\\Claude\\Desktop Rider\\blender\\textures\\bike_front.png",
+   [
+    1800,
+    2200
+   ],
+   true
+  ],
+  [
+   "bike_side_L.png",
+   "D:\\AI\\Claude\\Desktop Rider\\blender\\textures\\bike_side_L.png",
+   [
+    3600,
+    2200
+   ],
+   true
+  ],
+  [
+   "bike_side_R.png",
+   "D:\\AI\\Claude\\Desktop Rider\\blender\\textures\\bike_side_R.png",
+   [
+    3600,
+    2200
+   ],
+   true
+  ],
+  [
+   "bike_top.png",
+   "D:\\AI\\Claude\\Desktop Rider\\blender\\textures\\bike_top.png",
+   [
+    3600,
+    1800
+   ],
+   true
+  ],
+  [
+   "boots_front.png",
+   "D:\\AI\\Claude\\Desktop Rider\\blender\\textures\\boots_front.png",
+   [
+    2200,
+    2500
+   ],
+   true
+  ],
+  [
+   "DR_bike_atlas_kit_v4",
+   "D:\\AI\\Claude\\Dektop Rider 3D\\kit-fit-work\\bake\\DR_bike_atlas_kit_v4.png",
+   [
+    4096,
+    4096
+   ],
+   true
+  ],
+  [
+   "DR_bike_atlas_kit_v7",
+   "D:\\AI\\Claude\\Dektop Rider 3D\\kit-fit-work\\bake\\DR_bike_atlas_kit_v7.png",
+   [
+    4096,
+    4096
+   ],
+   true
+  ],
+  [
+   "DR_rider_atlas_v5",
+   "D:\\AI\\Claude\\Dektop Rider 3D\\kit-fit-work\\bake\\DR_rider_atlas_v5.png",
+   [
+    4096,
+    4096
+   ],
+   true
+  ],
+  [
+   "helmet_back.png",
+   "D:\\AI\\Claude\\Desktop Rider\\blender\\textures\\helmet_back.png",
+   [
+    800,
+    640
+   ],
+   true
+  ],
+  [
+   "helmet_front.png",
+   "D:\\AI\\Claude\\Desktop Rider\\blender\\textures\\helmet_front.png",
+   [
+    800,
+    640
+   ],
+   true
+  ],
+  [
+   "helmet_side.png",
+   "D:\\AI\\Claude\\Desktop Rider\\blender\\textures\\helmet_side.png",
+   [
+    800,
+    640
+   ],
+   true
+  ],
+  [
+   "Render Result",
+   "",
+   [
+    0,
+    0
+   ],
+   false
+  ],
+  [
+   "rider_back.png",
+   "D:\\AI\\Claude\\Desktop Rider\\blender\\textures\\rider_back.png",
+   [
+    2200,
+    2500
+   ],
+   true
+  ],
+  [
+   "rider_front.png",
+   "D:\\AI\\Claude\\Desktop Rider\\blender\\textures\\rider_front.png",
+   [
+    2200,
+    2500
+   ],
+   true
+  ],
+  [
+   "rider_side.png",
+   "D:\\AI\\Claude\\Desktop Rider\\blender\\textures\\rider_side.png",
+   [
+    1400,
+    2500
+   ],
+   true
+  ],
+  [
+   "Viewer Node",
+   "",
+   [
+    256,
+    256
+   ],
+   false
+  ]
+ ],
+ "mats": {
+  "Boots": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_4",
+    null
+   ],
+   [
+    "MATH",
+    "DR_5",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_6",
+    null
+   ],
+   [
+    "MATH",
+    "DR_7",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_8",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_9",
+    "boots_front.png"
+   ],
+   [
+    "MATH",
+    "DR_10",
+    null
+   ],
+   [
+    "MATH",
+    "DR_11",
+    null
+   ],
+   [
+    "MIX",
+    "DR_12",
+    null
+   ]
+  ],
+  "Boots_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "DR_BarBlack": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "DR_BarBlack_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "DR_BootStrap": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "DR_BootStrap_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "DR_ForkGuard": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_4",
+    null
+   ],
+   [
+    "MATH",
+    "DR_5",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_6",
+    null
+   ],
+   [
+    "MATH",
+    "DR_7",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_8",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_9",
+    "bike_side_L.png"
+   ],
+   [
+    "COMBXYZ",
+    "DR_10",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_11",
+    "bike_side_R.png"
+   ],
+   [
+    "MATH",
+    "DR_12",
+    null
+   ],
+   [
+    "MIX",
+    "DR_13",
+    null
+   ],
+   [
+    "MIX",
+    "DR_14",
+    null
+   ],
+   [
+    "MIX",
+    "DR_15",
+    null
+   ]
+  ],
+  "DR_ForkGuard_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "DR_GoggleFrame": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "DR_GoggleFrame_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "DR_Grip": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "MATH",
+    "DR_4",
+    null
+   ],
+   [
+    "MATH",
+    "DR_5",
+    null
+   ],
+   [
+    "MIX",
+    "DR_6",
+    null
+   ]
+  ],
+  "DR_Grip_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "DR_HeadGold": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "DR_HeadGold_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "DR_HubGold": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "DR_HubGold_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "DR_Ignition": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_4",
+    null
+   ],
+   [
+    "MATH",
+    "DR_5",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_6",
+    null
+   ],
+   [
+    "MATH",
+    "DR_7",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_8",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_9",
+    "bike_side_L.png"
+   ],
+   [
+    "COMBXYZ",
+    "DR_10",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_11",
+    "bike_side_R.png"
+   ],
+   [
+    "MATH",
+    "DR_12",
+    null
+   ],
+   [
+    "MIX",
+    "DR_13",
+    null
+   ],
+   [
+    "MIX",
+    "DR_14",
+    null
+   ],
+   [
+    "MIX",
+    "DR_15",
+    null
+   ]
+  ],
+  "DR_Ignition_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "DR_PegBlue": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "DR_PegBlue_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "DR_Silencer": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "MATH",
+    "DR_4",
+    null
+   ],
+   [
+    "MIX",
+    "DR_5",
+    null
+   ]
+  ],
+  "DR_Silencer_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "DR_Swingarm": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_4",
+    null
+   ],
+   [
+    "MATH",
+    "DR_5",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_6",
+    null
+   ],
+   [
+    "MATH",
+    "DR_7",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_8",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_9",
+    "bike_side_L.png"
+   ],
+   [
+    "COMBXYZ",
+    "DR_10",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_11",
+    "bike_side_R.png"
+   ],
+   [
+    "MATH",
+    "DR_12",
+    null
+   ],
+   [
+    "MIX",
+    "DR_13",
+    null
+   ],
+   [
+    "MIX",
+    "DR_14",
+    null
+   ],
+   [
+    "MIX",
+    "DR_15",
+    null
+   ]
+  ],
+  "DR_Swingarm_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Frame": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Frame_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Gloves": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Gloves_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "Helmet": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_4",
+    null
+   ],
+   [
+    "MATH",
+    "DR_5",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_6",
+    null
+   ],
+   [
+    "MATH",
+    "DR_7",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_8",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_9",
+    "helmet_side.png"
+   ],
+   [
+    "VECT_MATH",
+    "DR_10",
+    null
+   ],
+   [
+    "MATH",
+    "DR_11",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_12",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_13",
+    "helmet_front.png"
+   ],
+   [
+    "VECT_MATH",
+    "DR_14",
+    null
+   ],
+   [
+    "MATH",
+    "DR_15",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_16",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_17",
+    "helmet_back.png"
+   ],
+   [
+    "MATH",
+    "DR_18",
+    null
+   ],
+   [
+    "MIX",
+    "DR_19",
+    null
+   ],
+   [
+    "MIX",
+    "DR_20",
+    null
+   ],
+   [
+    "MATH",
+    "DR_21",
+    null
+   ],
+   [
+    "MATH",
+    "DR_22",
+    null
+   ],
+   [
+    "MIX",
+    "DR_23",
+    null
+   ],
+   [
+    "MIX",
+    "DR_24",
+    null
+   ],
+   [
+    "MIX",
+    "DR_25",
+    null
+   ]
+  ],
+  "Helmet_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "Jersey": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_4",
+    null
+   ],
+   [
+    "MATH",
+    "DR_5",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_6",
+    null
+   ],
+   [
+    "MATH",
+    "DR_7",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_8",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_9",
+    "rider_side.png"
+   ],
+   [
+    "VECT_MATH",
+    "DR_10",
+    null
+   ],
+   [
+    "MATH",
+    "DR_11",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_12",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_13",
+    "rider_front.png"
+   ],
+   [
+    "VECT_MATH",
+    "DR_14",
+    null
+   ],
+   [
+    "MATH",
+    "DR_15",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_16",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_17",
+    "rider_back.png"
+   ],
+   [
+    "MATH",
+    "DR_18",
+    null
+   ],
+   [
+    "MIX",
+    "DR_19",
+    null
+   ],
+   [
+    "MIX",
+    "DR_20",
+    null
+   ],
+   [
+    "MATH",
+    "DR_21",
+    null
+   ],
+   [
+    "MATH",
+    "DR_22",
+    null
+   ],
+   [
+    "MIX",
+    "DR_23",
+    null
+   ],
+   [
+    "MIX",
+    "DR_24",
+    null
+   ],
+   [
+    "MIX",
+    "DR_25",
+    null
+   ]
+  ],
+  "Jersey_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "Pants": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_4",
+    null
+   ],
+   [
+    "MATH",
+    "DR_5",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_6",
+    null
+   ],
+   [
+    "MATH",
+    "DR_7",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_8",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_9",
+    "rider_side.png"
+   ],
+   [
+    "VECT_MATH",
+    "DR_10",
+    null
+   ],
+   [
+    "MATH",
+    "DR_11",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_12",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_13",
+    "rider_front.png"
+   ],
+   [
+    "VECT_MATH",
+    "DR_14",
+    null
+   ],
+   [
+    "MATH",
+    "DR_15",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_16",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_17",
+    "rider_back.png"
+   ],
+   [
+    "MATH",
+    "DR_18",
+    null
+   ],
+   [
+    "MIX",
+    "DR_19",
+    null
+   ],
+   [
+    "MIX",
+    "DR_20",
+    null
+   ],
+   [
+    "MATH",
+    "DR_21",
+    null
+   ],
+   [
+    "MATH",
+    "DR_22",
+    null
+   ],
+   [
+    "MIX",
+    "DR_23",
+    null
+   ],
+   [
+    "MIX",
+    "DR_24",
+    null
+   ],
+   [
+    "MIX",
+    "DR_25",
+    null
+   ]
+  ],
+  "Pants_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "Plastics": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_4",
+    null
+   ],
+   [
+    "MATH",
+    "DR_5",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_6",
+    null
+   ],
+   [
+    "MATH",
+    "DR_7",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_8",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_9",
+    "bike_side_L.png"
+   ],
+   [
+    "COMBXYZ",
+    "DR_10",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_11",
+    "bike_side_R.png"
+   ],
+   [
+    "MATH",
+    "DR_12",
+    null
+   ],
+   [
+    "MIX",
+    "DR_13",
+    null
+   ],
+   [
+    "MIX",
+    "DR_14",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_15",
+    null
+   ],
+   [
+    "MATH",
+    "DR_16",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_17",
+    null
+   ],
+   [
+    "MATH",
+    "DR_18",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_19",
+    null
+   ],
+   [
+    "MATH",
+    "DR_20",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_21",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_22",
+    "bike_top.png"
+   ],
+   [
+    "MATH",
+    "DR_23",
+    null
+   ],
+   [
+    "MIX",
+    "DR_24",
+    null
+   ],
+   [
+    "MIX",
+    "DR_25",
+    null
+   ],
+   [
+    "MIX",
+    "DR_26",
+    null
+   ]
+  ],
+  "Plastics_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Plate": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_4",
+    null
+   ],
+   [
+    "MATH",
+    "DR_5",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_6",
+    null
+   ],
+   [
+    "MATH",
+    "DR_7",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_8",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_9",
+    "bike_side_L.png"
+   ],
+   [
+    "COMBXYZ",
+    "DR_10",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_11",
+    "bike_side_R.png"
+   ],
+   [
+    "MATH",
+    "DR_12",
+    null
+   ],
+   [
+    "MIX",
+    "DR_13",
+    null
+   ],
+   [
+    "MIX",
+    "DR_14",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_15",
+    null
+   ],
+   [
+    "MATH",
+    "DR_16",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_17",
+    null
+   ],
+   [
+    "MATH",
+    "DR_18",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_19",
+    null
+   ],
+   [
+    "MATH",
+    "DR_20",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_21",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_22",
+    "bike_front.png"
+   ],
+   [
+    "MATH",
+    "DR_23",
+    null
+   ],
+   [
+    "MIX",
+    "DR_24",
+    null
+   ],
+   [
+    "MIX",
+    "DR_25",
+    null
+   ],
+   [
+    "MIX",
+    "DR_26",
+    null
+   ]
+  ],
+  "Plate_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Trim_3b3c45": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_3b3c45_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Trim_4b4c57": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_4b4c57_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Trim_918e93": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_918e93_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Trim_a39997": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_a39997_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Trim_b1aeaf": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_b1aeaf_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Trim_boot_plate": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_boot_plate_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "Trim_buckle": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_buckle_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "Trim_eaebeb": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_4",
+    null
+   ],
+   [
+    "MATH",
+    "DR_5",
+    null
+   ],
+   [
+    "VECT_MATH",
+    "DR_6",
+    null
+   ],
+   [
+    "MATH",
+    "DR_7",
+    null
+   ],
+   [
+    "COMBXYZ",
+    "DR_8",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_9",
+    "bike_side_L.png"
+   ],
+   [
+    "COMBXYZ",
+    "DR_10",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_11",
+    "bike_side_R.png"
+   ],
+   [
+    "MATH",
+    "DR_12",
+    null
+   ],
+   [
+    "MIX",
+    "DR_13",
+    null
+   ],
+   [
+    "MIX",
+    "DR_14",
+    null
+   ],
+   [
+    "MIX",
+    "DR_15",
+    null
+   ]
+  ],
+  "Trim_eaebeb_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Trim_ecbe2a": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_ecbe2a_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Trim_exhaust": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_exhaust_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Trim_fork_gold": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_fork_gold_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Trim_helmet_dark": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_helmet_dark_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "Trim_knee": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_knee_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "Trim_lens": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_lens_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "Trim_neck": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_neck_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "Trim_radiator": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_radiator_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Trim_rim_blue": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_rim_blue_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_bike_atlas_kit_v7"
+   ]
+  ],
+  "Trim_sole": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ]
+  ],
+  "Trim_sole_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ],
+  "Visor": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_0",
+    null
+   ],
+   [
+    "ATTRIBUTE",
+    "DR_1",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_2",
+    null
+   ],
+   [
+    "SEPXYZ",
+    "DR_3",
+    null
+   ],
+   [
+    "TEX_CHECKER",
+    "DR_4",
+    null
+   ],
+   [
+    "TEX_CHECKER",
+    "DR_5",
+    null
+   ],
+   [
+    "MATH",
+    "DR_6",
+    null
+   ],
+   [
+    "MIX",
+    "DR_7",
+    null
+   ]
+  ],
+  "Visor_UV": [
+   [
+    "BSDF_PRINCIPLED",
+    "Principled BSDF",
+    null
+   ],
+   [
+    "OUTPUT_MATERIAL",
+    "Material Output",
+    null
+   ],
+   [
+    "UVMAP",
+    "UV Map",
+    null
+   ],
+   [
+    "TEX_IMAGE",
+    "DR_ATLAS",
+    "DR_rider_atlas_v5"
+   ]
+  ]
+ },
+ "texts": [
+  "DR_animations.json"
+ ],
+ "actions": [
+  "DR_bike",
+  "DR_rider"
+ ],
+ "collections": [
+  [
+   "Collection",
+   [
+    "Light",
+    "Camera",
+    "bike_rig",
+    "rider_rig",
+    "race_bike_youth",
+    "race_rider",
+    "Helmet Size",
+    "Mouth Guard",
+    "Helmet Rim Flush",
+    "Chin End Flush"
+   ]
+  ]
+ ]
+}

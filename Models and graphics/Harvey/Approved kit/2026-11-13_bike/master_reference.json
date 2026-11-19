@@ -1,0 +1,2629 @@
+{
+ "actions": {
+  "DR_bike": {
+   "fcurves": 48,
+   "keys": 32592,
+   "md5": "4b2fb21ee36af2726c6ac75fd1cd9bc6",
+   "range": [
+    1.0,
+    735.0
+   ]
+  },
+  "DR_rider": {
+   "fcurves": 21,
+   "keys": 14259,
+   "md5": "3033c688a33411cfdce63f0aaa4baf82",
+   "range": [
+    1.0,
+    735.0
+   ]
+  }
+ },
+ "file": "D:\\AI\\Claude\\Desktop Rider\\blender\\desktop_rider_animated.blend",
+ "fps": 24,
+ "fps_base": 1.0,
+ "frames": [
+  1,
+  735
+ ],
+ "images": {
+  "bike_front.png": {
+   "cs": "sRGB",
+   "packed": true,
+   "size": [
+    1800,
+    2200
+   ]
+  },
+  "bike_side_L.png": {
+   "cs": "sRGB",
+   "packed": true,
+   "size": [
+    3600,
+    2200
+   ]
+  },
+  "bike_side_R.png": {
+   "cs": "sRGB",
+   "packed": true,
+   "size": [
+    3600,
+    2200
+   ]
+  },
+  "bike_top.png": {
+   "cs": "sRGB",
+   "packed": true,
+   "size": [
+    3600,
+    1800
+   ]
+  },
+  "boots_front.png": {
+   "cs": "sRGB",
+   "packed": true,
+   "size": [
+    2200,
+    2500
+   ]
+  },
+  "helmet_back.png": {
+   "cs": "sRGB",
+   "packed": true,
+   "size": [
+    800,
+    640
+   ]
+  },
+  "helmet_front.png": {
+   "cs": "sRGB",
+   "packed": true,
+   "size": [
+    800,
+    640
+   ]
+  },
+  "helmet_side.png": {
+   "cs": "sRGB",
+   "packed": true,
+   "size": [
+    800,
+    640
+   ]
+  },
+  "rider_back.png": {
+   "cs": "sRGB",
+   "packed": true,
+   "size": [
+    2200,
+    2500
+   ]
+  },
+  "rider_front.png": {
+   "cs": "sRGB",
+   "packed": true,
+   "size": [
+    2200,
+    2500
+   ]
+  },
+  "rider_side.png": {
+   "cs": "sRGB",
+   "packed": true,
+   "size": [
+    1400,
+    2500
+   ]
+  }
+ },
+ "materials": {
+  "Boots": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.624,
+     0.5583,
+     0.521,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.45,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 15
+  },
+  "DR_BarBlack": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0044,
+     0.0044,
+     0.0052,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.2,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.4,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "DR_BootStrap": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.7529,
+     0.7529,
+     0.7529,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.5,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "DR_ForkGuard": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0437,
+     0.0452,
+     0.0595,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.4,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 18
+  },
+  "DR_GoggleFrame": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0044,
+     0.0044,
+     0.0052,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.4,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "DR_Grip": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0437,
+     0.0452,
+     0.0595,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.7,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 9
+  },
+  "DR_HeadGold": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.7605,
+     0.305,
+     0.0212,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.9,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.3,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "DR_HubGold": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.7605,
+     0.305,
+     0.0212,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.9,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.3,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "DR_Ignition": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.3663,
+     0.3185,
+     0.3095,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.9,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.3,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 18
+  },
+  "DR_PegBlue": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.007,
+     0.0452,
+     0.5776,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.9,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.3,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "DR_Silencer": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.4397,
+     0.4233,
+     0.4287,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.5,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.35,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 8
+  },
+  "DR_Swingarm": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.4397,
+     0.4233,
+     0.4287,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.4,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 18
+  },
+  "Frame": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0044,
+     0.0044,
+     0.0052,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.4,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Gloves": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0044,
+     0.0044,
+     0.0052,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.7,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Helmet": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.624,
+     0.5583,
+     0.521,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.2,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 28
+  },
+  "Jersey": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.8632,
+     0.15,
+     0.0091,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.75,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 28
+  },
+  "Pants": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0437,
+     0.0452,
+     0.0595,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.75,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 28
+  },
+  "Plastics": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0437,
+     0.2384,
+     0.7011,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.4,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 29
+  },
+  "Plate": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.8228,
+     0.8308,
+     0.8308,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.4,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 29
+  },
+  "Trim_3b3c45": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.008,
+     0.008,
+     0.0091,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.7,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_4b4c57": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.402,
+     0.2232,
+     0.0319,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.9,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.4,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_918e93": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.2831,
+     0.2705,
+     0.2918,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.7,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_a39997": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.3663,
+     0.3185,
+     0.3095,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.7,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_b1aeaf": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.5149,
+     0.5271,
+     0.552,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.8,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.35,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_boot_plate": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0044,
+     0.0044,
+     0.0052,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.5,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_buckle": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.5776,
+     0.6105,
+     0.6584,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.6,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.4,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_eaebeb": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.8228,
+     0.8308,
+     0.8308,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.4,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 18
+  },
+  "Trim_ecbe2a": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     1.0,
+     0.1384,
+     0.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.4,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_exhaust": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.7529,
+     0.7529,
+     0.7758,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    1.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.12,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_fork_gold": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.6105,
+     0.624,
+     0.6445,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.9,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.3,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_helmet_dark": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0044,
+     0.0044,
+     0.0052,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.5,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_knee": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0044,
+     0.0044,
+     0.0052,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.6,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_lens": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0144,
+     0.0194,
+     0.0273,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.5,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_neck": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0044,
+     0.0044,
+     0.0052,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.7,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_radiator": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.013,
+     0.013,
+     0.0144,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.3,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.5,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_rim_blue": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0044,
+     0.0044,
+     0.0052,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.2,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.25,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Trim_sole": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.0044,
+     0.0044,
+     0.0052,
+     1.0
+    ],
+    false
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.8,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 2
+  },
+  "Visor": {
+   "Alpha": [
+    1.0,
+    false
+   ],
+   "Base Color": [
+    [
+     0.8632,
+     0.15,
+     0.0091,
+     1.0
+    ],
+    true
+   ],
+   "Emission Color": [
+    [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    false
+   ],
+   "Emission Strength": [
+    0.0,
+    false
+   ],
+   "Metallic": [
+    0.0,
+    false
+   ],
+   "Normal": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    false
+   ],
+   "Roughness": [
+    0.6,
+    false
+   ],
+   "Specular IOR Level": [
+    0.5,
+    false
+   ],
+   "blend": "DITHERED",
+   "nodes": 10
+  }
+ },
+ "objects": {
+  "bike_rig": {
+   "action": "DR_bike",
+   "bones": [
+    [
+     "root",
+     null,
+     [
+      -0.54396,
+      0.0,
+      0.0
+     ],
+     [
+      -0.54396,
+      0.0,
+      0.1
+     ]
+    ],
+    [
+     "chassis",
+     "root",
+     [
+      -0.54396,
+      0.0,
+      0.24806
+     ],
+     [
+      -0.34396,
+      0.0,
+      0.24806
+     ]
+    ],
+    [
+     "steer",
+     "chassis",
+     [
+      0.235,
+      0.0,
+      0.895
+     ],
+     [
+      0.43,
+      0.0,
+      0.49
+     ]
+    ],
+    [
+     "fork_lower",
+     "steer",
+     [
+      0.43,
+      0.0,
+      0.49
+     ],
+     [
+      0.54396,
+      0.0,
+      0.2633
+     ]
+    ],
+    [
+     "front_wheel",
+     "fork_lower",
+     [
+      0.54396,
+      0.0,
+      0.2633
+     ],
+     [
+      0.54396,
+      0.1,
+      0.2633
+     ]
+    ],
+    [
+     "grip.L",
+     "steer",
+     [
+      0.17,
+      0.345,
+      1.0
+     ],
+     [
+      0.17,
+      0.345,
+      1.08
+     ]
+    ],
+    [
+     "grip.R",
+     "steer",
+     [
+      0.17,
+      -0.345,
+      1.0
+     ],
+     [
+      0.17,
+      -0.345,
+      1.08
+     ]
+    ],
+    [
+     "swingarm",
+     "chassis",
+     [
+      -0.09,
+      0.0,
+      0.405
+     ],
+     [
+      -0.54396,
+      0.0,
+      0.24806
+     ]
+    ],
+    [
+     "rear_wheel",
+     "swingarm",
+     [
+      -0.54396,
+      0.0,
+      0.24806
+     ],
+     [
+      -0.54396,
+      0.1,
+      0.24806
+     ]
+    ],
+    [
+     "peg.L",
+     "chassis",
+     [
+      0.05,
+      0.165,
+      0.31
+     ],
+     [
+      0.05,
+      0.165,
+      0.39
+     ]
+    ],
+    [
+     "peg.R",
+     "chassis",
+     [
+      0.05,
+      -0.165,
+      0.31
+     ],
+     [
+      0.05,
+      -0.165,
+      0.39
+     ]
+    ]
+   ],
+   "constraints": [],
+   "loc": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "mods": [],
+   "parent": null,
+   "parent_bone": "",
+   "parent_type": "OBJECT",
+   "pose_constraints": [],
+   "rot": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "type": "ARMATURE"
+  },
+  "race_bike_youth": {
+   "action": null,
+   "attrs": [
+    "custom_normal",
+    "material_index",
+    "position",
+    "rest_nrm",
+    "rest_pos",
+    "sharp_edge",
+    "sharp_face"
+   ],
+   "co_md5": "6bdde3445d07eb9871fd5bb3b280f164",
+   "constraints": [],
+   "edges": 11032,
+   "faces": 4540,
+   "loc": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "loops": 13620,
+   "matidx_md5": "d88eaeb70beaa565135c505c30a3f055",
+   "mods": [
+    [
+     "ARMATURE",
+     "Armature",
+     "bike_rig"
+    ]
+   ],
+   "parent": "bike_rig",
+   "parent_bone": "",
+   "parent_type": "OBJECT",
+   "rot": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    0.87137,
+    1.0,
+    0.87137
+   ],
+   "slots": [
+    "Trim_3b3c45",
+    "Trim_rim_blue",
+    "Trim_b1aeaf",
+    "Trim_fork_gold",
+    "Frame",
+    "Trim_918e93",
+    "Trim_a39997",
+    "Trim_exhaust",
+    "Trim_ecbe2a",
+    "Trim_4b4c57",
+    "Trim_radiator",
+    "Plastics",
+    "Trim_eaebeb",
+    "Plate",
+    "DR_ForkGuard",
+    "DR_Grip",
+    "DR_HubGold",
+    "DR_BarBlack",
+    "DR_Silencer",
+    "DR_Swingarm",
+    "DR_PegBlue",
+    "DR_HeadGold",
+    "DR_Ignition"
+   ],
+   "topo_md5": "d464a8ff50bb7111aae6782a6996377d",
+   "type": "MESH",
+   "uv": [],
+   "verts": 8444,
+   "vgroups": [
+    "front_wheel",
+    "rear_wheel",
+    "fork_lower",
+    "steer",
+    "chassis",
+    "swingarm"
+   ]
+  },
+  "race_rider": {
+   "action": null,
+   "attrs": [
+    "custom_normal",
+    "material_index",
+    "position",
+    "rest_nrm",
+    "rest_pos",
+    "sharp_edge",
+    "sharp_face"
+   ],
+   "co_md5": "7f59ad1dfda3be7800a5a604142c9749",
+   "constraints": [],
+   "edges": 8757,
+   "faces": 3596,
+   "loc": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "loops": 10788,
+   "matidx_md5": "cd6c1dc3994fbbd9c45d08601c9a536c",
+   "mods": [
+    [
+     "ARMATURE",
+     "Armature",
+     "rider_rig"
+    ]
+   ],
+   "parent": "rider_rig",
+   "parent_bone": "",
+   "parent_type": "OBJECT",
+   "rot": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    0.7703,
+    1.0,
+    0.7703
+   ],
+   "slots": [
+    "Helmet",
+    "Trim_helmet_dark",
+    "Visor",
+    "Trim_lens",
+    "Trim_neck",
+    "Pants",
+    "Jersey",
+    "Gloves",
+    "Trim_knee",
+    "Trim_sole",
+    "Boots",
+    "Trim_boot_plate",
+    "Trim_buckle",
+    "DR_GoggleFrame",
+    "DR_BootStrap"
+   ],
+   "topo_md5": "dee31c5d8b611c8d9f563717bc318b09",
+   "type": "MESH",
+   "uv": [],
+   "verts": 6726,
+   "vgroups": [
+    "head",
+    "hand.L",
+    "hand.R",
+    "hips",
+    "thigh.L",
+    "shin.L",
+    "thigh.R",
+    "shin.R",
+    "spine",
+    "upper_arm.L",
+    "forearm.L",
+    "upper_arm.R",
+    "forearm.R"
+   ]
+  },
+  "rider_rig": {
+   "action": "DR_rider",
+   "bones": [
+    [
+     "root",
+     null,
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.1
+     ]
+    ],
+    [
+     "hips",
+     "root",
+     [
+      -0.13,
+      0.0,
+      0.8
+     ],
+     [
+      -0.12,
+      0.0,
+      0.92
+     ]
+    ],
+    [
+     "spine",
+     "hips",
+     [
+      -0.12,
+      0.0,
+      0.92
+     ],
+     [
+      0.0,
+      0.0,
+      1.2
+     ]
+    ],
+    [
+     "head",
+     "spine",
+     [
+      0.01,
+      0.0,
+      1.2
+     ],
+     [
+      0.03,
+      0.0,
+      1.4
+     ]
+    ],
+    [
+     "upper_arm.L",
+     "spine",
+     [
+      -0.02,
+      0.18,
+      1.17
+     ],
+     [
+      0.05,
+      0.34,
+      1.07
+     ]
+    ],
+    [
+     "forearm.L",
+     "upper_arm.L",
+     [
+      0.05,
+      0.34,
+      1.07
+     ],
+     [
+      0.17,
+      0.345,
+      1.0
+     ]
+    ],
+    [
+     "hand.L",
+     "forearm.L",
+     [
+      0.17,
+      0.345,
+      1.0
+     ],
+     [
+      0.23,
+      0.345,
+      0.99
+     ]
+    ],
+    [
+     "upper_arm.R",
+     "spine",
+     [
+      -0.02,
+      -0.18,
+      1.17
+     ],
+     [
+      0.05,
+      -0.34,
+      1.07
+     ]
+    ],
+    [
+     "forearm.R",
+     "upper_arm.R",
+     [
+      0.05,
+      -0.34,
+      1.07
+     ],
+     [
+      0.17,
+      -0.345,
+      1.0
+     ]
+    ],
+    [
+     "hand.R",
+     "forearm.R",
+     [
+      0.17,
+      -0.345,
+      1.0
+     ],
+     [
+      0.23,
+      -0.345,
+      0.99
+     ]
+    ],
+    [
+     "thigh.L",
+     "hips",
+     [
+      -0.1,
+      0.1,
+      0.78
+     ],
+     [
+      0.17,
+      0.21,
+      0.69
+     ]
+    ],
+    [
+     "shin.L",
+     "thigh.L",
+     [
+      0.17,
+      0.21,
+      0.69
+     ],
+     [
+      0.05,
+      0.165,
+      0.31
+     ]
+    ],
+    [
+     "thigh.R",
+     "hips",
+     [
+      -0.1,
+      -0.1,
+      0.78
+     ],
+     [
+      0.17,
+      -0.21,
+      0.69
+     ]
+    ],
+    [
+     "shin.R",
+     "thigh.R",
+     [
+      0.17,
+      -0.21,
+      0.69
+     ],
+     [
+      0.05,
+      -0.165,
+      0.31
+     ]
+    ]
+   ],
+   "constraints": [],
+   "loc": [
+    -0.0,
+    0.34396,
+    -0.24806
+   ],
+   "mods": [],
+   "parent": "bike_rig",
+   "parent_bone": "chassis",
+   "parent_type": "BONE",
+   "pose_constraints": [
+    [
+     "forearm.L",
+     [
+      [
+       "IK",
+       "IK"
+      ]
+     ]
+    ],
+    [
+     "forearm.R",
+     [
+      [
+       "IK",
+       "IK"
+      ]
+     ]
+    ],
+    [
+     "shin.L",
+     [
+      [
+       "IK",
+       "IK"
+      ]
+     ]
+    ],
+    [
+     "shin.R",
+     [
+      [
+       "IK",
+       "IK"
+      ]
+     ]
+    ]
+   ],
+   "rot": [
+    0.0,
+    -0.0,
+    1.5708
+   ],
+   "scale": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "type": "ARMATURE"
+  }
+ },
+ "texts": {
+  "DR_animations.json": {
+   "len": 1361,
+   "md5": "8f50904195563f6a8ec17e6f976003ce"
+  }
+ }
+}

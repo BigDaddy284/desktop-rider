@@ -1,0 +1,87 @@
+[
+ {
+  "check": "reference: 18 trick animations keyed in memory",
+  "result": "PASS",
+  "detail": "18 clips, frames 1-2210, side Right"
+ },
+ {
+  "check": "full export (with meshes, scratch copy): objects",
+  "result": "PASS",
+  "detail": "rigs ['bike_rig', 'rider_rig'] meshes ['race_bike_youth', 'race_rider']"
+ },
+ {
+  "check": "full export (with meshes, scratch copy): bike_rig bones and hierarchy",
+  "result": "PASS",
+  "detail": "11 bones (expected 11)"
+ },
+ {
+  "check": "full export (with meshes, scratch copy): rider_rig bones and hierarchy",
+  "result": "PASS",
+  "detail": "14 bones (expected 14)"
+ },
+ {
+  "check": "full export (with meshes, scratch copy): 18 clips present for both rigs",
+  "result": "PASS",
+  "detail": "36 actions imported; missing []"
+ },
+ {
+  "check": "full export (with meshes, scratch copy): clip lengths equal the script's table",
+  "result": "PASS",
+  "detail": "all 18 match"
+ },
+ {
+  "check": "full export (with meshes, scratch copy): bone positions at every 4th frame of every clip within 1 mm",
+  "result": "PASS",
+  "detail": "556 frames sampled; worst 0.0026 mm at ('Whip', 68, 'bike_rig', 'front_wheel')"
+ },
+ {
+  "check": "full export (with meshes, scratch copy): bone rotations at every 4th frame of every clip within 0.5 deg",
+  "result": "PASS",
+  "detail": "worst 0.0000 deg at None (largest rotation actually present in the samples: 179.4 deg)"
+ },
+ {
+  "check": "full export (with meshes, scratch copy): skinned mesh vertices at every 4th frame of every clip within 1 mm",
+  "result": "PASS",
+  "detail": "worst 0.0032 mm at ('Whip', 68, 'race_bike_youth')"
+ },
+ {
+  "check": "DesktopRider_Tricks.fbx (rigs only): objects",
+  "result": "PASS",
+  "detail": "rigs ['bike_rig', 'rider_rig'] meshes []"
+ },
+ {
+  "check": "DesktopRider_Tricks.fbx (rigs only): bike_rig bones and hierarchy",
+  "result": "PASS",
+  "detail": "11 bones (expected 11)"
+ },
+ {
+  "check": "DesktopRider_Tricks.fbx (rigs only): rider_rig bones and hierarchy",
+  "result": "PASS",
+  "detail": "14 bones (expected 14)"
+ },
+ {
+  "check": "DesktopRider_Tricks.fbx (rigs only): 18 clips present for both rigs",
+  "result": "PASS",
+  "detail": "36 actions imported; missing []"
+ },
+ {
+  "check": "DesktopRider_Tricks.fbx (rigs only): clip lengths equal the script's table",
+  "result": "PASS",
+  "detail": "all 18 match"
+ },
+ {
+  "check": "DesktopRider_Tricks.fbx (rigs only): bone positions at every 4th frame of every clip within 1 mm",
+  "result": "PASS",
+  "detail": "556 frames sampled; worst 0.0025 mm at ('Whip', 68, 'bike_rig', 'front_wheel')"
+ },
+ {
+  "check": "DesktopRider_Tricks.fbx (rigs only): bone rotations at every 4th frame of every clip within 0.5 deg",
+  "result": "PASS",
+  "detail": "worst 0.0000 deg at None (largest rotation actually present in the samples: 179.4 deg)"
+ },
+ {
+  "check": "both files have the same set of animation curves",
+  "result": "PASS",
+  "detail": "4824 curves in each"
+ }
+]

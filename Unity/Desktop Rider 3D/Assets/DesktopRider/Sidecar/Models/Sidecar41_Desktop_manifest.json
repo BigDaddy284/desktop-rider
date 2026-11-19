@@ -1,0 +1,200 @@
+{
+ "name": "Sidecar 41 (desktop)",
+ "fbx": "Sidecar41_Desktop.fbx",
+ "fps": 24,
+ "units": "metres",
+ "note": "Desktop copy of the approved Sidecar41.fbx: same clips and poses, held in place (no travel on sidecar_rig/root). The app moves the outfit by the travel in sidecar_layout.json.",
+ "ride_speed": 6.3,
+ "turn_radius": 4.5,
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 48,
+   "loop": true,
+   "kind": "everyday",
+   "travel": 0.0
+  },
+  {
+   "name": "LookAround",
+   "frames": 72,
+   "loop": false,
+   "kind": "everyday",
+   "travel": 0.0
+  },
+  {
+   "name": "Revving",
+   "frames": 24,
+   "loop": true,
+   "kind": "everyday",
+   "travel": 0.0
+  },
+  {
+   "name": "Thinking",
+   "frames": 72,
+   "loop": false,
+   "kind": "everyday",
+   "travel": 0.0
+  },
+  {
+   "name": "Talking",
+   "frames": 48,
+   "loop": true,
+   "kind": "everyday",
+   "travel": 0.0
+  },
+  {
+   "name": "Celebration",
+   "frames": 60,
+   "loop": false,
+   "kind": "everyday",
+   "travel": 0.0
+  },
+  {
+   "name": "SleepStart",
+   "frames": 24,
+   "loop": false,
+   "kind": "everyday",
+   "travel": 0.0
+  },
+  {
+   "name": "Sleeping",
+   "frames": 96,
+   "loop": true,
+   "kind": "everyday",
+   "travel": 0.0
+  },
+  {
+   "name": "SleepEnd",
+   "frames": 24,
+   "loop": false,
+   "kind": "everyday",
+   "travel": 0.0
+  },
+  {
+   "name": "RideOff",
+   "frames": 42,
+   "loop": false,
+   "kind": "riding",
+   "travel": 6.3
+  },
+  {
+   "name": "RideOn",
+   "frames": 48,
+   "loop": false,
+   "kind": "riding",
+   "travel": 4.725
+  },
+  {
+   "name": "RidingLoop",
+   "frames": 32,
+   "loop": true,
+   "kind": "riding",
+   "travel": 0.0
+  },
+  {
+   "name": "CornerLeft",
+   "frames": 32,
+   "loop": true,
+   "kind": "riding",
+   "travel": 0.0
+  },
+  {
+   "name": "CornerRight",
+   "frames": 32,
+   "loop": true,
+   "kind": "riding",
+   "travel": 0.0
+  },
+  {
+   "name": "CornerLeftIn",
+   "frames": 16,
+   "loop": false,
+   "kind": "riding",
+   "travel": 0.0
+  },
+  {
+   "name": "CornerLeftOut",
+   "frames": 16,
+   "loop": false,
+   "kind": "riding",
+   "travel": 0.0
+  },
+  {
+   "name": "CornerRightIn",
+   "frames": 16,
+   "loop": false,
+   "kind": "riding",
+   "travel": 0.0
+  },
+  {
+   "name": "CornerRightOut",
+   "frames": 16,
+   "loop": false,
+   "kind": "riding",
+   "travel": 0.0
+  },
+  {
+   "name": "FlyingChair",
+   "frames": 96,
+   "loop": false,
+   "kind": "trick",
+   "travel": 25.2
+  },
+  {
+   "name": "Wheelie",
+   "frames": 84,
+   "loop": false,
+   "kind": "trick",
+   "travel": 22.05
+  },
+  {
+   "name": "PowerSlide",
+   "frames": 84,
+   "loop": false,
+   "kind": "trick",
+   "travel": 22.05
+  },
+  {
+   "name": "PassengerWave",
+   "frames": 72,
+   "loop": false,
+   "kind": "trick",
+   "travel": 18.9
+  },
+  {
+   "name": "LostPassenger",
+   "frames": 120,
+   "loop": false,
+   "kind": "trick",
+   "travel": 23.0108
+  },
+  {
+   "name": "Rollers",
+   "frames": 120,
+   "loop": false,
+   "kind": "ground",
+   "travel": 33.5503
+  },
+  {
+   "name": "Double",
+   "frames": 94,
+   "loop": false,
+   "kind": "jump",
+   "travel": 37.9304
+  },
+  {
+   "name": "NoHander",
+   "frames": 83,
+   "loop": false,
+   "kind": "jump",
+   "travel": 24.3314
+  },
+  {
+   "name": "PassengerSuperman",
+   "frames": 94,
+   "loop": false,
+   "kind": "jump",
+   "travel": 37.9304
+  }
+ ]
+}

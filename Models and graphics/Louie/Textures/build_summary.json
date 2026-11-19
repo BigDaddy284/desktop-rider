@@ -1,0 +1,212 @@
+{
+ "race_rider": {
+  "atlas": "DR2_rider_atlas_blank.png",
+  "replaced_atlas": "DR_rider_atlas_v5",
+  "nodes_swapped": 15,
+  "zones": {
+   "Helmet_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#e6194b",
+    "faces": 524
+   },
+   "Trim_helmet_dark_UV": {
+    "tone": "#4a4a4a",
+    "guide": "#3cb44b",
+    "faces": 236
+   },
+   "DR_GoggleFrame_UV": {
+    "tone": "#5a5a5a",
+    "guide": "#fffac8",
+    "faces": 52
+   },
+   "Visor_UV": {
+    "tone": "#2b2b2b",
+    "guide": "#ffe119",
+    "faces": 164
+   },
+   "Trim_lens_UV": {
+    "tone": "#3a3a3a",
+    "guide": "#4363d8",
+    "faces": 52
+   },
+   "Trim_neck_UV": {
+    "tone": "#5a5a5a",
+    "guide": "#f58231",
+    "faces": 44
+   },
+   "Pants_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#911eb4",
+    "faces": 464
+   },
+   "Jersey_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#46f0f0",
+    "faces": 416
+   },
+   "Gloves_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#f032e6",
+    "faces": 476
+   },
+   "Trim_knee_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#bcf60c",
+    "faces": 24
+   },
+   "Trim_sole_UV": {
+    "tone": "#2f2f2f",
+    "guide": "#fabebe",
+    "faces": 88
+   },
+   "Boots_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#008080",
+    "faces": 520
+   },
+   "DR_BootStrap_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#800000",
+    "faces": 352
+   },
+   "Trim_boot_plate_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#e6beff",
+    "faces": 112
+   },
+   "Trim_buckle_UV": {
+    "tone": "#9a9a9a",
+    "guide": "#9a6324",
+    "faces": 72
+   }
+  }
+ },
+ "race_bike_youth": {
+  "atlas": "DR2_bike_atlas_blank.png",
+  "replaced_atlas": "DR_bike_atlas_kit_v7",
+  "nodes_swapped": 23,
+  "zones": {
+   "Trim_3b3c45_UV": {
+    "tone": "#3b3b3b",
+    "guide": "#e6194b",
+    "faces": 1476
+   },
+   "DR_ForkGuard_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#800000",
+    "faces": 76
+   },
+   "DR_Grip_UV": {
+    "tone": "#2f2f2f",
+    "guide": "#aaffc3",
+    "faces": 40
+   },
+   "Trim_rim_blue_UV": {
+    "tone": "#7a7a7a",
+    "guide": "#3cb44b",
+    "faces": 384
+   },
+   "DR_HubGold_UV": {
+    "tone": "#8a8a8a",
+    "guide": "#808000",
+    "faces": 240
+   },
+   "Trim_b1aeaf_UV": {
+    "tone": "#afafaf",
+    "guide": "#ffe119",
+    "faces": 636
+   },
+   "DR_BarBlack_UV": {
+    "tone": "#333333",
+    "guide": "#ffd8b1",
+    "faces": 92
+   },
+   "Frame_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#f58231",
+    "faces": 280
+   },
+   "DR_Silencer_UV": {
+    "tone": "#b5b5b5",
+    "guide": "#000075",
+    "faces": 60
+   },
+   "DR_Swingarm_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#808080",
+    "faces": 40
+   },
+   "DR_PegBlue_UV": {
+    "tone": "#7a7a7a",
+    "guide": "#ffffff",
+    "faces": 24
+   },
+   "Trim_fork_gold_UV": {
+    "tone": "#8a8a8a",
+    "guide": "#4363d8",
+    "faces": 88
+   },
+   "Trim_918e93_UV": {
+    "tone": "#8f8f8f",
+    "guide": "#911eb4",
+    "faces": 40
+   },
+   "DR_HeadGold_UV": {
+    "tone": "#8a8a8a",
+    "guide": "#000000",
+    "faces": 12
+   },
+   "Trim_a39997_UV": {
+    "tone": "#9b9b9b",
+    "guide": "#46f0f0",
+    "faces": 172
+   },
+   "DR_Ignition_UV": {
+    "tone": "#3a3a3a",
+    "guide": "#a9a9a9",
+    "faces": 16
+   },
+   "Trim_exhaust_UV": {
+    "tone": "#a8a8a8",
+    "guide": "#f032e6",
+    "faces": 124
+   },
+   "Trim_ecbe2a_UV": {
+    "tone": "#8a8a8a",
+    "guide": "#bcf60c",
+    "faces": 124
+   },
+   "Trim_4b4c57_UV": {
+    "tone": "#4c4c4c",
+    "guide": "#fabebe",
+    "faces": 232
+   },
+   "Trim_radiator_UV": {
+    "tone": "#5c5c5c",
+    "guide": "#008080",
+    "faces": 48
+   },
+   "Plastics_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#e6beff",
+    "faces": 412
+   },
+   "Trim_eaebeb_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#9a6324",
+    "faces": 40
+   },
+   "Plate_UV": {
+    "tone": "#d9d9d9",
+    "guide": "#fffac8",
+    "faces": 72
+   }
+  }
+ },
+ "images_in_file": [
+  "DR2_bike_atlas_blank",
+  "DR2_rider_atlas_blank",
+  "Render Result",
+  "Viewer Node"
+ ]
+}
