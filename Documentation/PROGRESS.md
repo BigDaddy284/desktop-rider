@@ -1,10 +1,24 @@
 # Progress
 
-Last updated: 13 November 2026
+Last updated: 19 November 2026
 
 ## Current task
 
 Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: built, tested automatically, and confirmed by the owner on Windows 11 with the 0.6.2 build, including the dark style, chat in bubbles and tricks on request. Phase 7 (personality and memory) is built and tested automatically in 0.7.0 and awaits the owner's check on Windows (M8). Version 0.8.0 adds, at the owner's request, tricks in a row ("do some tricks"), kinds of animation so that only tricks are picked as tricks, and the rider doing something by itself now and then while it may start conversations; built and tested automatically, awaiting the owner's check (M10). Next is Phase 8: settings and polish.
+
+Second character set (sidecar outfit 41): paint approved. The owner rejected the first pass of the 28 motions; the second pass (17 Nov 2026) rebuilds every crew pose on the rig from his race photos, runs at real speed with real gravity, uses a sidecar-sized double jump and bigger rollers, and checks every frame for wheels in the ground and bodies through the bike. Corner poses redone from the owner's two corner photos (17 Nov 2026). All 27 motions approved by the owner in the Unity sidecar viewer on 17 Nov 2026 (see `Documentation/ASSET_INDEX.md`; snapshot in project files sidecar/approved/2026-11-17-all/). Version 0.9.0 brings it into the app as a second character, **Sidecar 41**, chosen in Rider settings; the sprite sheets await the owner's look on Windows (M11). Video of real sidecar runs would let the jumps and rollers be matched more closely.
+
+3D app, version 2.1 (17 Nov 2026): at the owner's choice the sidecar goes into the 3D Unity Desktop Rider (version 2, no AI), not the 2D app. Settings gain **Who rides** (Harvey or Sidecar 41) and **Riding speed** (0.5x to 2x). The owner saw the first test sidecar circle forever because its turning circle is too wide to reach its target; the steering now slows for tight turns (`RiderSteering.SpeedForTurn`, simulated over 30 cases: stuck in 23 before, 0 after). Unity EditMode tests 392 passed, 0 failed; build clean; the built app ran the sidecar for 3 minutes with no errors and did its tricks. Shareable build: `Builds/Share/Desktop Rider 2.1.zip` in the Unity project. Changed scripts copied to `Tools/Unity/DesktopRider3D-v2.1/`. Awaiting the owner's look.
+
+3D app, version 2.2 (18 Nov 2026): the owner's video showed the sidecar crawling round near a trick's start, snapping to face the jump, and setting off at full speed from a stop. The rider now rides a proper run-up along the trick's line, arrives at the trick's own speed and facing the way it goes, and rides on after a trick that ends moving. Unity tests 400 passed, 0 failed; build clean; in the built app the sidecar lined up for and rode Double, Wheelie and NoHander, and Harvey Backflip and Whoops. Shareable build: `Builds/Share/Desktop Rider 2.2.zip`. Awaiting the owner's look.
+
+3D app, version 2.3 (18 Nov 2026): the rider now plans the whole way to a trick and follows it at speed (no crawling), never turns on the spot as a trick starts (at most 4 degrees), and the corner pose no longer flicks out and snaps off. Unity tests 403 passed, 0 failed; build clean; checked in frame-by-frame recordings of the built app at normal and largest size. The owner's "big flashes" were not seen in those recordings (they record only the app's own picture); awaiting a screen recording from the owner if they remain. Shareable build: `Builds/Share/Desktop Rider 2.3.zip`.
+
+3D app, version 2.4 (19 Nov 2026): the sidecar is named **Roy/Dad** in the app at the owner's request (the saved setting value stays `Sidecar41`). Unity tests 403 passed, 0 failed; build clean. Shareable build: `Builds/Share/Desktop Rider 2.4.zip`.
+
+3D app, sidecar tricks shortened (19 Nov 2026): the sidecar is now drawn so its crew are Harvey's size (approved, sizes fixed), which made its tricks (up to 38 m) too wide for a screen. At the owner's choice every sidecar trick is squeezed to half its length along the way it travels (`TrickLayout.Shortened`, `SidecarTrickLength = 0.5`): travel, ramps, landings and rollers alike, heights and timing unchanged, so the longest (Double) is 19 m, about as wide on screen as Harvey's longest. Also fixed: a trick planned at the far edge of the room was given up when the rider arrived a frame past its start; planning now keeps `0.5 + 0.15 x entry speed` metres spare beyond the end. Unity tests 411 passed, 0 failed; build clean; the built app at the largest size rode the sidecar's Double across the screens. Known: with Animation speed at 2x the sidecar's run-up to a jump is 13 m/s and long, and it can leave the screen for a few seconds on the way.
+
+3D app, version 2.5 (19 Nov 2026): **Louie**, the second rider on an electric bike, joins Harvey and Roy/Dad. In Settings, **Who rides** became three switch-like name buttons (lit when that rider is out); one, two or all three can ride at once, each in its own see-through window (`RiderLineUp`, `CompanionRiders`, `RiderSignal`). All riders are drawn the same height on screen (the sidecar at 1.134/1.472 of its size, matched on feet-to-helmet height) and ride at the same on-screen speeds. Size runs 0.5 to 1.3, with a lower top size on screens narrower than 1920 pixels. Also: "Move to corner" now really moves the riders to the bottom-right corner; a right-click on any rider opens settings; tray **Do a trick** picks a random rider who is out; the settings window has a **Do a trick** button and can be resized (it drops the descriptions when too short, leaving headings, names, controls and buttons). Louie's bike: smooth-edged plate numbers, full-size texture, the GizMX Racing logo under the 11 on the front plate, and the new front frame narrowed so the fork legs clear it with the bars turned 28 degrees (the Whip). Unity EditMode tests 420 passed, 0 failed; build clean; the built app ran all three riders together and was checked by the owner. Changed scripts in `Tools/Unity/DesktopRider3D-v2.1/` and `Tools/Unity/Louie/`, Louie's Blender scripts in `Tools/Blender/Louie/`.
 
 ## Completed tasks
 
@@ -43,6 +57,8 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 | 7 | Implement proactive behaviour controls | Built and unit tested (`ProactiveComments`, `QuietHours`): off by default with no timer and no AI request; when switched on, a remark after the chosen time, quiet hours, a one-hour mute on the rider's menu, and silence after three unanswered remarks. The owner has not yet tried it (M8). |
 | 4 | Jumps, freestyle tricks, whoops and a stoppie (owner's request) | Built in 0.6.3 and combined with Phase 7 in 0.7.1: 18 new animations rendered from the owner's own models in both directions (jump, whip, scrub, backflip, superman, superman seat grab, no hander, no footer, nothing, heel clicker, can-can, nac-nac, lazy boy, one hander, indian air, rock solid, whoops, stoppie), larger frames with their own window so ramps and height fit, and all of them available on request and to the AI. Manifest, frame rules and requests are unit tested. How they look on Windows awaits the owner's check (M9), and the ramps, mounds and whoops are new artwork awaiting approval. |
 | 4 | The rider understanding its animations (owner's request) | Built in 0.8.0. Every action has a kind (trick, on the bike, gesture) and the AI is told which is which. "Do some tricks" plays three or four different tricks, and only tricks, starting with any the rider names in its answer; tricks queue and play one after another. While the rider may start conversations it also does a random animation every few minutes without using the AI. Fixes the owner's report of 13 November: asked for some tricks, the rider said "how about a no hander" and did one wheelie. Unit tested; awaits the owner's check (M10). |
+| 4 | Sidecar 41 in the app (owner's request) | Built in 0.9.0. 21 of the approved sidecar motions rendered as sprites in both directions (`Tools/Blender/Sidecar/sprites.py`, three-quarter view 18° round and 8° down, 170 pixels per metre); the two corner moves are not used. Rider settings has a **Character** choice between Harvey and Sidecar 41, the menu and the conversation use the sidecar's own tricks (double, passenger superman, flying chair, power slide, rollers, lost passenger, passenger wave). Manifest, sheets, tricks and the settings choice are unit tested; the look awaits the owner's check (M11). |
+| 4 | Riding about with a speed control (owner's request) | Built in 0.9.0. Riding off, riding along and riding back now move the window across the screen, for any character, at the character's real speed scaled to its size; it turns round at the edge of the screens. Rider settings has a **Riding speed** slider (quarter speed to double) with a Normal button. Speed rules and screen-edge steps are unit tested; the feel awaits the owner's check (M11). |
 | 3 | Organise all supplied references | Done. Stored privately by the owner; folder structure and written summary are in `References/`. |
 
 ## Latest results
@@ -50,7 +66,7 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 | Check | Result |
 |---|---|
 | Build (`dotnet build`, warnings as errors) | Succeeded, 0 warnings, 0 errors |
-| Tests (`dotnet test`) | 620 passed, 0 failed, 0 skipped (Core 153, Animation 84, AI 383) |
+| Tests (`dotnet test`) | 668 passed, 0 failed, 0 skipped (Core 174, Animation 101, AI 393) |
 | GitHub Actions build and test on Windows | Passed for Phase 1; runs again on each push |
 | Standalone Windows build (`dotnet publish`, win-x64) | Succeeded |
 | Manual checks on Windows 11 | The owner ran the 0.3.0 test build: it starts, shows the animated rider and works. M1 to M3 not yet reported step by step. |
@@ -88,6 +104,10 @@ Phases 1, 2 and 5 are complete. Phase 6 (conversation interface) is complete: bu
 
 - Multiple monitors have not been tried on real hardware. The owner uses a single 49-inch ultrawide monitor and has no second screen, so M2 steps 9 and 10 cannot be done there. The placement rules for several monitors are covered by automated tests only.
 
+## Fix 0.9.1 (17 Nov 2026)
+
+The 0.9.0 Windows build left the larger sprite sheets (every jump and trick sheet, for Harvey and the sidecar) inside the single-file exe instead of the Assets folder, so the sidecar could not load and the app fell back to Harvey. The sprite content now has `ExcludeFromSingleFile` and `CopyToPublishDirectory`; a test (`PublishLayoutTests`) checks the project keeps them that way, and the published folder was checked to hold all 110 sprite files.
+
 ## Technical decisions
 
 Recorded in ARCHITECTURE.md.
@@ -95,3 +115,9 @@ Recorded in ARCHITECTURE.md.
 ## Next task
 
 Phase 8: Settings and polish (complete the settings interface, start-up options, transitions and visual polish, packaging). 
+
+- Sidecar Move Viewer (17 Nov 2026): after new model files were imported the window kept using the old, destroyed outfit and its moves, so nothing played (MissingReferenceException every frame). It now looks the outfit up again whenever the project changes, a scene opens or the old one has gone, and loads jump props straight from the Props folder if the scene's list is out of date. Checked in the owner's Unity: compiles with no errors, Double renders mid-air.
+- PassengerSuperman moved onto the big double with a longer hold (17 Nov 2026): fully out from 20% to 78% of the flight (about 0.6 s, was about 0.2 s). Bodycheck pas_in_bike 23, drv 84 (baseline). Checked in the owner's Unity.
+- Big double landing moved further out (17 Nov 2026, owner: 'landing needs moving again'): the back wheel now first touches about 0.6 m past the top edge, on the start of the far slope, instead of about 2 m down it. Landing at 17.14 m (was 16.64), air 1.13 s. Affects Double and PassengerSuperman. Unity's shot command gained a 'side' view that places the move's ramps, for checking landings.
+- APPROVED by the owner 17 Nov 2026 ('sweet lockem in'): Double (big double, landing just past the top edge) and PassengerSuperman (on the big double, long hold). Approved build snapshot: project files sidecar/approved/2026-11-17-jumps/ (Sidecar41.fbx, manifest, sidecar_anim.py). Do not change these two without asking.
+- APPROVED by the owner 17 Nov 2026 ('they are all good'): every sidecar motion (27 clips). Snapshot: project files sidecar/approved/2026-11-17-all/.

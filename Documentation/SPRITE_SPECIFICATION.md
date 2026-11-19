@@ -102,6 +102,46 @@ How the movement is made (`Tools/Blender/trick_core.py` and `trick_animations.py
 
 These were built from descriptions of the real techniques, not traced from film frame by frame, and have not yet been seen by the owner. See ASSET_INDEX.md for their approval status.
 
+## Characters (added 17 November 2026)
+
+Each character has its own folder under `Assets/Sprites/` with its own `sprites.json` and sheets, following the rules above. `Rider` is Harvey, the standard rider; `Sidecar41` is the sidecar crew. The user picks one in **Rider settings**. Every folder with a `sprites.json` in it is offered; a character added this way needs no code changes.
+
+Two more values at the top of `sprites.json` describe the character as a whole:
+
+| Value | Meaning |
+|---|---|
+| `displayName` | The name shown in settings, such as "Harvey" or "Sidecar 41". |
+| `rideSpeed` | How fast it rides in its riding animation, in metres a second. With `pixelsPerMetre` this sets how fast the window moves when it rides about. Harvey: 3.0 (the speed his riding loop was made at). Sidecar 41: 6.3. |
+
+A character's standard frame can be a different size from Harvey's; the window follows the frame size in its own list.
+
+### Sidecar 41
+
+Rendered from the approved Blender animation (`Tools/Blender/Sidecar/sprites.py`) with every move the owner approved in Unity on 17 November 2026. The outfit stays in place and the camera follows it, so riding plays on the spot and ramps and rollers roll past, as for Harvey.
+
+| Property | Value |
+|---|---|
+| View | From a little in front and above (18 degrees round, 8 degrees down), orthographic. A flat side view would hide the passenger and the chair behind the bike. Facing right shows the bike's right side with the chair beyond it; facing left shows the chair side. |
+| Scale | 170 pixels per metre, so the outfit is about as wide on screen as Harvey's bike |
+| Standard frame | 470 × 375 pixels; the outfit's ground point is 235 pixels from the left and 345 from the top (`groundY`) |
+| Larger frames | Tricks (wheelie, flying chair, power slide, passenger wave, lost passenger): 140 more behind, 20 more above. Jumps and rollers: 140 more behind, 380 more above. |
+| Frame rate | 12 frames per second (every second frame of the 24 a second animation) |
+
+| Animation in the app | Sidecar move | Notes |
+|---|---|---|
+| Idle, Revving, Thinking, Talking, Celebration, Wheelie | the same names | |
+| IdleVariation | LookAround | The only small idle movement |
+| SleepStart, Sleeping, SleepEnd | the same names | |
+| RideOff, RidingLoop, RideOn | the same names | Played on the spot; the window moves |
+| FlyingChair, PowerSlide, PassengerWave, LostPassenger | the same names | Tricks |
+| Rollers, Double, NoHander, PassengerSuperman | the same names | Jumps; ramps roll past |
+
+The four corner moves (CornerLeft, CornerRight and their in and out moves) are not used: on the desktop the outfit only rides left and right. They stay in the Unity set.
+
+## Riding about
+
+When a character plays RideOff, RidingLoop or RideOn, its window moves sideways (`RidingMotion` and `PlacementCalculator.RideStep`): it speeds up through RideOff, holds `rideSpeed` through the loop and slows to a stop through RideOn. The user's **Riding speed** (0.25 to 2.0, normal 1.0) scales both the window's speed and how fast the riding animations play, so the wheels keep pace. The character rides from one screen onto the next and turns round at an edge with no screen beyond it. Its new spot is remembered when the ride ends.
+
 ## Playback rules
 
 - Every one-shot starts and ends in the resting pose, so one can follow another without a jump.

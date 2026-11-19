@@ -43,7 +43,8 @@ public sealed record RiderAction(string Tag, string Animation, RiderActionKind K
 /// </summary>
 public static partial class RiderActions
 {
-    public static IReadOnlyList<RiderAction> All { get; } =
+    // What the standard rider can do. Another character offers only the actions it has animations for (see UseAnimations).
+    private static readonly RiderAction[] Standard =
     [
         new("wheelie", "Wheelie", RiderActionKind.Trick, "lift the front wheel in a wheelie", ["wheelie", "wheelies", "wheely"]),
         new("celebrate", "Celebration", RiderActionKind.Gesture, "do a victory celebration", ["celebrate", "celebration", "victory dance"]),
@@ -72,8 +73,53 @@ public static partial class RiderActions
         new("stoppie", "Stoppie", RiderActionKind.Trick, "do a stoppie, lifting the rear wheel on the front brake", ["stoppie", "stoppy", "endo", "nose wheelie"]),
     ];
 
+    // Moves only the sidecar crew have: the driver and the passenger in the chair.
+    private static readonly RiderAction[] SidecarMoves =
+    [
+        new("double", "Double", RiderActionKind.Trick, "fly a big double jump with the sidecar", ["a double", "big double", "do a double", "do a jump", "hit a jump", "hit the jump", "go over a jump", "jump the bike", "big jump", "jump over"]),
+        new("passenger-superman", "PassengerSuperman", RiderActionKind.Trick, "jump while the passenger flies out flat behind, holding on by the hands", ["superman", "passenger superman"]),
+        new("flying-chair", "FlyingChair", RiderActionKind.Trick, "ride along with the sidecar wheel up in the air", ["flying chair", "chair in the air", "lift the chair", "two wheels", "sidecar wheel up"]),
+        new("power-slide", "PowerSlide", RiderActionKind.Trick, "slide the back of the bike out round a corner", ["power slide", "powerslide", "slide it", "drift"]),
+        new("rollers", "Rollers", RiderActionKind.Trick, "ride over a set of rollers", ["rollers", "roller section", "the bumps"]),
+        new("lost-passenger", "LostPassenger", RiderActionKind.Trick, "hit a bump so hard the passenger nearly falls out, then climbs back in", ["lose the passenger", "lost passenger", "passenger falls out", "throw the passenger out"]),
+        new("passenger-wave", "PassengerWave", RiderActionKind.Gesture, "have the passenger wave from the chair", ["wave", "give a wave", "passenger wave"]),
+    ];
+
+    // Made on first use, after every other static value in this class is ready.
+    private static volatile ActionSet? _set;
+
+    private static ActionSet Current => _set ??= new ActionSet([.. Standard]);
+
+    /// <summary>Everything the character on the desktop can be asked to do.</summary>
+    public static IReadOnlyList<RiderAction> All => Current.All;
+
     /// <summary>The jumps, tricks and stunts: the only things picked when the user asks for "a trick" or "some tricks".</summary>
-    public static IReadOnlyList<RiderAction> Tricks { get; } = [.. All.Where(action => action.Kind == RiderActionKind.Trick)];
+    public static IReadOnlyList<RiderAction> Tricks => Current.Tricks;
+
+    /// <summary>
+    /// Matches the actions to the character on the desktop: only actions whose animation it has are offered, so the AI
+    /// never promises a trick the character cannot do. Null puts back the standard rider's actions.
+    /// </summary>
+    public static void UseAnimations(IEnumerable<string>? animations)
+    {
+        if (animations is null)
+        {
+            _set = new ActionSet([.. Standard]);
+            return;
+        }
+
+        var have = new HashSet<string>(animations, StringComparer.OrdinalIgnoreCase);
+        _set = new ActionSet([.. Standard.Concat(SidecarMoves).Where(action => have.Contains(action.Animation))]);
+    }
+
+    private sealed class ActionSet(IReadOnlyList<RiderAction> all)
+    {
+        public IReadOnlyList<RiderAction> All { get; } = all;
+
+        public IReadOnlyList<RiderAction> Tricks { get; } = [.. all.Where(action => action.Kind == RiderActionKind.Trick)];
+
+        public string Instructions { get; } = MakeInstructions(all);
+    }
 
     /// <summary>
     /// Stands for "one trick, any trick" when the AI writes <c>[trick]</c>. It is not in <see cref="All"/> and has
@@ -105,12 +151,14 @@ public static partial class RiderActions
         ["more tricks", "more stunts", "trick show", "put on a show", "show me what you can do", "what you ve got", "what you got", "what ya got", "what you can do"];
 
     /// <summary>Added to the rider's personality so the AI knows what it can do and how to do it.</summary>
-    public static string Instructions { get; } =
+    public static string Instructions => Current.Instructions;
+
+    private static string MakeInstructions(IReadOnlyList<RiderAction> all) =>
         "You can move. You only move when you write a tag: saying you will do something does not make it happen. "
         + "When the user asks you to do one of these things, or it would be fun, put its tag at the very start of your reply, then answer normally. "
-        + "Tricks, jumps and stunts: " + Describe(RiderActionKind.Trick)
-        + ". Ordinary things on the bike, which are not tricks: " + Describe(RiderActionKind.Bike)
-        + ". Gestures, which are not tricks: " + Describe(RiderActionKind.Gesture)
+        + "Tricks, jumps and stunts: " + Describe(all, RiderActionKind.Trick)
+        + ". Ordinary things on the bike, which are not tricks: " + Describe(all, RiderActionKind.Bike)
+        + ". Gestures, which are not tricks: " + Describe(all, RiderActionKind.Gesture)
         + $". When the user asks for tricks without naming any, write [{SomeTricks.Tag}] to {SomeTricks.Description}, or [{AnyTrick.Tag}] to {AnyTrick.Description}. "
         + "Tags go only at the very start of your reply, before any words, never inside a sentence. "
         + "After the tag, when you have been asked to do something, just say a few easy words such as \"Sure, watch this!\" or \"Hold tight!\" "
@@ -118,8 +166,8 @@ public static partial class RiderActions
         + "Your thinking and talking movements happen by themselves and are not tricks. "
         + "Use only these tags, exactly as written. The user does not see the tags.";
 
-    private static string Describe(RiderActionKind kind) =>
-        string.Join("; ", All.Where(action => action.Kind == kind).Select(action => $"[{action.Tag}] to {action.Description}"));
+    private static string Describe(IReadOnlyList<RiderAction> all, RiderActionKind kind) =>
+        string.Join("; ", all.Where(action => action.Kind == kind).Select(action => $"[{action.Tag}] to {action.Description}"));
 
     private static readonly string[] QuestionStarts = ["what", "why", "how", "when", "who", "which", "where"];
 

@@ -1,12 +1,46 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows.Input;
+using DesktopRider.Core.Characters;
 using DesktopRider.Core.Configuration;
 using DesktopRider.Core.ViewModels;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DesktopRider.AI;
+
+/// <summary>One character on the settings list, as a choice the user can tick.</summary>
+public sealed class CharacterChoice : ViewModelBase
+{
+    private readonly Func<string> _chosen;
+    private readonly Action<string> _choose;
+
+    internal CharacterChoice(CharacterInfo character, Func<string> chosen, Action<string> choose)
+    {
+        Character = character;
+        _chosen = chosen;
+        _choose = choose;
+    }
+
+    public CharacterInfo Character { get; }
+
+    public string Name => Character.Name;
+
+    public bool IsChosen
+    {
+        get => string.Equals(_chosen(), Character.Id, StringComparison.OrdinalIgnoreCase);
+        set
+        {
+            // A radio button reports both the one switched on and the one switched off; only the first is a choice.
+            if (value && !IsChosen)
+            {
+                _choose(Character.Id);
+            }
+        }
+    }
+
+    internal void Refresh() => OnPropertyChanged(nameof(IsChosen));
+}
 
 /// <summary>One thing the rider remembers, as shown in the settings with its own "Forget" button.</summary>
 public sealed class MemoryNoteItem(MemoryNote note, ICommand forgetCommand)
@@ -48,7 +82,8 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
         ISettingsService settings,
         ConversationViewModel conversation,
         RiderMemory memory,
-        ILogger<RiderSettingsViewModel>? logger = null)
+        ILogger<RiderSettingsViewModel>? logger = null,
+        ICharacterCatalog? characters = null)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _conversation = conversation ?? throw new ArgumentNullException(nameof(conversation));
@@ -57,12 +92,14 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
         _settings.Changed += OnSettingsChanged;
         _memory.Changed += OnMemoryChanged;
         ShowNotes();
+        Characters = [.. (characters?.Available ?? []).Select(c => new CharacterChoice(c, () => _settings.Current.Appearance.Character, ChooseCharacter))];
 
         AddNoteCommand = new RelayCommand(() => _ = AddNoteAsync());
         ForgetEverythingCommand = new RelayCommand(() => _ = ForgetEverythingAsync());
 
         UseBuiltInPersonalityCommand = new RelayCommand(() => OwnPersonality = string.Empty);
         DeleteConversationCommand = new RelayCommand(() => _ = DeleteConversationAsync());
+        NormalRidingSpeedCommand = new RelayCommand(() => RidingSpeed = 1.0);
     }
 
     /// <summary>Puts the built-in rider back by removing the user's own description.</summary>
@@ -282,6 +319,39 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>The characters the user can have on the desktop.</summary>
+    public IReadOnlyList<CharacterChoice> Characters { get; }
+
+    /// <summary>True when there is more than one character to choose from, which is when the choice is shown.</summary>
+    public bool HasCharacterChoice => Characters.Count > 1;
+
+    /// <summary>How fast the character rides about the screen, where 1.0 is its natural speed.</summary>
+    public double RidingSpeed
+    {
+        get => Behaviour.RidingSpeed;
+        set
+        {
+            var speed = double.IsFinite(value) ? Math.Round(Math.Clamp(value, BehaviourSettings.MinRidingSpeed, BehaviourSettings.MaxRidingSpeed), 2) : 1.0;
+            if (Math.Abs(speed - Behaviour.RidingSpeed) > 0.001)
+            {
+                _ = ChangeAsync(s => s.Behaviour.RidingSpeed = speed);
+            }
+        }
+    }
+
+    /// <summary>The riding speed in words, shown beside the slider.</summary>
+    public string RidingSpeedText => Behaviour.RidingSpeed switch
+    {
+        < 0.45 => "Very slow",
+        < 0.8 => "Slow",
+        <= 1.2 => "Normal",
+        < 1.6 => "Fast",
+        _ => "Very fast",
+    };
+
+    /// <summary>Puts the riding speed back to the character's natural speed.</summary>
+    public ICommand NormalRidingSpeedCommand { get; }
+
     public bool Every15Minutes
     {
         get => Behaviour.ProactiveIntervalMinutes == 15;
@@ -489,7 +559,22 @@ public sealed partial class RiderSettingsViewModel : ViewModelBase, IDisposable
     private static bool SameText(string? typed, string? saved) =>
         string.Equals(typed?.Trim() ?? string.Empty, saved ?? string.Empty, StringComparison.Ordinal);
 
-    private void OnSettingsChanged(object? sender, EventArgs e) => OnAllPropertiesChanged();
+    private void OnSettingsChanged(object? sender, EventArgs e)
+    {
+        OnAllPropertiesChanged();
+        foreach (var choice in Characters)
+        {
+            choice.Refresh();
+        }
+    }
+
+    private void ChooseCharacter(string id)
+    {
+        if (!string.Equals(_settings.Current.Appearance.Character, id, StringComparison.OrdinalIgnoreCase))
+        {
+            _ = ChangeAsync(s => s.Appearance.Character = id);
+        }
+    }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A change to the rider's settings could not be saved.")]
     private static partial void LogSaveFailed(ILogger logger, Exception exception);

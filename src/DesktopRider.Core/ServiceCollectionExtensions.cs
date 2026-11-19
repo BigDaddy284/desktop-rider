@@ -1,3 +1,4 @@
+using DesktopRider.Core.Characters;
 using DesktopRider.Core.Configuration;
 using DesktopRider.Core.Infrastructure;
 using DesktopRider.Core.Logging;
@@ -28,6 +29,7 @@ public static class ServiceCollectionExtensions
             provider.GetRequiredService<ILogger<JsonSettingsStore>>(),
             provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton<ISettingsService, SettingsService>();
+        services.AddSingleton<ICharacterCatalog>(_ => new CharacterCatalog(Path.Combine(AppContext.BaseDirectory, "Assets", "Sprites")));
 
         return services;
     }

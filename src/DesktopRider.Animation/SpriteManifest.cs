@@ -82,6 +82,15 @@ public sealed class SpriteManifest
     /// <summary>Distance from the top of a frame to the ground line the wheels stand on, in pixels.</summary>
     public int GroundY { get; init; }
 
+    /// <summary>The character's name as shown in settings, such as "Sidecar 41". Empty when the sprite list gives none.</summary>
+    public string DisplayName { get; init; } = string.Empty;
+
+    /// <summary>How many sprite pixels make one metre of the real bike. Used to turn riding speed into screen speed.</summary>
+    public double PixelsPerMetre { get; init; }
+
+    /// <summary>How fast the character rides in its riding animation, in metres a second. Zero if it gives none.</summary>
+    public double RideSpeed { get; init; }
+
     /// <summary>The looping animation the character rests in.</summary>
     public string DefaultAnimation { get; init; } = "Idle";
 
@@ -156,6 +165,11 @@ public sealed class SpriteManifest
         if (!(FramesPerSecond > 0) || double.IsInfinity(FramesPerSecond))
         {
             throw new InvalidDataException("The sprite list must give a frames-per-second value above zero.");
+        }
+
+        if (!double.IsFinite(PixelsPerMetre) || PixelsPerMetre < 0 || !double.IsFinite(RideSpeed) || RideSpeed < 0)
+        {
+            throw new InvalidDataException("The sprite list's pixels per metre and riding speed cannot be below zero.");
         }
 
         if (Animations is null || Animations.Count == 0)

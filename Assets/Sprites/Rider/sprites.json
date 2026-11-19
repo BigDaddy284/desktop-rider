@@ -1,4 +1,5 @@
 {
+  "displayName": "Harvey",
   "frameWidth": 467,
   "frameHeight": 389,
   "framesPerSecond": 12,
@@ -346,5 +347,6 @@
       "originY": 100
     }
   ],
-  "defaultAnimation": "Idle"
+  "defaultAnimation": "Idle",
+  "rideSpeed": 3.0
 }

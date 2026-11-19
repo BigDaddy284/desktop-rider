@@ -62,6 +62,51 @@ public sealed partial class WindowPlacementController : IDisposable
         await SaveAsync(s => s.Appearance.Position = null);
     }
 
+    /// <summary>
+    /// Moves the character sideways while it rides about, in screen pixels. It rides on from one screen to the next.
+    /// </summary>
+    /// <returns>False if it reached an edge with no screen beyond, where it should turn round.</returns>
+    public bool RideBy(int dx)
+    {
+        if (!TryGetBounds(out var bounds))
+        {
+            return true;
+        }
+
+        var (position, blocked) = PlacementCalculator.RideStep(bounds, dx, _screens.GetScreens());
+        if (position != bounds.Location)
+        {
+            MoveTo(position);
+        }
+
+        return !blocked;
+    }
+
+    /// <summary>Makes sure the whole character is on a screen, for example after it changed size.</summary>
+    public void KeepOnScreen()
+    {
+        if (TryGetBounds(out var bounds))
+        {
+            var position = PlacementCalculator.KeepOnScreen(bounds.Location, bounds.Size, _screens.GetScreens());
+            if (position != bounds.Location)
+            {
+                MoveTo(position);
+            }
+        }
+    }
+
+    /// <summary>Remembers where the character is now, for next time, as a drag does.</summary>
+    public async Task RememberPositionAsync()
+    {
+        if (!TryGetBounds(out var bounds))
+        {
+            return;
+        }
+
+        var monitor = PlacementCalculator.ScreenFor(bounds.Location, bounds.Size, _screens.GetScreens())?.DeviceName;
+        await SaveAsync(s => s.Appearance.Position = new SavedPosition { X = bounds.X, Y = bounds.Y, Monitor = monitor });
+    }
+
     public void Dispose()
     {
         if (_attached)

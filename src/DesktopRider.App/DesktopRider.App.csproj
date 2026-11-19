@@ -17,8 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The rider's sprite sheets travel with the program, in an Assets folder beside it. -->
-    <Content Include="..\..\Assets\Sprites\**\*.png;..\..\Assets\Sprites\**\*.json" Link="Assets\Sprites\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The sprite sheets travel with the program, in an Assets folder beside it. ExcludeFromSingleFile keeps the
+         larger sheets out of the single-file exe, where the app could not find them (0.9.0 sidecar fix). -->
+    <Content Include="..\..\Assets\Sprites\**\*.png;..\..\Assets\Sprites\**\*.json" Link="Assets\Sprites\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
   </ItemGroup>
 
 </Project>

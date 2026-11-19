@@ -454,18 +454,68 @@ public class CharacterBehaviourTests
         Assert.True(talking.Loop);
     }
 
-    private static SpriteManifest RealManifest()
+    [Fact]
+    public void TheSidecarSprites_HaveEverythingTheAppAndTheConversationUse()
+    {
+        var manifest = RealManifest("Sidecar41");
+
+        Assert.Equal("Sidecar 41", manifest.DisplayName);
+        Assert.True(manifest.RideSpeed > 0 && manifest.PixelsPerMetre > 0);
+        string[] required = ["Idle", "IdleVariation", "Revving", "Thinking", "Talking", "Wheelie", "Celebration", "Sleeping", "RideOff", "RideOn", "RidingLoop"];
+        Assert.All(required, name => Assert.True(manifest.TryGet(name, out _), $"{name} is missing"));
+        Assert.Equal("RideOff", manifest["RidingLoop"].Enter);
+        Assert.Equal("RideOn", manifest["RidingLoop"].Exit);
+        Assert.Equal("SleepStart", manifest["Sleeping"].Enter);
+        Assert.True(manifest["Talking"].Loop);
+
+        // Kept in step by hand with the sidecar's moves in RiderActions in the AI project.
+        string[] asked = ["Wheelie", "Celebration", "Revving", "Sleeping", "RidingLoop", "NoHander", "Double", "PassengerSuperman", "FlyingChair", "PowerSlide", "Rollers", "LostPassenger", "PassengerWave"];
+        Assert.All(asked, animation => Assert.True(new CharacterBehaviour(new AnimationPlayer(manifest), manifest).Perform(animation), animation));
+    }
+
+    [Fact]
+    public void TheSidecarSheets_AreThereAndBigEnoughForEveryFrame()
+    {
+        var manifest = RealManifest("Sidecar41");
+        var folder = Path.GetDirectoryName(RealManifestPath("Sidecar41"))!;
+        foreach (var clip in manifest.Animations)
+        {
+            foreach (var sheet in new[] { clip.Right, clip.Left })
+            {
+                var (width, height) = PngSize(Path.Combine(folder, sheet));
+                var last = manifest.FrameRectFor(clip, clip.FrameCount - 1);
+                var (frameWidth, frameHeight) = manifest.FrameSizeFor(clip);
+                Assert.True(width >= Math.Min(clip.FrameCount, clip.Columns) * frameWidth && height >= last.Y + frameHeight, $"{sheet} is too small");
+            }
+        }
+    }
+
+    private static (int Width, int Height) PngSize(string path)
+    {
+        var header = new byte[24];
+        using (var file = File.OpenRead(path))
+        {
+            file.ReadExactly(header);
+        }
+
+        static int At(byte[] b, int i) => (b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3];
+        return (At(header, 16), At(header, 20));
+    }
+
+    private static SpriteManifest RealManifest(string character = "Rider") => SpriteManifest.Parse(File.ReadAllText(RealManifestPath(character)));
+
+    private static string RealManifestPath(string character)
     {
         var folder = AppContext.BaseDirectory;
         string? path = null;
         while (folder is not null && path is null)
         {
-            var candidate = Path.Combine(folder, "Assets", "Sprites", "Rider", "sprites.json");
+            var candidate = Path.Combine(folder, "Assets", "Sprites", character, "sprites.json");
             path = File.Exists(candidate) ? candidate : null;
             folder = Path.GetDirectoryName(folder);
         }
 
         Assert.NotNull(path);
-        return SpriteManifest.Parse(File.ReadAllText(path));
+        return path;
     }
 }

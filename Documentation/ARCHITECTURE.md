@@ -33,6 +33,10 @@ The rule for where code goes: if it can work without a window, it lives outside 
 - `PlacementCalculator` (Core) decides where the character may sit: the default corner, restoring a saved spot, and keeping it fully on one screen. Unit tested with single, multiple and negative-coordinate monitor layouts.
 - `WindowPlacementController` (Desktop) carries those decisions out: it restores the position when the window loads, handles dragging, re-checks the position when Windows reports a display change, and saves the spot after each drag.
 
+**Characters.** `CharacterCatalog` (Core) lists the characters installed beside the program (each folder under `Assets/Sprites/` with a `sprites.json`) and gives the folder for the one chosen in settings, falling back to the standard rider. `OverlayWindow` loads that character, and loads the other one straight away when the choice changes, keeping the way it faces and the spot its wheels stand on. It then tells `RiderActions` (AI) which animations the character has, so the chat only offers tricks it can do.
+
+**Riding about.** While the character plays one of its riding animations, `OverlayWindow` runs a short timer (60 a second, only while riding) that moves the window sideways at the speed `RidingMotion` (Animation) works out from the sprite list and the **Riding speed** setting. `PlacementCalculator.RideStep` (Core) decides each step: on to the next screen if there is one, otherwise stop at the edge, where the character turns round. `WindowPlacementController.RideBy` carries it out and the spot is saved when the ride ends.
+
 ## The icon beside the clock
 
 Desktop Rider has no taskbar button, so its icon in the notification area is the way to reach it when the rider is hidden.

@@ -1,0 +1,219 @@
+{
+  "displayName": "Sidecar 41",
+  "rideSpeed": 6.3,
+  "frameWidth": 470,
+  "frameHeight": 375,
+  "framesPerSecond": 12,
+  "pixelsPerMetre": 170,
+  "groundY": 345,
+  "animations": [
+    {
+      "name": "Idle",
+      "loop": true,
+      "frameCount": 24,
+      "columns": 8,
+      "right": "Right/Idle.png",
+      "left": "Left/Idle.png"
+    },
+    {
+      "name": "IdleVariation",
+      "loop": false,
+      "frameCount": 37,
+      "columns": 8,
+      "right": "Right/IdleVariation.png",
+      "left": "Left/IdleVariation.png"
+    },
+    {
+      "name": "Revving",
+      "loop": true,
+      "frameCount": 12,
+      "columns": 8,
+      "right": "Right/Revving.png",
+      "left": "Left/Revving.png"
+    },
+    {
+      "name": "Thinking",
+      "loop": false,
+      "frameCount": 37,
+      "columns": 8,
+      "right": "Right/Thinking.png",
+      "left": "Left/Thinking.png"
+    },
+    {
+      "name": "Talking",
+      "loop": true,
+      "frameCount": 24,
+      "columns": 8,
+      "right": "Right/Talking.png",
+      "left": "Left/Talking.png"
+    },
+    {
+      "name": "Celebration",
+      "loop": false,
+      "frameCount": 31,
+      "columns": 8,
+      "right": "Right/Celebration.png",
+      "left": "Left/Celebration.png"
+    },
+    {
+      "name": "SleepStart",
+      "loop": false,
+      "frameCount": 13,
+      "columns": 8,
+      "right": "Right/SleepStart.png",
+      "left": "Left/SleepStart.png"
+    },
+    {
+      "name": "Sleeping",
+      "loop": true,
+      "frameCount": 48,
+      "columns": 8,
+      "right": "Right/Sleeping.png",
+      "left": "Left/Sleeping.png",
+      "enter": "SleepStart",
+      "exit": "SleepEnd"
+    },
+    {
+      "name": "SleepEnd",
+      "loop": false,
+      "frameCount": 13,
+      "columns": 8,
+      "right": "Right/SleepEnd.png",
+      "left": "Left/SleepEnd.png"
+    },
+    {
+      "name": "RideOff",
+      "loop": false,
+      "frameCount": 22,
+      "columns": 8,
+      "right": "Right/RideOff.png",
+      "left": "Left/RideOff.png"
+    },
+    {
+      "name": "RidingLoop",
+      "loop": true,
+      "frameCount": 16,
+      "columns": 8,
+      "right": "Right/RidingLoop.png",
+      "left": "Left/RidingLoop.png",
+      "enter": "RideOff",
+      "exit": "RideOn"
+    },
+    {
+      "name": "RideOn",
+      "loop": false,
+      "frameCount": 25,
+      "columns": 8,
+      "right": "Right/RideOn.png",
+      "left": "Left/RideOn.png"
+    },
+    {
+      "name": "Wheelie",
+      "loop": false,
+      "frameCount": 43,
+      "columns": 8,
+      "right": "Right/Wheelie.png",
+      "left": "Left/Wheelie.png",
+      "frameWidth": 610,
+      "frameHeight": 395,
+      "originX": 140,
+      "originY": 20
+    },
+    {
+      "name": "FlyingChair",
+      "loop": false,
+      "frameCount": 49,
+      "columns": 8,
+      "right": "Right/FlyingChair.png",
+      "left": "Left/FlyingChair.png",
+      "frameWidth": 610,
+      "frameHeight": 395,
+      "originX": 140,
+      "originY": 20
+    },
+    {
+      "name": "PowerSlide",
+      "loop": false,
+      "frameCount": 43,
+      "columns": 8,
+      "right": "Right/PowerSlide.png",
+      "left": "Left/PowerSlide.png",
+      "frameWidth": 610,
+      "frameHeight": 395,
+      "originX": 140,
+      "originY": 20
+    },
+    {
+      "name": "PassengerWave",
+      "loop": false,
+      "frameCount": 37,
+      "columns": 8,
+      "right": "Right/PassengerWave.png",
+      "left": "Left/PassengerWave.png",
+      "frameWidth": 610,
+      "frameHeight": 395,
+      "originX": 140,
+      "originY": 20
+    },
+    {
+      "name": "LostPassenger",
+      "loop": false,
+      "frameCount": 61,
+      "columns": 8,
+      "right": "Right/LostPassenger.png",
+      "left": "Left/LostPassenger.png",
+      "frameWidth": 610,
+      "frameHeight": 395,
+      "originX": 140,
+      "originY": 20
+    },
+    {
+      "name": "Rollers",
+      "loop": false,
+      "frameCount": 61,
+      "columns": 8,
+      "right": "Right/Rollers.png",
+      "left": "Left/Rollers.png",
+      "frameWidth": 610,
+      "frameHeight": 755,
+      "originX": 140,
+      "originY": 380
+    },
+    {
+      "name": "Double",
+      "loop": false,
+      "frameCount": 48,
+      "columns": 8,
+      "right": "Right/Double.png",
+      "left": "Left/Double.png",
+      "frameWidth": 610,
+      "frameHeight": 755,
+      "originX": 140,
+      "originY": 380
+    },
+    {
+      "name": "NoHander",
+      "loop": false,
+      "frameCount": 42,
+      "columns": 8,
+      "right": "Right/NoHander.png",
+      "left": "Left/NoHander.png",
+      "frameWidth": 610,
+      "frameHeight": 755,
+      "originX": 140,
+      "originY": 380
+    },
+    {
+      "name": "PassengerSuperman",
+      "loop": false,
+      "frameCount": 48,
+      "columns": 8,
+      "right": "Right/PassengerSuperman.png",
+      "left": "Left/PassengerSuperman.png",
+      "frameWidth": 610,
+      "frameHeight": 755,
+      "originX": 140,
+      "originY": 380
+    }
+  ]
+}
