@@ -1,0 +1,157 @@
+{
+ "source_blend": "desktop_rider_3d.blend",
+ "fbx": "DesktopRider_Style.fbx",
+ "fps": 24,
+ "units": "metres",
+ "keyed_for_side": "Right",
+ "contains_meshes": false,
+ "note": "Animation clips for the rigs in DesktopRider.fbx (same bone names and hierarchy). rider_rig is exported beside bike_rig and its transform is keyed to follow the chassis bone. Frames are the positions in the keyed sequence; each clip is its own take starting at 0. Props and their positions are in Props/props_layout.json.",
+ "rigs": {
+  "bike_rig": [
+   {
+    "name": "root",
+    "parent": null
+   },
+   {
+    "name": "chassis",
+    "parent": "root"
+   },
+   {
+    "name": "steer",
+    "parent": "chassis"
+   },
+   {
+    "name": "fork_lower",
+    "parent": "steer"
+   },
+   {
+    "name": "front_wheel",
+    "parent": "fork_lower"
+   },
+   {
+    "name": "grip.L",
+    "parent": "steer"
+   },
+   {
+    "name": "grip.R",
+    "parent": "steer"
+   },
+   {
+    "name": "swingarm",
+    "parent": "chassis"
+   },
+   {
+    "name": "rear_wheel",
+    "parent": "swingarm"
+   },
+   {
+    "name": "peg.L",
+    "parent": "chassis"
+   },
+   {
+    "name": "peg.R",
+    "parent": "chassis"
+   }
+  ],
+  "rider_rig": [
+   {
+    "name": "root",
+    "parent": null
+   },
+   {
+    "name": "hips",
+    "parent": "root"
+   },
+   {
+    "name": "spine",
+    "parent": "hips"
+   },
+   {
+    "name": "head",
+    "parent": "spine"
+   },
+   {
+    "name": "upper_arm.L",
+    "parent": "spine"
+   },
+   {
+    "name": "forearm.L",
+    "parent": "upper_arm.L"
+   },
+   {
+    "name": "hand.L",
+    "parent": "forearm.L"
+   },
+   {
+    "name": "upper_arm.R",
+    "parent": "spine"
+   },
+   {
+    "name": "forearm.R",
+    "parent": "upper_arm.R"
+   },
+   {
+    "name": "hand.R",
+    "parent": "forearm.R"
+   },
+   {
+    "name": "thigh.L",
+    "parent": "hips"
+   },
+   {
+    "name": "shin.L",
+    "parent": "thigh.L"
+   },
+   {
+    "name": "thigh.R",
+    "parent": "hips"
+   },
+   {
+    "name": "shin.R",
+    "parent": "thigh.R"
+   }
+  ]
+ },
+ "clips": [
+  {
+   "name": "RideOff",
+   "start": 1,
+   "end": 31,
+   "frames": 30,
+   "loop": false,
+   "stage": "ground",
+   "fps": 24,
+   "info": null
+  },
+  {
+   "name": "RidingLoop",
+   "start": 36,
+   "end": 60,
+   "frames": 24,
+   "loop": true,
+   "stage": "ground",
+   "fps": 24,
+   "info": null
+  },
+  {
+   "name": "CornerLeft",
+   "start": 65,
+   "end": 89,
+   "frames": 24,
+   "loop": true,
+   "stage": "ground",
+   "fps": 24,
+   "info": null
+  },
+  {
+   "name": "CornerRight",
+   "start": 94,
+   "end": 118,
+   "frames": 24,
+   "loop": true,
+   "stage": "ground",
+   "fps": 24,
+   "info": null
+  }
+ ]
+}

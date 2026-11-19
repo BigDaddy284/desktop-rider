@@ -1,0 +1,367 @@
+{
+ "source_blend": "desktop_rider_2.blend",
+ "fbx": "Louie.fbx",
+ "fps": 24,
+ "units": "metres",
+ "up_axis": "Y (converted on export; Blender scene is Z up, +X forward, +Y = bike's left)",
+ "textures": {
+  "race_bike_youth": "Textures/Louie_Bike.png",
+  "race_rider": "Textures/Louie_Rider.png"
+ },
+ "meshes": {
+  "race_bike_youth": {
+   "vertices": 11344,
+   "faces": 4671,
+   "triangles": 6030,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "Trim_3b3c45_UV",
+    "Trim_rim_blue_UV",
+    "Trim_b1aeaf_UV",
+    "Trim_fork_gold_UV",
+    "Frame_UV",
+    "Plastics_UV",
+    "Trim_eaebeb_UV",
+    "Plate_UV",
+    "DR_ForkGuard_UV",
+    "DR_Grip_UV",
+    "DR_HubGold_UV",
+    "DR_BarBlack_UV",
+    "DR_Swingarm_UV",
+    "DR_PegBlue_UV",
+    "DR_HeadGold_UV",
+    "DR2_Electric_UV"
+   ],
+   "vertex_groups": [
+    "front_wheel",
+    "rear_wheel",
+    "fork_lower",
+    "steer",
+    "chassis",
+    "swingarm"
+   ],
+   "parent": "bike_rig",
+   "object_scale": [
+    0.87137,
+    1.0,
+    0.87137
+   ],
+   "rest_position_md5": "dcd912428f754a23559183679faee744"
+  },
+  "race_rider": {
+   "vertices": 6726,
+   "faces": 3596,
+   "triangles": 3596,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "Helmet_UV",
+    "Trim_helmet_dark_UV",
+    "Visor_UV",
+    "Trim_lens_UV",
+    "Trim_neck_UV",
+    "Pants_UV",
+    "Jersey_UV",
+    "Gloves_UV",
+    "Trim_knee_UV",
+    "Trim_sole_UV",
+    "Boots_UV",
+    "Trim_boot_plate_UV",
+    "Trim_buckle_UV",
+    "DR_GoggleFrame_UV",
+    "DR_BootStrap_UV"
+   ],
+   "vertex_groups": [
+    "head",
+    "hand.L",
+    "hand.R",
+    "hips",
+    "thigh.L",
+    "shin.L",
+    "thigh.R",
+    "shin.R",
+    "spine",
+    "upper_arm.L",
+    "forearm.L",
+    "upper_arm.R",
+    "forearm.R"
+   ],
+   "parent": "rider_rig",
+   "object_scale": [
+    0.7703,
+    1.0,
+    0.7703
+   ],
+   "rest_position_md5": "4c88e7d1b36e1929ce61a566026e468a"
+  }
+ },
+ "rigs": {
+  "bike_rig": {
+   "bones": [
+    {
+     "name": "root",
+     "parent": null,
+     "deform": true
+    },
+    {
+     "name": "chassis",
+     "parent": "root",
+     "deform": true
+    },
+    {
+     "name": "steer",
+     "parent": "chassis",
+     "deform": true
+    },
+    {
+     "name": "fork_lower",
+     "parent": "steer",
+     "deform": true
+    },
+    {
+     "name": "front_wheel",
+     "parent": "fork_lower",
+     "deform": true
+    },
+    {
+     "name": "grip.L",
+     "parent": "steer",
+     "deform": true
+    },
+    {
+     "name": "grip.R",
+     "parent": "steer",
+     "deform": true
+    },
+    {
+     "name": "swingarm",
+     "parent": "chassis",
+     "deform": true
+    },
+    {
+     "name": "rear_wheel",
+     "parent": "swingarm",
+     "deform": true
+    },
+    {
+     "name": "peg.L",
+     "parent": "chassis",
+     "deform": true
+    },
+    {
+     "name": "peg.R",
+     "parent": "chassis",
+     "deform": true
+    }
+   ],
+   "parent": null,
+   "parent_bone": null
+  },
+  "rider_rig": {
+   "bones": [
+    {
+     "name": "root",
+     "parent": null,
+     "deform": true
+    },
+    {
+     "name": "hips",
+     "parent": "root",
+     "deform": true
+    },
+    {
+     "name": "spine",
+     "parent": "hips",
+     "deform": true
+    },
+    {
+     "name": "head",
+     "parent": "spine",
+     "deform": true
+    },
+    {
+     "name": "upper_arm.L",
+     "parent": "spine",
+     "deform": true
+    },
+    {
+     "name": "forearm.L",
+     "parent": "upper_arm.L",
+     "deform": true
+    },
+    {
+     "name": "hand.L",
+     "parent": "forearm.L",
+     "deform": true
+    },
+    {
+     "name": "upper_arm.R",
+     "parent": "spine",
+     "deform": true
+    },
+    {
+     "name": "forearm.R",
+     "parent": "upper_arm.R",
+     "deform": true
+    },
+    {
+     "name": "hand.R",
+     "parent": "forearm.R",
+     "deform": true
+    },
+    {
+     "name": "thigh.L",
+     "parent": "hips",
+     "deform": true
+    },
+    {
+     "name": "shin.L",
+     "parent": "thigh.L",
+     "deform": true
+    },
+    {
+     "name": "thigh.R",
+     "parent": "hips",
+     "deform": true
+    },
+    {
+     "name": "shin.R",
+     "parent": "thigh.R",
+     "deform": true
+    }
+   ],
+   "parent": null,
+   "parent_bone": null
+  }
+ },
+ "clips": [
+  {
+   "name": "Idle",
+   "start": 1,
+   "end": 49,
+   "frames": 48,
+   "loop": true,
+   "fps": 24
+  },
+  {
+   "name": "IdleVariation",
+   "start": 54,
+   "end": 150,
+   "frames": 96,
+   "loop": false,
+   "fps": 24
+  },
+  {
+   "name": "LookLeft",
+   "start": 155,
+   "end": 187,
+   "frames": 32,
+   "loop": false,
+   "fps": 24
+  },
+  {
+   "name": "LookRight",
+   "start": 192,
+   "end": 224,
+   "frames": 32,
+   "loop": false,
+   "fps": 24
+  },
+  {
+   "name": "Revving",
+   "start": 229,
+   "end": 253,
+   "frames": 24,
+   "loop": true,
+   "fps": 24
+  },
+  {
+   "name": "Thinking",
+   "start": 258,
+   "end": 330,
+   "frames": 72,
+   "loop": false,
+   "fps": 24
+  },
+  {
+   "name": "Talking",
+   "start": 335,
+   "end": 359,
+   "frames": 24,
+   "loop": true,
+   "fps": 24
+  },
+  {
+   "name": "Wheelie",
+   "start": 364,
+   "end": 424,
+   "frames": 60,
+   "loop": false,
+   "fps": 24
+  },
+  {
+   "name": "Celebration",
+   "start": 429,
+   "end": 477,
+   "frames": 48,
+   "loop": false,
+   "fps": 24
+  },
+  {
+   "name": "SleepStart",
+   "start": 482,
+   "end": 506,
+   "frames": 24,
+   "loop": false,
+   "fps": 24
+  },
+  {
+   "name": "Sleeping",
+   "start": 511,
+   "end": 607,
+   "frames": 96,
+   "loop": true,
+   "fps": 24
+  },
+  {
+   "name": "SleepEnd",
+   "start": 612,
+   "end": 636,
+   "frames": 24,
+   "loop": false,
+   "fps": 24
+  },
+  {
+   "name": "RideOff",
+   "start": 641,
+   "end": 671,
+   "frames": 30,
+   "loop": false,
+   "fps": 24
+  },
+  {
+   "name": "RidingLoop",
+   "start": 676,
+   "end": 700,
+   "frames": 24,
+   "loop": true,
+   "fps": 24
+  },
+  {
+   "name": "RideOn",
+   "start": 705,
+   "end": 735,
+   "frames": 30,
+   "loop": false,
+   "fps": 24
+  }
+ ],
+ "helmet_vertex_indices_changed": 1894,
+ "expected": {
+  "helmet_vertices": 1894,
+  "rider_vertices_moved_from_master": 1894
+ }
+}

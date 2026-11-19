@@ -1,0 +1,473 @@
+{
+ "source_blend": "desktop_rider_3d.blend",
+ "fbx": "DesktopRider_Tricks.fbx",
+ "fps": 24,
+ "units": "metres",
+ "keyed_for_side": "Right",
+ "contains_meshes": false,
+ "note": "Animation clips for the rigs in DesktopRider.fbx (same bone names and hierarchy). rider_rig is exported beside bike_rig and its transform is keyed to follow the chassis bone. Frames are the positions in the keyed sequence; each clip is its own take starting at 0. Props and their positions are in Props/props_layout.json.",
+ "rigs": {
+  "bike_rig": [
+   {
+    "name": "root",
+    "parent": null
+   },
+   {
+    "name": "chassis",
+    "parent": "root"
+   },
+   {
+    "name": "steer",
+    "parent": "chassis"
+   },
+   {
+    "name": "fork_lower",
+    "parent": "steer"
+   },
+   {
+    "name": "front_wheel",
+    "parent": "fork_lower"
+   },
+   {
+    "name": "grip.L",
+    "parent": "steer"
+   },
+   {
+    "name": "grip.R",
+    "parent": "steer"
+   },
+   {
+    "name": "swingarm",
+    "parent": "chassis"
+   },
+   {
+    "name": "rear_wheel",
+    "parent": "swingarm"
+   },
+   {
+    "name": "peg.L",
+    "parent": "chassis"
+   },
+   {
+    "name": "peg.R",
+    "parent": "chassis"
+   },
+   {
+    "name": "pole.knee.L",
+    "parent": "chassis"
+   },
+   {
+    "name": "pole.knee.R",
+    "parent": "chassis"
+   }
+  ],
+  "rider_rig": [
+   {
+    "name": "root",
+    "parent": null
+   },
+   {
+    "name": "hips",
+    "parent": "root"
+   },
+   {
+    "name": "spine",
+    "parent": "hips"
+   },
+   {
+    "name": "head",
+    "parent": "spine"
+   },
+   {
+    "name": "upper_arm.L",
+    "parent": "spine"
+   },
+   {
+    "name": "forearm.L",
+    "parent": "upper_arm.L"
+   },
+   {
+    "name": "hand.L",
+    "parent": "forearm.L"
+   },
+   {
+    "name": "upper_arm.R",
+    "parent": "spine"
+   },
+   {
+    "name": "forearm.R",
+    "parent": "upper_arm.R"
+   },
+   {
+    "name": "hand.R",
+    "parent": "forearm.R"
+   },
+   {
+    "name": "thigh.L",
+    "parent": "hips"
+   },
+   {
+    "name": "shin.L",
+    "parent": "thigh.L"
+   },
+   {
+    "name": "thigh.R",
+    "parent": "hips"
+   },
+   {
+    "name": "shin.R",
+    "parent": "thigh.R"
+   }
+  ]
+ },
+ "clips": [
+  {
+   "name": "Jump",
+   "start": 1,
+   "end": 117,
+   "frames": 116,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.625,
+    "T": 1.3333,
+    "tT": 2.9583,
+    "t_brake": 3.8333,
+    "mound_x": 6.431,
+    "lipx": 3.66,
+    "N": 116,
+    "apex": 1.8661
+   }
+  },
+  {
+   "name": "Whip",
+   "start": 122,
+   "end": 242,
+   "frames": 120,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.625,
+    "T": 1.4583,
+    "tT": 3.0833,
+    "t_brake": 3.9583,
+    "mound_x": 6.806,
+    "lipx": 3.7121,
+    "N": 120,
+    "apex": 2.0086
+   }
+  },
+  {
+   "name": "Scrub",
+   "start": 247,
+   "end": 345,
+   "frames": 98,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.3333,
+    "T": 1.0417,
+    "tT": 2.375,
+    "t_brake": 3.0417,
+    "mound_x": 7.0465,
+    "lipx": 4.0541,
+    "N": 98,
+    "apex": 1.6564
+   }
+  },
+  {
+   "name": "Backflip",
+   "start": 350,
+   "end": 472,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "Superman",
+   "start": 477,
+   "end": 599,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "SupermanSeatGrab",
+   "start": 604,
+   "end": 726,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "NoHander",
+   "start": 731,
+   "end": 853,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "Nothing",
+   "start": 858,
+   "end": 980,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "BarHop",
+   "start": 985,
+   "end": 1107,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "HeelClicker",
+   "start": 1112,
+   "end": 1234,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "CanCan",
+   "start": 1239,
+   "end": 1361,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "NacNac",
+   "start": 1366,
+   "end": 1488,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "LazyBoy",
+   "start": 1493,
+   "end": 1615,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "OneHander",
+   "start": 1620,
+   "end": 1742,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "IndianAir",
+   "start": 1747,
+   "end": 1869,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "RockSolid",
+   "start": 1874,
+   "end": 1996,
+   "frames": 122,
+   "loop": false,
+   "stage": "air",
+   "fps": 24,
+   "info": {
+    "tL": 1.4583,
+    "T": 1.7917,
+    "tT": 3.25,
+    "t_brake": 4.0417,
+    "mound_x": 7.306,
+    "lipx": 3.2461,
+    "N": 122,
+    "apex": 2.3961
+   }
+  },
+  {
+   "name": "Whoops",
+   "start": 2001,
+   "end": 2121,
+   "frames": 120,
+   "loop": false,
+   "stage": "ground",
+   "fps": 24,
+   "info": {
+    "N": 120,
+    "t_brake": 4.0,
+    "x0": 1.834,
+    "x1": 10.934
+   }
+  },
+  {
+   "name": "WhoopsWheelie",
+   "start": 2126,
+   "end": 2256,
+   "frames": 130,
+   "loop": false,
+   "stage": "ground",
+   "fps": 24,
+   "info": {
+    "N": 130,
+    "t_brake": 4.3333,
+    "x0": 1.834,
+    "x1": 10.934,
+    "t_kick": 0.8091,
+    "t_out": 3.7024
+   }
+  },
+  {
+   "name": "Stoppie",
+   "start": 2261,
+   "end": 2333,
+   "frames": 72,
+   "loop": false,
+   "stage": "ground",
+   "fps": 24,
+   "info": {
+    "N": 72
+   }
+  }
+ ]
+}

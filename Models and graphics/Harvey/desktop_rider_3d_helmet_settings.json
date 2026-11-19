@@ -1,0 +1,81 @@
+{
+ "saved_file": "D:\\AI\\Claude\\Dektop Rider 3D\\Blender\\desktop_rider_3d.blend",
+ "modifiers": [
+  "Helmet Size",
+  "Mouth Guard",
+  "Helmet Rim Flush",
+  "Chin End Flush",
+  "Seam Fix",
+  "Armature"
+ ],
+ "handles": {
+  "Helmet Size": {
+   "location": [
+    0.08755,
+    0.0,
+    1.6855
+   ],
+   "rotation_euler": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.03866,
+    0.6893,
+    1.0
+   ]
+  },
+  "Mouth Guard": {
+   "location": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rotation_euler": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.36524,
+    0.74719,
+    0.93414
+   ]
+  },
+  "Helmet Rim Flush": {
+   "location": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rotation_euler": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    0.893,
+    1.0
+   ]
+  },
+  "Chin End Flush": {
+   "location": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rotation_euler": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    1.0,
+    0.747,
+    1.0
+   ]
+  }
+ }
+}

@@ -1,0 +1,815 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+using DesktopRider.Overlay;
+using DesktopRider.Riding;
+using UnityEditor;
+using UnityEditor.Build.Reporting;
+using UnityEditor.Compilation;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+using Debug = UnityEngine.Debug;
+
+namespace DesktopRider.EditorTools
+{
+    /// <summary>
+    /// Lets the build be driven without clicking in the editor. Put a line "id command arguments" in Bridge/command.txt
+    /// at the top of the project; the answer appears in Bridge/result-id.txt. Also available by hand under the Desktop Rider menu.
+    /// </summary>
+    [InitializeOnLoad]
+    public static class EditorBridge
+    {
+        const string ModelPath = "Assets/DesktopRider/Models/DesktopRider.fbx";            // textured model from Blender (kept off GitHub)
+        const string ProofModelPath = "Assets/DesktopRider/Models/Proof/RiderProof.fbx";   // rough stand-in if the textured one is missing
+        const string ArtFolder = "Assets/DesktopRider/Art/Proof";
+        const string TricksModelPath = "Assets/DesktopRider/Models/DesktopRider_Tricks.fbx";   // trick takes, rigs only (kept off GitHub)
+        const string PropsFolder = "Assets/DesktopRider/Models/Props";
+        const string StyleModelPath = "Assets/DesktopRider/Models/DesktopRider_Style.fbx";         // the rider's own riding style, rigs only (kept off GitHub)                          // ramps, landings, whoops and props_layout.json
+        static readonly string Root = Directory.GetParent(Application.dataPath).FullName;
+        static readonly string Folder = Path.Combine(Root, "Bridge");
+        static readonly string BuildFolder = Path.Combine(Root, "Builds", "Proof");
+        static readonly string Exe = Path.Combine(BuildFolder, "DesktopRider3D.exe");
+        static double nextCheck;
+
+        static EditorBridge()
+        {
+            Directory.CreateDirectory(Folder);
+            File.WriteAllText(Path.Combine(Folder, "loaded.txt"), DateTime.Now.ToString("HH:mm:ss") + " Unity " + Application.unityVersion + "\n");
+            CompilationPipeline.assemblyCompilationFinished += OnCompiled;
+            EditorApplication.update += Tick;
+        }
+
+        static void OnCompiled(string assembly, CompilerMessage[] messages)
+        {
+            var errors = messages.Where(m => m.type == CompilerMessageType.Error).Select(m => m.file + "(" + m.line + "): " + m.message).ToArray();
+            File.AppendAllText(Path.Combine(Folder, "compile.txt"), DateTime.Now.ToString("HH:mm:ss") + " " + Path.GetFileName(assembly) + " errors=" + errors.Length + "\n" + string.Join("\n", errors) + (errors.Length > 0 ? "\n" : ""));
+        }
+
+        static void Tick()
+        {
+            if (EditorApplication.timeSinceStartup < nextCheck) return;
+            nextCheck = EditorApplication.timeSinceStartup + 1.0;
+            string file = Path.Combine(Folder, "command.txt");
+            if (!File.Exists(file) || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+
+            string[] parts;
+            try { parts = File.ReadAllText(file).Trim().Split(new[] { ' ' }, 3); File.Delete(file); }
+            catch (IOException) { return; }
+            if (parts.Length < 2) return;
+            string id = parts[0], command = parts[1], argument = parts.Length > 2 ? parts[2] : "";
+
+            string answer;
+            try { answer = "OK\n" + Run(id, command, argument); }
+            catch (Exception e) { answer = "ERROR\n" + e; }
+            if (answer != "OK\n" + Deferred) File.WriteAllText(Path.Combine(Folder, "result-" + id + ".txt"), answer);
+        }
+
+        const string Deferred = "<deferred>";
+
+        static string Run(string id, string command, string argument)
+        {
+            switch (command)
+            {
+                case "ping": return "pong " + Application.unityVersion + " scene=" + EditorSceneManager.GetActiveScene().path;
+                case "refresh": File.WriteAllText(Path.Combine(Folder, "result-" + id + ".txt"), "OK\nrefresh started"); AssetDatabase.Refresh(); return Deferred;
+                case "addpackage": UnityEditor.PackageManager.Client.Add(argument); return "requested " + argument;
+                case "setup": return SetUp();
+                case "build": return Build();
+                case "run": return Launch(argument);
+                case "stop": File.WriteAllText(Path.Combine(BuildFolder, "quit.txt"), "quit"); return "asked the rider to close";
+                case "test": return RunTests(id);
+                case "snapshot": return Snapshot(argument);
+                case "trick": return Trick(argument);
+                case "play": EditorApplication.isPlaying = true; return "entering play mode";
+                case "endplay": EditorApplication.isPlaying = false; return "leaving play mode";
+                case "view": return View(argument);
+                case "prop": return PropView(argument);
+                case "trickcheck": return TrickViewer.CheckAll();
+                case "trickframes": return TrickViewer.SaveFrames(argument);
+                case "capture": return DesktopRider.EditorTools.WindowCapture.Capture(argument, Path.Combine(Folder, "capture-" + id + ".png"));
+                case "screengrab": return DesktopRider.EditorTools.WindowCapture.ScreenGrab(argument, Path.Combine(Folder, "grab-" + id));
+                case "winclick": return DesktopRider.EditorTools.WindowCapture.Click(argument);
+                case "playerlog": return PlayerLog(argument);   // "playerlog Louie": a companion window's log
+                case "character":
+                    // In play mode: "character Sidecar41" or "character Harvey" swaps who rides, without changing the saved settings.
+                    {
+                        if (!EditorApplication.isPlaying) return "ERROR the editor is not playing";
+                        var list = UnityEngine.Object.FindFirstObjectByType<RiderCharacters>();
+                        if (list == null) return "ERROR no characters in the scene; send setup first";
+                        var words = argument.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        list.Use((DesktopRider.Core.Configuration.RiderCharacter)Enum.Parse(typeof(DesktopRider.Core.Configuration.RiderCharacter), words[0]));
+                        var free = list.rider;
+                        // "character Sidecar41 0.1": also draw it smaller, so long tricks fit in the editor's small game view.
+                        if (words.Length > 1) free.UseModel(free.modelAnimation, RiderCharacters.ClipsOf(free.modelAnimation), float.Parse(words[1], System.Globalization.CultureInfo.InvariantCulture));
+                        return "riding: " + list.Current + "; tricks: " + (list.tricks != null ? string.Join(", ", list.tricks.Available.Select(a => a.Name)) : "-") +
+                               "; cruise " + free.cruiseSpeed + " lean " + free.maxLean + " px/m " + free.CurrentView.PixelsPerMetre +
+                               "; clips: " + (free.modelAnimation != null ? free.modelAnimation.name : "-");
+                    }
+                case "props":
+                    // In play mode: the trick props out on the ground, where they are and how big they draw.
+                    return string.Join("\n", UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsSortMode.None)
+                        .Where(t => t.parent == null && (t.name.StartsWith("SC_Prop_") || t.name.StartsWith("DR_Prop_")))
+                        .Select(t =>
+                        {
+                            var rs = t.GetComponentsInChildren<Renderer>(true);
+                            var b = rs.Length > 0 ? rs[0].bounds : new Bounds(t.position, Vector3.zero);
+                            foreach (var r in rs) b.Encapsulate(r.bounds);
+                            return t.name + " active=" + t.gameObject.activeInHierarchy + " at " + t.position + " yaw " + t.eulerAngles.y.ToString("0") +
+                                   " scale " + t.lossyScale + " renderers " + rs.Length + " (" + string.Join(",", rs.Select(r => r.name + (r.enabled ? "" : "-off") + ":" + (r.sharedMaterial != null ? r.sharedMaterial.shader.name : "no material"))) + ") bounds " + b.size;
+                        })) + "\nrider at " + GameObject.Find("Rider")?.transform.position;
+                case "openscene":
+                    // "openscene Assets/Scenes/SampleScene.unity": the app's scene (setup and build work on the open scene).
+                    EditorSceneManager.SaveOpenScenes();
+                    EditorSceneManager.OpenScene(argument.Trim(), OpenSceneMode.Single);
+                    return "opened " + EditorSceneManager.GetActiveScene().path;
+                case "startup":
+                    // Desktop Rider's line in Windows' sign-in list (Start with Windows), and whether its program exists.
+                    using (var run = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))
+                    {
+                        var line = run?.GetValue("Desktop Rider 3D") as string;
+                        return line == null ? "no Desktop Rider line" : line + " (program " + (File.Exists(line.Trim('"')) ? "exists" : "MISSING") + ")";
+                    }
+                default: throw new ArgumentException("Unknown command " + command);
+            }
+        }
+
+        [MenuItem("Desktop Rider/Proof/1 Set up scene and player settings")] static void MenuSetUp() => Debug.Log(SetUp());
+        [MenuItem("Desktop Rider/Proof/2 Build")] static void MenuBuild() => Debug.Log(Build());
+        [MenuItem("Desktop Rider/Proof/3 Run")] static void MenuRun() => Debug.Log(Launch(""));
+        [MenuItem("Desktop Rider/Proof/4 Stop")] static void MenuStop() => File.WriteAllText(Path.Combine(BuildFolder, "quit.txt"), "quit");
+
+        // ------------------------------------------------------------------ set-up
+        static string SetUp()
+        {
+            var log = new StringBuilder();
+
+            PlayerSettings.runInBackground = true;
+            PlayerSettings.visibleInBackground = true;
+            PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
+            PlayerSettings.defaultScreenWidth = 1280;
+            PlayerSettings.defaultScreenHeight = 720;
+            PlayerSettings.resizableWindow = true;            // the overlay resizes its own window for tricks (OverlayWindow.SetSize)
+            PlayerSettings.forceSingleInstance = true;
+            PlayerSettings.useFlipModelSwapchain = false;          // the flip model cannot show a see-through window
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64, new[] { GraphicsDeviceType.Direct3D11 });
+            try { PlayerSettings.SplashScreen.show = false; } catch (Exception e) { log.AppendLine("splash: " + e.Message); }
+            log.AppendLine(KeepEverythingLocal());
+            log.AppendLine("player settings applied");
+
+            if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp)
+            {
+                urp.supportsHDR = false;
+                urp.msaaSampleCount = 2;
+                EditorUtility.SetDirty(urp);
+                log.AppendLine("render settings: " + urp.name + " HDR off, MSAA 2");
+            }
+
+            var camera = Camera.main != null ? Camera.main : UnityEngine.Object.FindFirstObjectByType<Camera>();
+            if (camera == null) throw new InvalidOperationException("The open scene has no camera.");
+            camera.orthographic = true;
+            camera.orthographicSize = 5.4f;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0f, 0f, 0f, 0f);
+            camera.allowHDR = false;
+            camera.nearClipPlane = 0.1f;
+            camera.farClipPlane = 200f;
+            camera.transform.rotation = Quaternion.Euler(45f, 0f, 0f);
+            camera.transform.position = camera.transform.rotation * new Vector3(0f, 0f, -60f);
+            var cameraData = camera.GetUniversalAdditionalCameraData();
+            cameraData.renderPostProcessing = false;
+            cameraData.antialiasing = AntialiasingMode.None;
+            EditorUtility.SetDirty(camera);
+
+            // The bike carries its own soft shadow, so the light's real-time shadow map (redrawn every frame) is not needed.
+            foreach (var light in UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+            {
+                light.shadows = LightShadows.None;
+                EditorUtility.SetDirty(light);
+            }
+            log.AppendLine("light shadows off");
+
+            var volume = GameObject.Find("Global Volume");
+            if (volume != null) volume.SetActive(false);
+
+            foreach (string name in new[] { "Rider", "Overlay" })
+            {
+                var old = GameObject.Find(name);
+                if (old != null) UnityEngine.Object.DestroyImmediate(old);
+            }
+
+            var overlay = new GameObject("Overlay");
+            overlay.AddComponent<OverlayWindow>();
+            overlay.AddComponent<ProofStats>();
+
+            var rider = new GameObject("Rider");
+            var box = rider.AddComponent<BoxCollider>();
+            box.center = new Vector3(0f, 0.65f, 0f);
+            box.size = new Vector3(0.6f, 1.4f, 1.9f);
+            var lean = new GameObject("Lean");
+            lean.transform.SetParent(rider.transform, false);
+
+            var free = rider.AddComponent<FreeRider>();
+            free.viewCamera = camera;
+            free.leanPivot = lean.transform;
+
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
+            if (prefab == null)
+            {
+                log.AppendLine("textured model missing at " + ModelPath + ", using the proof model");
+                prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ProofModelPath);
+            }
+            if (prefab == null) log.AppendLine("MODEL MISSING at " + ModelPath + " and " + ProofModelPath);
+            else
+            {
+                var model = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                model.name = "Model";
+                model.transform.SetParent(lean.transform, false);
+                model.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);    // Blender +X (the bike's nose) becomes Unity -X; turn it to face +Z
+                free.modelAnimation = model.GetComponent<UnityEngine.Animation>();
+                var clips = AnimationUtility.GetAnimationClips(model).Select(c => c.name).ToArray();
+                // The bike and rider rigs are separate roots under this one object; moving the object moves both.
+                log.AppendLine("model placed: " + AssetDatabase.GetAssetPath(prefab) + "; clips: " + string.Join(", ", clips));
+                var bounds = new Bounds(model.transform.position, Vector3.zero);
+                foreach (var r in model.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(r.bounds);
+                log.AppendLine("model bounds centre " + bounds.center + " size " + bounds.size);
+            }
+
+            rider.transform.position = Vector3.zero;
+            CreateShadow(rider.transform, log);
+
+            // Settings, tray icon and menu: applied to this rider and window when the program starts.
+            var host = overlay.AddComponent<AppHost>();
+            host.rider = free;
+            host.viewCamera = camera;
+            host.overlayWindow = overlay.GetComponent<OverlayWindow>();
+            log.AppendLine("app host added (settings, tray icon, menu)");
+            host.tricks = AddTricks(rider, free, overlay.GetComponent<OverlayWindow>(), log);
+            AddRidingStyle(rider, free, log);
+            host.characters = AddCharacters(rider, free, host.tricks, log);
+
+            var scene = EditorSceneManager.GetActiveScene();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            log.AppendLine("scene saved: " + scene.path);
+            return log.ToString();
+        }
+
+        /// <summary>
+        /// The rider's own riding style (Tools/Blender/riding_style.py): its clips replace the model's resting, setting-off
+        /// and riding clips and add the corner poses. Also the dirt and blue smoke when the bike sets off.
+        /// </summary>
+        static void AddRidingStyle(GameObject rider, FreeRider free, StringBuilder log)
+        {
+            var style = AssetDatabase.LoadAssetAtPath<GameObject>(StyleModelPath);
+            if (style == null) log.AppendLine("STYLE: model missing at " + StyleModelPath + "; the model's own clips are used");
+            else
+            {
+                var store = (GameObject)PrefabUtility.InstantiatePrefab(style);
+                store.name = "StyleClips";
+                store.transform.SetParent(rider.transform, false);
+                free.styleModel = store.GetComponent<UnityEngine.Animation>();
+                log.AppendLine("style clips: " + string.Join(", ", AnimationUtility.GetAnimationClips(store).Select(c => c.name)));
+            }
+
+            const string materialPath = ArtFolder + "/DR_Particles.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (material == null)
+            {
+                var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+                if (shader == null) { log.AppendLine("EFFECTS: no URP particle shader; no dirt or smoke"); return; }
+                material = new Material(shader) { name = "DR_Particles" };
+                // Transparent, alpha blended, both sides, no depth writes.
+                material.SetFloat("_Surface", 1f);
+                material.SetFloat("_Blend", 0f);
+                material.SetFloat("_Cull", 0f);
+                material.SetFloat("_ZWrite", 0f);
+                material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                Directory.CreateDirectory(Path.Combine(Root, ArtFolder));
+                AssetDatabase.CreateAsset(material, materialPath);
+            }
+            var effects = rider.AddComponent<StartEffects>();
+            effects.rider = free;
+            effects.particleMaterial = material;
+            log.AppendLine("start effects: dirt and blue smoke at the rear wheel");
+        }
+
+        const string SidecarModelPath = "Assets/DesktopRider/Sidecar/Models/Sidecar41_Desktop.fbx";   // the approved set, held in place for the app
+        const string SidecarLayoutPath = "Assets/DesktopRider/Sidecar/Models/sidecar_layout.json";
+        const string SidecarPropsFolder = "Assets/DesktopRider/Sidecar/Props";
+        // Drawn so the sidecar's driver and passenger are the size of Harvey and Louie (Boss, 19 November 2026: approved,
+        // "do not change their sizes anymore"). Measured on the meshes at rest in Unity, feet to helmet top: Harvey's rider
+        // 1.134 m, the sidecar's driver 1.472 m (helmet height 0.264 against 0.347 agrees).
+        const float SidecarDrawScale = 1.134f / 1.472f;
+        // The sidecar's tricks were made for a full-size track: the Double runs 38 m. Squeezed to half their length (ramps,
+        // landings and rollers too) the longest is 19 m, about as wide on screen as Harvey's longest, so they fit where his
+        // do (Boss, 19 November 2026: keep the sizes, shorten the sidecar tricks). Half as long in the same time is half as
+        // fast: the ground tricks then go 3.2 m/s, near his 3.4 m/s cruise, instead of shooting off at nearly twice it.
+        const float SidecarTrickLength = 0.5f;
+        const string LouieFolder = "Assets/DesktopRider/Louie/Models";   // Louie on his electric bike (Second Rider/tools/export_louie.py)
+
+        /// <summary>
+        /// Harvey and the sidecar crew (the "Who rides" setting). Harvey keeps everything as set up above; the sidecar model
+        /// goes under the same lean pivot, hidden until chosen, with its own tricks, props, riding and click area.
+        /// </summary>
+        static RiderCharacters AddCharacters(GameObject rider, FreeRider free, TrickRunner runner, StringBuilder log)
+        {
+            var list = rider.AddComponent<RiderCharacters>();
+            list.rider = free;
+            list.tricks = runner;
+            list.effects = rider.GetComponent<StartEffects>();
+            list.clickArea = rider.GetComponent<BoxCollider>();
+            list.shadow = rider.transform.Find("Shadow");
+            var characters = new List<RiderCharacters.Character>();
+            if (free.modelAnimation != null)
+                characters.Add(new RiderCharacters.Character
+                {
+                    id = DesktopRider.Core.Configuration.RiderCharacter.Harvey,
+                    model = free.modelAnimation.gameObject,
+                    trickLayout = runner != null ? runner.layoutFile : null,
+                    props = runner != null ? runner.propModels : Array.Empty<GameObject>(),
+                    propYaw = runner != null ? runner.propYaw : 90f,
+                    cruiseSpeed = free.cruiseSpeed, acceleration = free.acceleration, braking = free.braking,
+                    maxTurnRate = free.maxTurnRate, maxLean = free.maxLean, drawScale = 1f, exhaustSmoke = true,
+                    colliderCentre = list.clickArea != null ? list.clickArea.center : new Vector3(0f, 0.65f, 0f),
+                    colliderSize = list.clickArea != null ? list.clickArea.size : new Vector3(0.6f, 1.4f, 1.9f),
+                    shadowCentre = list.shadow != null ? list.shadow.localPosition : new Vector3(0f, 0.01f, 0f),
+                    shadowSize = list.shadow != null ? (Vector2)list.shadow.localScale : new Vector2(1.3f, 2.5f),
+                });
+
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SidecarModelPath);
+            if (prefab == null) log.AppendLine("SIDECAR: model missing at " + SidecarModelPath + "; only Harvey rides");
+            else
+            {
+                var model = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                model.name = "SidecarModel";
+                model.transform.SetParent(free.leanPivot, false);
+                model.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);    // Blender +X (the outfit's nose) to face +Z, as Harvey
+                var animation = model.GetComponent<UnityEngine.Animation>();
+                if (animation != null && animation["Idle"] != null) { animation.clip = animation["Idle"].clip; animation.playAutomatically = true; }
+                // Click area and shadow from the outfit's size at rest, measured on the meshes in Blender (2.18 m long, 1.57 m
+                // wide with the chair, 1.76 m to the top of the driver's helmet; the chair is on the -X side here). Unity's own
+                // bounds of skinned meshes are far looser than this, which would catch clicks meant for windows underneath.
+                var bounds = new Bounds(new Vector3(-0.33f, 0.8f, 0f), new Vector3(1.45f, 1.6f, 2.1f));
+                model.SetActive(false);
+                var layout = AssetDatabase.LoadAssetAtPath<TextAsset>(SidecarLayoutPath);
+                var props = !AssetDatabase.IsValidFolder(SidecarPropsFolder) ? Array.Empty<GameObject>() : AssetDatabase.FindAssets("t:GameObject", new[] { SidecarPropsFolder })
+                    .Select(guid => AssetDatabase.GUIDToAssetPath(guid))
+                    .Where(path => path.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase))
+                    .Select(path => AssetDatabase.LoadAssetAtPath<GameObject>(path))
+                    .Where(m => m != null).ToArray();
+                characters.Add(new RiderCharacters.Character
+                {
+                    id = DesktopRider.Core.Configuration.RiderCharacter.Sidecar41,
+                    model = model,
+                    trickLayout = layout,
+                    props = props,
+                    propYaw = 90f,
+                    trickLength = SidecarTrickLength,
+                    ownClips = true,
+                    // Rides at the same speed on screen as Harvey and Louie, speeds up and brakes alike and turns the same
+                    // circle on screen (Boss, 19 November 2026: "match speeds"). In its own metres that is the bikes' values
+                    // divided by its drawing scale; its tricks are shortened (SidecarTrickLength). A sidecar outfit does not
+                    // lean into turns; the crew's corner poses do the work.
+                    cruiseSpeed = free.cruiseSpeed / SidecarDrawScale, acceleration = free.acceleration / SidecarDrawScale,
+                    braking = free.braking / SidecarDrawScale, maxTurnRate = free.maxTurnRate, maxLean = 4f,
+                    drawScale = SidecarDrawScale,
+                    exhaustSmoke = false,
+                    colliderCentre = new Vector3(bounds.center.x, bounds.center.y, bounds.center.z),
+                    colliderSize = new Vector3(bounds.size.x, bounds.size.y, bounds.size.z),
+                    shadowCentre = new Vector3(bounds.center.x, 0.01f, bounds.center.z),
+                    shadowSize = new Vector2(1.75f, 2.5f),
+                });
+                log.AppendLine("sidecar: " + AssetDatabase.GetAssetPath(prefab) + "; footprint " + bounds.size + " at " + bounds.center +
+                               "; clips: " + string.Join(", ", AnimationUtility.GetAnimationClips(model).Select(c => c.name)) +
+                               "; layout " + (layout != null ? "found" : "MISSING") + "; props " + props.Length);
+            }
+            AddLouie(characters, free, characters.Count > 0 ? characters[0] : null, log);
+            list.characters = characters.ToArray();
+            return list;
+        }
+
+        /// <summary>
+        /// Louie on his electric bike. Same rig and clip names as Harvey, so he uses Harvey's tricks layout, props, riding
+        /// and click area. His riding style and trick takes are merged into his model's clip list here, so nothing has to be
+        /// copied while the app runs. No exhaust smoke: the bike is electric.
+        /// </summary>
+        static void AddLouie(List<RiderCharacters.Character> characters, FreeRider free, RiderCharacters.Character harvey, StringBuilder log)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(LouieFolder + "/Louie.fbx");
+            if (prefab == null) { log.AppendLine("LOUIE: model missing at " + LouieFolder + "/Louie.fbx"); return; }
+            var model = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            model.name = "LouieModel";
+            model.transform.SetParent(free.leanPivot, false);
+            model.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            var clips = new List<AnimationClip>(AnimationUtility.GetAnimationClips(model));
+            void Merge(string file, bool replace)
+            {
+                var store = AssetDatabase.LoadAssetAtPath<GameObject>(LouieFolder + "/" + file);
+                if (store == null) { log.AppendLine("LOUIE: " + file + " missing"); return; }
+                foreach (var clip in AnimationUtility.GetAnimationClips(store))
+                {
+                    int at = clips.FindIndex(c => c != null && c.name == clip.name);
+                    if (at < 0) clips.Add(clip);
+                    else if (replace) clips[at] = clip;
+                }
+            }
+            Merge("Louie_Style.fbx", true);
+            Merge("Louie_Tricks.fbx", false);
+            AnimationUtility.SetAnimationClips(model.GetComponent<UnityEngine.Animation>(), clips.ToArray());
+            var animation = model.GetComponent<UnityEngine.Animation>();
+            if (animation != null && animation["Idle"] != null) { animation.clip = animation["Idle"].clip; animation.playAutomatically = true; }
+            model.SetActive(false);
+            var louie = new RiderCharacters.Character
+            {
+                id = DesktopRider.Core.Configuration.RiderCharacter.Louie,
+                model = model,
+                ownClips = false,
+                drawScale = 1f,
+                exhaustSmoke = false,
+            };
+            if (harvey != null)
+            {
+                louie.trickLayout = harvey.trickLayout; louie.props = harvey.props; louie.propYaw = harvey.propYaw;
+                louie.cruiseSpeed = harvey.cruiseSpeed; louie.acceleration = harvey.acceleration; louie.braking = harvey.braking;
+                louie.maxTurnRate = harvey.maxTurnRate; louie.maxLean = harvey.maxLean;
+                louie.colliderCentre = harvey.colliderCentre; louie.colliderSize = harvey.colliderSize;
+                louie.shadowCentre = harvey.shadowCentre; louie.shadowSize = harvey.shadowSize;
+            }
+            characters.Add(louie);
+            log.AppendLine("louie: " + clips.Count + " clips (" + string.Join(", ", clips.Select(c => c.name)) + ")");
+        }
+
+        /// <summary>Adds the trick runner with its layout, props and the tricks model's takes, if they have been imported.</summary>
+        static TrickRunner AddTricks(GameObject rider, FreeRider free, OverlayWindow window, StringBuilder log)
+        {
+            var runner = rider.AddComponent<TrickRunner>();
+            runner.rider = free;
+            runner.overlayWindow = window;
+            runner.layoutFile = AssetDatabase.LoadAssetAtPath<TextAsset>(PropsFolder + "/props_layout.json");
+            if (runner.layoutFile == null) log.AppendLine("TRICKS: no props_layout.json in " + PropsFolder + "; tricks stay off");
+            runner.propModels = !AssetDatabase.IsValidFolder(PropsFolder) ? Array.Empty<GameObject>() : AssetDatabase.FindAssets("t:GameObject", new[] { PropsFolder })
+                .Select(guid => AssetDatabase.GUIDToAssetPath(guid))
+                .Where(path => path.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase))
+                .Select(path => AssetDatabase.LoadAssetAtPath<GameObject>(path))
+                .Where(model => model != null)
+                .ToArray();
+            log.AppendLine("trick props: " + runner.propModels.Length + " (" + string.Join(", ", runner.propModels.Select(m => m.name)) + ")");
+
+            var tricks = AssetDatabase.LoadAssetAtPath<GameObject>(TricksModelPath);
+            if (tricks == null) { log.AppendLine("TRICKS: model missing at " + TricksModelPath); return runner; }
+            var store = (GameObject)PrefabUtility.InstantiatePrefab(tricks);
+            store.name = "TrickClips";
+            store.transform.SetParent(rider.transform, false);
+            runner.tricksModel = store.GetComponent<UnityEngine.Animation>();
+            log.AppendLine("trick clips: " + string.Join(", ", AnimationUtility.GetAnimationClips(store).Select(c => c.name)));
+            return runner;
+        }
+
+        /// <summary>In play mode: rides the named trick, or a random one with no name. Says why if it cannot.</summary>
+        static string Trick(string argument)
+        {
+            if (argument != null && argument.StartsWith("at "))
+            {
+                // "trick at x y Name": put the rider at a desktop pixel first, e.g. near the left edge where there is room.
+                var bits = argument.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                var holder = UnityEngine.Object.FindFirstObjectByType<FreeRider>();
+                if (holder != null && bits.Length >= 3)
+                    holder.MoveTo(new Vector2(float.Parse(bits[1], System.Globalization.CultureInfo.InvariantCulture), float.Parse(bits[2], System.Globalization.CultureInfo.InvariantCulture)));
+                argument = bits.Length > 3 ? bits[3] : null;
+            }
+            if (!EditorApplication.isPlaying) return "ERROR the editor is not playing; tricks only run in play mode";
+            var runner = UnityEngine.Object.FindFirstObjectByType<TrickRunner>();
+            if (runner == null) return "ERROR no trick runner in the scene; send setup first";
+            var available = runner.Available.Select(a => a.Name).ToArray();
+            if (available.Length == 0) return "ERROR no tricks available (layout, props or clips missing)";
+            bool started = runner.TryPerform(string.IsNullOrWhiteSpace(argument) ? null : argument.Trim());
+            var free = runner.rider;
+            string where = free == null ? "" : "\nrider at " + free.DesktopPosition + " on " + OverlayWindow.Area.Size.Width + "x" + OverlayWindow.Area.Size.Height +
+                " (" + OverlayWindow.Area.Screens.Count + " screens, scaling " + OverlayWindow.ScaleFactor + ", " + free.CurrentView.PixelsPerMetre + " px per metre)";
+            string playing = "";
+            if (free != null && free.modelAnimation != null)
+                foreach (AnimationState state in free.modelAnimation)
+                    if (state.enabled && state.weight > 0f) playing += " " + state.name + "@" + state.layer + "=" + state.weight.ToString("0.00");
+            return (started ? "started " + runner.Current : "not started (busy, unknown trick or no room)") + where +
+                "\nclips on:" + playing + "\navailable: " + string.Join(", ", available);
+        }
+
+        /// <summary>
+        /// Draws the rider to Bridge/snapshot-yaw.png so the model can be checked without looking at the screen.
+        /// Argument: "yaw [clip] [seconds]", e.g. "45 Idle 0.5". The scene is not saved afterwards.
+        /// </summary>
+        static string Snapshot(string argument)
+        {
+            var parts = (argument ?? "").Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            float yaw = parts.Length > 0 ? float.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture) : 45f;
+            var model = GameObject.Find("Rider/Lean/Model");
+            if (model == null) return "ERROR no Rider/Lean/Model in the scene; send setup first";
+            if (parts.Length > 1)
+            {
+                // The riding style's clips replace the model's own in the app, so look there first.
+                var styleStore = GameObject.Find("Rider/StyleClips");
+                var clip = (styleStore != null ? AnimationUtility.GetAnimationClips(styleStore).FirstOrDefault(c => c.name == parts[1]) : null)
+                           ?? AnimationUtility.GetAnimationClips(model).FirstOrDefault(c => c.name == parts[1]);
+                if (clip == null) return "ERROR no clip " + parts[1];
+                float t = parts.Length > 2 ? float.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture) : 0f;
+                clip.SampleAnimation(model, t);
+            }
+            var go = new GameObject("SnapshotCamera");
+            try
+            {
+                var cam = go.AddComponent<Camera>();
+                cam.orthographic = true;
+                cam.orthographicSize = 1.1f;
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = new Color(0.55f, 0.6f, 0.65f, 1f);
+                var target = new Vector3(0f, 0.75f, 0f);
+                go.transform.rotation = Quaternion.Euler(30f, yaw, 0f);
+                go.transform.position = target - go.transform.forward * 10f;
+                var rt = new RenderTexture(768, 768, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
+                cam.targetTexture = rt;
+                cam.Render();
+                RenderTexture.active = rt;
+                var image = new Texture2D(768, 768, TextureFormat.RGBA32, false);
+                image.ReadPixels(new Rect(0, 0, 768, 768), 0, 0);
+                image.Apply();
+                RenderTexture.active = null;
+                string path = Path.Combine(Folder, "snapshot-" + Mathf.RoundToInt(yaw) + ".png");
+                File.WriteAllBytes(path, image.EncodeToPNG());
+                cam.targetTexture = null;
+                UnityEngine.Object.DestroyImmediate(rt);
+                UnityEngine.Object.DestroyImmediate(image);
+                var renderers = model.GetComponentsInChildren<Renderer>();
+                var materials = renderers.SelectMany(r => r.sharedMaterials).Where(m => m != null).Distinct().ToArray();
+                int textured = materials.Count(m => m.mainTexture != null);
+                return "saved " + path + "\nmaterials " + materials.Length + ", with a texture " + textured +
+                       "\nshaders " + string.Join(", ", materials.Select(m => m.shader.name).Distinct()) +
+                       "\ntextures " + string.Join(", ", materials.Select(m => m.mainTexture ? m.mainTexture.name + " " + m.mainTexture.width : null).Where(n => n != null).Distinct());
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        /// <summary>
+        /// Draws the scene as the desktop shows it (looking down at 45 degrees) around the rider and any trick props
+        /// to Bridge/view.png, so a trick can be checked without looking at the screen. Argument: "[name]".
+        /// </summary>
+        static string View(string argument)
+        {
+            var rider = GameObject.Find("Rider");
+            if (rider == null) return "ERROR no Rider in the scene";
+            var bounds = new Bounds(rider.transform.position + Vector3.up * 0.7f, Vector3.one * 2f);
+            foreach (var r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+                if (r.gameObject.activeInHierarchy && (r.name.StartsWith("DR_Prop_") || r.name.StartsWith("SC_Prop_"))) bounds.Encapsulate(r.bounds);
+            string name = string.IsNullOrWhiteSpace(argument) ? "view" : "view-" + argument.Trim();
+            var go = new GameObject("ViewCamera");
+            try
+            {
+                var cam = go.AddComponent<Camera>();
+                cam.orthographic = true;
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = new Color(0.55f, 0.6f, 0.65f, 1f);
+                go.transform.rotation = Quaternion.Euler(45f, 0f, 0f);
+                go.transform.position = bounds.center - go.transform.forward * 40f;
+                const int w = 1280, h = 720;
+                cam.orthographicSize = Mathf.Max(bounds.extents.y * 0.71f + bounds.extents.z * 0.71f, bounds.extents.x * h / w) * 1.15f;
+                cam.farClipPlane = 100f;
+                var rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
+                cam.targetTexture = rt;
+                cam.Render();
+                RenderTexture.active = rt;
+                var image = new Texture2D(w, h, TextureFormat.RGBA32, false);
+                image.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+                image.Apply();
+                RenderTexture.active = null;
+                string path = Path.Combine(Folder, name + ".png");
+                File.WriteAllBytes(path, image.EncodeToPNG());
+                cam.targetTexture = null;
+                UnityEngine.Object.DestroyImmediate(rt);
+                UnityEngine.Object.DestroyImmediate(image);
+                return "saved " + path + " (area " + bounds.size + ")";
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        /// <summary>
+        /// Draws one trick prop close up, lit by the scene, to Bridge/prop-Name[-yaw].png, so the dirt can be judged at
+        /// the size it is seen on the desktop and larger. Argument: "Name [yaw] [pitch] [zoom]". Works in edit mode.
+        /// </summary>
+        static string PropView(string argument)
+        {
+            var parts = (argument ?? "").Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) return "ERROR give a prop name, e.g. DR_Prop_JumpRamp";
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(PropsFolder + "/" + parts[0] + ".fbx");
+            if (model == null) return "ERROR no prop " + parts[0];
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            float yaw = parts.Length > 1 ? float.Parse(parts[1], inv) : 30f;
+            float pitch = parts.Length > 2 ? float.Parse(parts[2], inv) : 30f;
+            float zoom = parts.Length > 3 ? float.Parse(parts[3], inv) : 1f;
+            var prop = (GameObject)UnityEngine.Object.Instantiate(model, new Vector3(500f, 0f, 500f), Quaternion.identity);
+            var go = new GameObject("PropCamera");
+            try
+            {
+                var bounds = new Bounds(prop.transform.position, Vector3.zero);
+                foreach (var r in prop.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(r.bounds);
+                var cam = go.AddComponent<Camera>();
+                cam.orthographic = true;
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = new Color(0.55f, 0.6f, 0.65f, 1f);
+                go.transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
+                go.transform.position = bounds.center - go.transform.forward * 40f;
+                const int w = 1280, h = 720;
+                cam.orthographicSize = bounds.extents.magnitude * 0.62f / zoom;
+                cam.farClipPlane = 100f;
+                var rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
+                cam.targetTexture = rt;
+                cam.Render();
+                RenderTexture.active = rt;
+                var image = new Texture2D(w, h, TextureFormat.RGBA32, false);
+                image.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+                image.Apply();
+                RenderTexture.active = null;
+                string path = Path.Combine(Folder, "prop-" + parts[0] + (parts.Length > 1 ? "-" + parts[1] : "") + (parts.Length > 3 ? "-z" + parts[3] : "") + ".png");
+                File.WriteAllBytes(path, image.EncodeToPNG());
+                cam.targetTexture = null;
+                UnityEngine.Object.DestroyImmediate(rt);
+                UnityEngine.Object.DestroyImmediate(image);
+                return "saved " + path + " (size " + bounds.size + ")";
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(prop);
+            }
+        }
+
+        static void CreateShadow(Transform parent, StringBuilder log)
+        {
+            Directory.CreateDirectory(Path.Combine(Root, ArtFolder));
+            string texturePath = ArtFolder + "/BlobShadow.png";
+            const int size = 64;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
+                    float a = Mathf.SmoothStep(0f, 1f, 1f - Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy)));
+                    texture.SetPixel(x, y, new Color(0f, 0f, 0f, a * 0.45f));
+                }
+            File.WriteAllBytes(Path.Combine(Root, texturePath), texture.EncodeToPNG());
+            UnityEngine.Object.DestroyImmediate(texture);
+            AssetDatabase.ImportAsset(texturePath);
+
+            string materialPath = ArtFolder + "/BlobShadow.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (material == null)
+            {
+                material = new Material(Shader.Find("Sprites/Default"));
+                AssetDatabase.CreateAsset(material, materialPath);
+            }
+            material.mainTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+            EditorUtility.SetDirty(material);
+
+            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            quad.name = "Shadow";
+            UnityEngine.Object.DestroyImmediate(quad.GetComponent<Collider>());
+            quad.transform.SetParent(parent, false);
+            quad.transform.localPosition = new Vector3(0f, 0.01f, 0f);
+            quad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            quad.transform.localScale = new Vector3(1.3f, 2.5f, 1f);
+            var renderer = quad.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            log.AppendLine("shadow added");
+        }
+
+        /// <summary>
+        /// Nothing leaves the PC: turns off Unity's own cloud services in the built program (its start-up "hardware
+        /// statistics" and engine events to Unity, engine diagnostics, crash reports). The player log showed it trying to
+        /// reach cdp.cloud.unity3d.com and config.uca.cloud.unity3d.com at every start. Run before every build.
+        /// </summary>
+        static string KeepEverythingLocal()
+        {
+            var changed = new List<string>();
+            PlayerSettings.enableCrashReportAPI = false;
+            var player = Unsupported.GetSerializedAssetInterfaceSingleton("PlayerSettings");
+            if (player != null) SetBool(new SerializedObject(player), "submitAnalytics", false, changed);
+            var connect = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/UnityConnectSettings.asset");
+            if (connect.Length > 0)
+            {
+                var settings = new SerializedObject(connect[0]);
+                SetBool(settings, "m_Enabled", false, changed);
+                SetBool(settings, "InsightsSettings.m_EngineDiagnosticsEnabled", false, changed);
+                SetBool(settings, "InsightsSettings.m_Enabled", false, changed);
+                SetBool(settings, "CrashReportingSettings.m_EnableCloudDiagnosticsReporting", false, changed);
+                SetBool(settings, "UnityAnalyticsSettings.m_Enabled", false, changed);
+                SetBool(settings, "PerformanceReportingSettings.m_Enabled", false, changed);
+            }
+            AssetDatabase.SaveAssets();
+            return "cloud services off" + (changed.Count > 0 ? " (changed " + string.Join(", ", changed) + ")" : " (already)");
+        }
+
+        static void SetBool(SerializedObject target, string path, bool value, List<string> changed)
+        {
+            var property = target.FindProperty(path);
+            if (property == null) { changed.Add(path + " NOT FOUND"); return; }
+            if (property.boolValue == value) return;
+            property.boolValue = value;
+            target.ApplyModifiedPropertiesWithoutUndo();
+            changed.Add(path);
+        }
+
+        // ------------------------------------------------------------------ build and run
+        static string Build()
+        {
+            string local = KeepEverythingLocal();
+            // Several riders at once run as several copies of the program; AppHost keeps it to one main program itself.
+            PlayerSettings.forceSingleInstance = false;
+            var scene = EditorSceneManager.GetActiveScene();
+            if (scene.isDirty) EditorSceneManager.SaveScene(scene);
+            var options = new BuildPlayerOptions
+            {
+                scenes = new[] { scene.path },
+                locationPathName = Exe,
+                target = BuildTarget.StandaloneWindows64,
+                options = BuildOptions.None,
+            };
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            var s = report.summary;
+            var text = new StringBuilder();
+            text.AppendLine("result=" + s.result + " errors=" + s.totalErrors + " warnings=" + s.totalWarnings + " sizeMB=" + (s.totalSize / 1048576.0).ToString("F1") + " seconds=" + s.totalTime.TotalSeconds.ToString("F0"));
+            text.AppendLine("output=" + s.outputPath);
+            text.AppendLine(local);
+            foreach (var step in report.steps)
+                foreach (var message in step.messages)
+                    if (message.type == LogType.Error || message.type == LogType.Exception) text.AppendLine(message.content);
+            return text.ToString();
+        }
+
+        /// <summary>Whether the built program is running, and the end of its Unity log (where a crash or exception would show).</summary>
+        static string PlayerLog(string who = "")
+        {
+            var running = Process.GetProcessesByName("DesktopRider3D").Select(p => p.Id.ToString()).ToArray();
+            string log = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow",
+                                      PlayerSettings.companyName, PlayerSettings.productName, string.IsNullOrWhiteSpace(who) ? "Player.log" : "Player-" + who.Trim() + ".log");
+            string tail = "(no log at " + log + ")";
+            if (File.Exists(log))
+            {
+                // The running program keeps its log open, so read it while letting it carry on writing.
+                using var stream = new FileStream(log, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                using var reader = new StreamReader(stream);
+                tail = string.Join("\n", reader.ReadToEnd().Split('\n').Reverse().Take(40).Reverse());
+            }
+            return "running: " + (running.Length == 0 ? "no" : string.Join(", ", running)) + "\n" + tail;
+        }
+
+        static string Launch(string arguments)
+        {
+            if (!File.Exists(Exe)) throw new FileNotFoundException("Build first.", Exe);
+            string quit = Path.Combine(BuildFolder, "quit.txt");
+            if (File.Exists(quit)) File.Delete(quit);
+            arguments = ("--proof " + arguments).Trim();                 // turns on ProofStats (stats, test files)
+            var process = Process.Start(new ProcessStartInfo(Exe, arguments) { WorkingDirectory = BuildFolder, UseShellExecute = false });
+            return "started process " + process.Id;
+        }
+
+        // ------------------------------------------------------------------ tests
+#if DR_HAS_TEST_FRAMEWORK
+        sealed class Callbacks : UnityEditor.TestTools.TestRunner.Api.ICallbacks
+        {
+            public string File;
+            readonly StringBuilder failures = new StringBuilder();
+            public void RunStarted(UnityEditor.TestTools.TestRunner.Api.ITestAdaptor tests) { }
+            public void TestStarted(UnityEditor.TestTools.TestRunner.Api.ITestAdaptor test) { }
+            public void TestFinished(UnityEditor.TestTools.TestRunner.Api.ITestResultAdaptor result)
+            {
+                if (!result.HasChildren && result.TestStatus == UnityEditor.TestTools.TestRunner.Api.TestStatus.Failed)
+                    failures.AppendLine("FAILED " + result.FullName + ": " + result.Message);
+            }
+            public void RunFinished(UnityEditor.TestTools.TestRunner.Api.ITestResultAdaptor result)
+            {
+                System.IO.File.WriteAllText(File, "OK\npassed=" + result.PassCount + " failed=" + result.FailCount + " skipped=" + result.SkipCount + " inconclusive=" + result.InconclusiveCount + "\n" + failures);
+            }
+        }
+
+        static string RunTests(string id)
+        {
+            var api = ScriptableObject.CreateInstance<UnityEditor.TestTools.TestRunner.Api.TestRunnerApi>();
+            api.RegisterCallbacks(new Callbacks { File = Path.Combine(Folder, "result-" + id + ".txt") });
+            api.Execute(new UnityEditor.TestTools.TestRunner.Api.ExecutionSettings(new UnityEditor.TestTools.TestRunner.Api.Filter { testMode = UnityEditor.TestTools.TestRunner.Api.TestMode.EditMode }));
+            return Deferred;
+        }
+#else
+        static string RunTests(string id) => throw new InvalidOperationException("The Unity test framework package is not installed. Send: addpackage com.unity.test-framework");
+#endif
+    }
+}

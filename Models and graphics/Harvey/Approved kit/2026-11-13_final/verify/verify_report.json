@@ -1,0 +1,97 @@
+[
+ {
+  "check": "two meshes, two rigs",
+  "result": "PASS",
+  "detail": "meshes ['race_bike_youth', 'race_rider'] rigs ['bike_rig', 'rider_rig']"
+ },
+ {
+  "check": "race_bike_youth vertex/face count",
+  "result": "PASS",
+  "detail": "fbx 8520/4728, expected 8520/4728"
+ },
+ {
+  "check": "race_bike_youth UV map present, no zero-area UV faces",
+  "result": "PASS",
+  "detail": "uv layers ['UVMap']; faces with zero UV area but real area in 3D: 0 (total 3D area 0.0000 cm2, materials {}); sliver faces under 0.01 mm2 in 3D (not counted): 0"
+ },
+ {
+  "check": "race_rider vertex/face count",
+  "result": "PASS",
+  "detail": "fbx 6726/3596, expected 6726/3596"
+ },
+ {
+  "check": "race_rider UV map present, no zero-area UV faces",
+  "result": "PASS",
+  "detail": "uv layers ['UVMap']; faces with zero UV area but real area in 3D: 0 (total 3D area 0.0000 cm2, materials {}); sliver faces under 0.01 mm2 in 3D (not counted): 24"
+ },
+ {
+  "check": "bike_rig bones and hierarchy",
+  "result": "PASS",
+  "detail": "11 bones (expected 11)"
+ },
+ {
+  "check": "rider_rig bones and hierarchy",
+  "result": "PASS",
+  "detail": "14 bones (expected 14)"
+ },
+ {
+  "check": "rider_rig is its own rig beside bike_rig (its transform is keyed to follow the chassis bone)",
+  "result": "PASS",
+  "detail": "parent None"
+ },
+ {
+  "check": "bike rest shape identical to master outside the listed vertices; only the listed geometry added",
+  "result": "PASS",
+  "detail": "292 vertices differ from master, 0 of them outside the 292 listed vertices; max deviation elsewhere 0.000428 mm; largest listed move 65.4 mm; vertices 8520 (expected 8520 = master 8444 - 36 removed + 112 added); faces 4728 (expected 4728 = master 4540 - 20 removed + 208 added)"
+ },
+ {
+  "check": "rider rest shape identical to master outside the helmet",
+  "result": "PASS",
+  "detail": "1894 vertices differ from master, 0 of them outside the 1894 helmet vertices; max deviation outside 0.000530 mm"
+ },
+ {
+  "check": "both rest shapes equal the working scene (helmet corrections baked)",
+  "result": "PASS",
+  "detail": "max deviation 0.000530 mm"
+ },
+ {
+  "check": "15 clips present for both rigs",
+  "result": "PASS",
+  "detail": "30 actions imported; missing []"
+ },
+ {
+  "check": "clip lengths equal DR_animations.json",
+  "result": "PASS",
+  "detail": "all 15 clip lengths match"
+ },
+ {
+  "check": "bone positions at 5 frames per clip within 1 mm",
+  "result": "PASS",
+  "detail": "worst 0.0009 mm at ('Revving', 6, 'rider_rig', 'hand.R')"
+ },
+ {
+  "check": "bone rotations at 5 frames per clip within 0.5 deg",
+  "result": "PASS",
+  "detail": "worst 0.0000 deg at None"
+ },
+ {
+  "check": "skinned mesh vertices at 5 frames per clip within 1 mm",
+  "result": "PASS",
+  "detail": "worst 0.0020 mm at ('RideOff', 15, 'race_bike_youth')"
+ },
+ {
+  "check": "textures found by the material import",
+  "result": "PASS",
+  "detail": "race_bike_youth: 23 materials -> ['DesktopRider_Bike.png']; race_rider: 15 materials -> ['DesktopRider_Rider.png']"
+ },
+ {
+  "check": "check render of the re-imported FBX written",
+  "result": "PASS",
+  "detail": "D:\\AI\\Claude\\Dektop Rider 3D\\kit-fit-work\\approved\\2026-11-13_final\\verify\\fbx_check_front_left.png"
+ },
+ {
+  "check": "9 prop FBX files re-import with expected size, triangles, UV and materials",
+  "result": "PASS",
+  "detail": "9 props checked"
+ }
+]
