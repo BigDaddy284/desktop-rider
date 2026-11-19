@@ -23,6 +23,8 @@ namespace DesktopRider.Riding
             public TextAsset trickLayout;
             public GameObject[] props = Array.Empty<GameObject>();
             public float propYaw = 90f;
+            [Tooltip("Tricks squeezed to this much of their length along the way they travel, ramps and landings too (1 = as made).")]
+            public float trickLength = 1f;
             [Tooltip("True: the rules use the model's own clips (the sidecar). False: Harvey's clip list.")]
             public bool ownClips;
             [Header("Riding")]
@@ -31,7 +33,7 @@ namespace DesktopRider.Riding
             public float braking = 4f;
             public float maxTurnRate = 110f;
             public float maxLean = 38f;
-            [Tooltip("Drawn this much of the normal size (the sidecar's long jumps need a smaller drawing to fit on a screen).")]
+            [Tooltip("Drawn this much of the normal size (the sidecar is drawn so its crew are the size of Harvey and Louie).")]
             public float drawScale = 1f;
             [Tooltip("Blue exhaust smoke when setting off (Harvey's two-stroke). No reference photo for the sidecar's exhaust, so off for it.")]
             public bool exhaustSmoke = true;
@@ -82,7 +84,7 @@ namespace DesktopRider.Riding
             rider.maxTurnRate = chosen.maxTurnRate;
             rider.maxLean = chosen.maxLean;
             rider.UseModel(animation, chosen.ownClips ? ClipsOf(animation) : null, chosen.drawScale);
-            if (tricks != null) tricks.Use(chosen.trickLayout, chosen.props, chosen.propYaw);
+            if (tricks != null) tricks.Use(chosen.trickLayout, chosen.props, chosen.propYaw, chosen.trickLength);
             if (effects != null) effects.UseModel(animation, chosen.exhaustSmoke);
             if (clickArea != null) { clickArea.center = chosen.colliderCentre; clickArea.size = chosen.colliderSize; }
             if (shadow != null)

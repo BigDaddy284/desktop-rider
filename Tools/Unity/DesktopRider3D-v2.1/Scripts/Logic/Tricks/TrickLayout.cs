@@ -74,6 +74,12 @@ namespace DesktopRider.Tricks
         /// <summary>How far the bike has gone when the trick ends, in metres.</summary>
         public double Distance => _travel[_travel.Length - 1];
 
+        /// <summary>This trick with its travel and props <paramref name="factor"/> times as long (see <see cref="TrickLayout.Shortened"/>).</summary>
+        internal TrickAnimation Shortened(double factor) =>
+            new TrickAnimation(Name, Stage, Frames, FramesPerSecond,
+                Props.Select(p => new TrickPropPlacement(p.Prop, p.X * factor, p.Length * factor)).ToList(),
+                _travel.Select(t => t * factor).ToArray());
+
         /// <summary>
         /// How fast the bike is going as the trick begins, in metres a second at normal speed. Harvey's tricks set off
         /// from a stop (near 0); the sidecar's are cut from a run and begin already moving, so it must ride in at this speed.
@@ -127,6 +133,20 @@ namespace DesktopRider.Tricks
         public IEnumerable<string> TrickNames => _animations.Keys;
 
         public TrickProp? Prop(string name) => _props.TryGetValue(name, out var p) ? p : null;
+
+        /// <summary>
+        /// The same tricks squeezed along the way they travel: every travel distance, prop position and prop length is
+        /// <paramref name="factor"/> times as long (0.5 is half as long and half as fast). Heights, widths and timing stay
+        /// as they are, so the bike still meets each ramp and landing on the same frame. 1 gives this layout back.
+        /// </summary>
+        public TrickLayout Shortened(double factor)
+        {
+            if (!(factor > 0 && factor <= 1)) throw new ArgumentOutOfRangeException(nameof(factor), "A trick can only be shortened, by a factor above 0 and up to 1.");
+            if (factor == 1) return this;
+            var props = _props.Values.ToDictionary(p => p.Name, p => new TrickProp(p.Name, p.Kind, p.Length * factor, p.Width, p.Height), StringComparer.Ordinal);
+            var animations = _animations.Values.ToDictionary(a => a.Name, a => a.Shortened(factor), StringComparer.Ordinal);
+            return new TrickLayout(FramesPerSecond, props, animations);
+        }
 
         public TrickAnimation? Find(string name) => _animations.TryGetValue(name, out var a) ? a : null;
 

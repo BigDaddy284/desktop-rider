@@ -94,7 +94,7 @@ namespace DesktopRider.EditorTools
                 case "capture": return DesktopRider.EditorTools.WindowCapture.Capture(argument, Path.Combine(Folder, "capture-" + id + ".png"));
                 case "screengrab": return DesktopRider.EditorTools.WindowCapture.ScreenGrab(argument, Path.Combine(Folder, "grab-" + id));
                 case "winclick": return DesktopRider.EditorTools.WindowCapture.Click(argument);
-                case "playerlog": return PlayerLog();
+                case "playerlog": return PlayerLog(argument);   // "playerlog Louie": a companion window's log
                 case "character":
                     // In play mode: "character Sidecar41" or "character Harvey" swaps who rides, without changing the saved settings.
                     {
@@ -306,6 +306,16 @@ namespace DesktopRider.EditorTools
         const string SidecarModelPath = "Assets/DesktopRider/Sidecar/Models/Sidecar41_Desktop.fbx";   // the approved set, held in place for the app
         const string SidecarLayoutPath = "Assets/DesktopRider/Sidecar/Models/sidecar_layout.json";
         const string SidecarPropsFolder = "Assets/DesktopRider/Sidecar/Props";
+        // Drawn so the sidecar's driver and passenger are the size of Harvey and Louie (Boss, 19 November 2026: approved,
+        // "do not change their sizes anymore"). Measured on the meshes at rest in Unity, feet to helmet top: Harvey's rider
+        // 1.134 m, the sidecar's driver 1.472 m (helmet height 0.264 against 0.347 agrees).
+        const float SidecarDrawScale = 1.134f / 1.472f;
+        // The sidecar's tricks were made for a full-size track: the Double runs 38 m. Squeezed to half their length (ramps,
+        // landings and rollers too) the longest is 19 m, about as wide on screen as Harvey's longest, so they fit where his
+        // do (Boss, 19 November 2026: keep the sizes, shorten the sidecar tricks). Half as long in the same time is half as
+        // fast: the ground tricks then go 3.2 m/s, near his 3.4 m/s cruise, instead of shooting off at nearly twice it.
+        const float SidecarTrickLength = 0.5f;
+        const string LouieFolder = "Assets/DesktopRider/Louie/Models";   // Louie on his electric bike (Second Rider/tools/export_louie.py)
 
         /// <summary>
         /// Harvey and the sidecar crew (the "Who rides" setting). Harvey keeps everything as set up above; the sidecar model
@@ -364,12 +374,15 @@ namespace DesktopRider.EditorTools
                     trickLayout = layout,
                     props = props,
                     propYaw = 90f,
+                    trickLength = SidecarTrickLength,
                     ownClips = true,
-                    // Its real riding speed (6.3 m/s, as in its approved clips) and turning circle (4.5 m: about 80 degrees a
-                    // second at that speed). A sidecar outfit does not lean into turns; the crew's corner poses do the work.
-                    cruiseSpeed = 6.3f, acceleration = 6f, braking = 9f, maxTurnRate = 80f, maxLean = 4f,
-                    // Drawn at 45%: its approved jumps cover up to 38 m, which must fit across a 1920-pixel screen.
-                    drawScale = 0.45f,
+                    // Rides at the same speed on screen as Harvey and Louie, speeds up and brakes alike and turns the same
+                    // circle on screen (Boss, 19 November 2026: "match speeds"). In its own metres that is the bikes' values
+                    // divided by its drawing scale; its tricks are shortened (SidecarTrickLength). A sidecar outfit does not
+                    // lean into turns; the crew's corner poses do the work.
+                    cruiseSpeed = free.cruiseSpeed / SidecarDrawScale, acceleration = free.acceleration / SidecarDrawScale,
+                    braking = free.braking / SidecarDrawScale, maxTurnRate = free.maxTurnRate, maxLean = 4f,
+                    drawScale = SidecarDrawScale,
                     exhaustSmoke = false,
                     colliderCentre = new Vector3(bounds.center.x, bounds.center.y, bounds.center.z),
                     colliderSize = new Vector3(bounds.size.x, bounds.size.y, bounds.size.z),
@@ -380,8 +393,60 @@ namespace DesktopRider.EditorTools
                                "; clips: " + string.Join(", ", AnimationUtility.GetAnimationClips(model).Select(c => c.name)) +
                                "; layout " + (layout != null ? "found" : "MISSING") + "; props " + props.Length);
             }
+            AddLouie(characters, free, characters.Count > 0 ? characters[0] : null, log);
             list.characters = characters.ToArray();
             return list;
+        }
+
+        /// <summary>
+        /// Louie on his electric bike. Same rig and clip names as Harvey, so he uses Harvey's tricks layout, props, riding
+        /// and click area. His riding style and trick takes are merged into his model's clip list here, so nothing has to be
+        /// copied while the app runs. No exhaust smoke: the bike is electric.
+        /// </summary>
+        static void AddLouie(List<RiderCharacters.Character> characters, FreeRider free, RiderCharacters.Character harvey, StringBuilder log)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(LouieFolder + "/Louie.fbx");
+            if (prefab == null) { log.AppendLine("LOUIE: model missing at " + LouieFolder + "/Louie.fbx"); return; }
+            var model = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            model.name = "LouieModel";
+            model.transform.SetParent(free.leanPivot, false);
+            model.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            var clips = new List<AnimationClip>(AnimationUtility.GetAnimationClips(model));
+            void Merge(string file, bool replace)
+            {
+                var store = AssetDatabase.LoadAssetAtPath<GameObject>(LouieFolder + "/" + file);
+                if (store == null) { log.AppendLine("LOUIE: " + file + " missing"); return; }
+                foreach (var clip in AnimationUtility.GetAnimationClips(store))
+                {
+                    int at = clips.FindIndex(c => c != null && c.name == clip.name);
+                    if (at < 0) clips.Add(clip);
+                    else if (replace) clips[at] = clip;
+                }
+            }
+            Merge("Louie_Style.fbx", true);
+            Merge("Louie_Tricks.fbx", false);
+            AnimationUtility.SetAnimationClips(model.GetComponent<UnityEngine.Animation>(), clips.ToArray());
+            var animation = model.GetComponent<UnityEngine.Animation>();
+            if (animation != null && animation["Idle"] != null) { animation.clip = animation["Idle"].clip; animation.playAutomatically = true; }
+            model.SetActive(false);
+            var louie = new RiderCharacters.Character
+            {
+                id = DesktopRider.Core.Configuration.RiderCharacter.Louie,
+                model = model,
+                ownClips = false,
+                drawScale = 1f,
+                exhaustSmoke = false,
+            };
+            if (harvey != null)
+            {
+                louie.trickLayout = harvey.trickLayout; louie.props = harvey.props; louie.propYaw = harvey.propYaw;
+                louie.cruiseSpeed = harvey.cruiseSpeed; louie.acceleration = harvey.acceleration; louie.braking = harvey.braking;
+                louie.maxTurnRate = harvey.maxTurnRate; louie.maxLean = harvey.maxLean;
+                louie.colliderCentre = harvey.colliderCentre; louie.colliderSize = harvey.colliderSize;
+                louie.shadowCentre = harvey.shadowCentre; louie.shadowSize = harvey.shadowSize;
+            }
+            characters.Add(louie);
+            log.AppendLine("louie: " + clips.Count + " clips (" + string.Join(", ", clips.Select(c => c.name)) + ")");
         }
 
         /// <summary>Adds the trick runner with its layout, props and the tricks model's takes, if they have been imported.</summary>
@@ -667,6 +732,8 @@ namespace DesktopRider.EditorTools
         static string Build()
         {
             string local = KeepEverythingLocal();
+            // Several riders at once run as several copies of the program; AppHost keeps it to one main program itself.
+            PlayerSettings.forceSingleInstance = false;
             var scene = EditorSceneManager.GetActiveScene();
             if (scene.isDirty) EditorSceneManager.SaveScene(scene);
             var options = new BuildPlayerOptions
@@ -689,11 +756,11 @@ namespace DesktopRider.EditorTools
         }
 
         /// <summary>Whether the built program is running, and the end of its Unity log (where a crash or exception would show).</summary>
-        static string PlayerLog()
+        static string PlayerLog(string who = "")
         {
             var running = Process.GetProcessesByName("DesktopRider3D").Select(p => p.Id.ToString()).ToArray();
             string log = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow",
-                                      PlayerSettings.companyName, PlayerSettings.productName, "Player.log");
+                                      PlayerSettings.companyName, PlayerSettings.productName, string.IsNullOrWhiteSpace(who) ? "Player.log" : "Player-" + who.Trim() + ".log");
             string tail = "(no log at " + log + ")";
             if (File.Exists(log))
             {

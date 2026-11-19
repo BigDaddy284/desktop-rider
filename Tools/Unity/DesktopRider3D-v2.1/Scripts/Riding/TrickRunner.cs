@@ -31,6 +31,10 @@ namespace DesktopRider.Riding
         [Tooltip("Turns the props to match the rider model (Blender's forward becomes Unity's forward).")]
         public float propYaw = 90f;
 
+        [Tooltip("The tricks and their props squeezed to this much of their length along the way they travel (1 = as made).")]
+        [Range(0.2f, 1f)]
+        public float trickLength = 1f;
+
         [Tooltip("Pixels kept clear between a trick and the edge of the screen.")]
         public float screenMargin = 24f;
 
@@ -80,14 +84,14 @@ namespace DesktopRider.Riding
         /// <summary>Raised when a trick ends, with its name.</summary>
         public event Action<string> Finished;
 
-        void Awake() => layout = ReadLayout(layoutFile);
+        void Awake() => layout = ReadLayout(layoutFile, trickLength);
 
-        static TrickLayout ReadLayout(TextAsset file)
+        static TrickLayout ReadLayout(TextAsset file, float length)
         {
             if (file == null) return null;
             try
             {
-                return TrickLayout.Parse(file.text);
+                return TrickLayout.Parse(file.text).Shortened(Mathf.Clamp(length, 0.2f, 1f));
             }
             catch (FormatException ex)
             {
@@ -100,7 +104,7 @@ namespace DesktopRider.Riding
         /// Rides another character's tricks from now on (the "Who rides" setting): its layout and props. Any trick under
         /// way is stopped and its props are put away. The clips must already be on the rider's model.
         /// </summary>
-        public void Use(TextAsset layoutFile, GameObject[] propModels, float propYaw)
+        public void Use(TextAsset layoutFile, GameObject[] propModels, float propYaw, float trickLength = 1f)
         {
             Stop();
             foreach (var prop in props.Values) if (prop != null) Destroy(prop);
@@ -109,7 +113,8 @@ namespace DesktopRider.Riding
             this.layoutFile = layoutFile;
             this.propModels = propModels ?? Array.Empty<GameObject>();
             this.propYaw = propYaw;
-            layout = ReadLayout(layoutFile);
+            this.trickLength = trickLength;
+            layout = ReadLayout(layoutFile, trickLength);
             hasTricks = Available.Any();
         }
 
@@ -163,7 +168,8 @@ namespace DesktopRider.Riding
             Func<Numerics.Vector2, bool> fits = ground => FitsOnScreen(view, ground);
             float current = rider.transform.eulerAngles.y;
             float entry = EntrySpeed(trick);
-            float? heading = TrickRun.PickHeading(trick, here, current, fits, halfWidth);
+            float overrun = StartOverrun(entry);
+            float? heading = TrickRun.PickHeading(trick, here, current, fits, halfWidth, overrun: overrun);
             if (heading != null)
             {
                 // Already facing the right way and going the trick's speed (Harvey's tricks start from a stop): go now.
@@ -176,14 +182,14 @@ namespace DesktopRider.Riding
                 if (Mathf.Abs(TrickRun.TurnBetween(current, heading.Value)) <= 60f)
                 {
                     var ahead = here + TrickRun.Direction(current) * (rider.RunUpFor(entry) + 1.5f * rider.PathTurnRadius);
-                    if (TrickRun.Fits(trick, ahead, heading.Value, fits, halfWidth)) start = ahead;
+                    if (TrickRun.Fits(trick, ahead, heading.Value, fits, halfWidth, overrun: overrun)) start = ahead;
                 }
                 Approach(trick, start, heading.Value, entry, "lining up first");
                 return true;
             }
 
             // No room here: ride to the nearest place with room, then go. A trick needs several metres of desktop.
-            var plan = TrickRun.PlanStart(trick, here, current, Candidates(view), fits, halfWidth);
+            var plan = TrickRun.PlanStart(trick, here, current, Candidates(view), fits, halfWidth, overrun: overrun);
             if (plan == null) return false;
             Approach(trick, plan.Value.Start, plan.Value.Heading, entry, "riding to a place with room first");
             return true;
@@ -192,10 +198,17 @@ namespace DesktopRider.Riding
         void Approach(TrickAnimation trick, Numerics.Vector2 start, float heading, float entry, string why)
         {
             pending = trick;
-            Debug.Log("Trick " + trick.Name + ": " + why + ".");
+            Debug.Log("Trick " + trick.Name + ": " + why + " (start " + start.X.ToString("0.0") + ", " + start.Y.ToString("0.0") + " m, heading " + heading.ToString("0") + ").");
             var y = rider.transform.position.y;
             rider.RideTo(new Vector3(start.X, y, start.Y), heading, entry, () => StartWhereArrived(heading));
         }
+
+        /// <summary>
+        /// How far past the planned start the rider may be when he gets there: he is checked once a frame, so at speed he
+        /// can be a frame or two on. Planned places keep this much more room at the far end, or the trick that was planned
+        /// no longer fits when he arrives (seen at the biggest size: the sidecar's Double given up 0.7 m past its start).
+        /// </summary>
+        static float StartOverrun(float entrySpeed) => 0.5f + 0.15f * entrySpeed;
 
         /// <summary>How fast the trick begins, in metres a second at the animation speed in use.</summary>
         float EntrySpeed(TrickAnimation trick) => (float)(trick.EntrySpeed * rider.Director.Speed);
@@ -221,7 +234,8 @@ namespace DesktopRider.Riding
                         Begin(trick, TrickRun.Normalise(facing + nudge));
                         return;
                     }
-            Debug.Log("Trick " + trick.Name + " given up at its start: no room facing the way he arrived.");
+            Debug.Log("Trick " + trick.Name + " given up at its start: no room facing the way he arrived (at " + here.X.ToString("0.0") + ", " +
+                      here.Y.ToString("0.0") + " m, facing " + facing.ToString("0") + ", planned " + planned.ToString("0") + ").");
         }
 
         /// <summary>The most the bike may be turned as a trick begins: too little to see.</summary>
@@ -339,7 +353,7 @@ namespace DesktopRider.Riding
                 var instance = PropInstance(placed.Name);
                 if (instance == null) continue;
                 instance.transform.SetPositionAndRotation(new Vector3(placed.Position.X, 0f, placed.Position.Y),
-                    Quaternion.Euler(0f, placed.Heading + propYaw, 0f));
+                    Quaternion.Euler(0f, placed.Heading, 0f));
                 instance.SetActive(true);
             }
         }
@@ -349,12 +363,18 @@ namespace DesktopRider.Riding
             if (props.TryGetValue(name, out var existing)) return existing;
             var model = propModels.FirstOrDefault(p => p != null && p.name == name);
             if (model == null) return null;
-            // Props are not children of the rider: they stay put on the ground while the bike rides over them.
-            var instance = Instantiate(model);
+            // Props are not children of the rider: they stay put on the ground while the bike rides over them. Each sits in a
+            // holder that faces the way the trick goes and squeezes it along that way as much as the trick is shortened
+            // (its origin is the start of the piece, so the start stays where the layout puts it).
+            var holder = new GameObject(name);
+            holder.transform.localScale = new Vector3(1f, 1f, Mathf.Clamp(trickLength, 0.2f, 1f));
+            var instance = Instantiate(model, holder.transform, false);
             instance.name = name;
-            instance.SetActive(false);
-            props[name] = instance;
-            return instance;
+            instance.transform.localPosition = Vector3.zero;
+            instance.transform.localRotation = Quaternion.Euler(0f, propYaw, 0f);
+            holder.SetActive(false);
+            props[name] = holder;
+            return holder;
         }
 
         void PlayClip(string clip)

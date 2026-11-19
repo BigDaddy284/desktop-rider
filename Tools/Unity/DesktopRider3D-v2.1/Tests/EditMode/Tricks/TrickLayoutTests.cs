@@ -89,6 +89,33 @@ namespace DesktopRider.Tricks.Tests
         }
 
         [Test]
+        public void Shortened_SqueezesTravelAndProps_ButKeepsTimingAndHeights()
+        {
+            var layout = TrickLayout.Parse(Sample);
+            var half = layout.Shortened(0.5);
+            var jump = half.Find("Jump")!;
+
+            Assert.Equal(3.0, jump.Distance, 6);
+            Assert.Equal(4, jump.Frames);                         // same frames, same time
+            Assert.Equal(layout.Find("Jump")!.Seconds, jump.Seconds, 9);
+            Assert.Equal(0.6, jump.Props[0].X, 6);
+            Assert.Equal(2.0, jump.Props[1].X, 6);
+            Assert.Equal(1.5, jump.Props[1].Length, 6);
+            Assert.Equal(3.5, jump.Reach.To, 6);                  // half of 7
+            Assert.Equal(6.0, jump.EntrySpeed, 6);                // half as fast
+            Assert.Equal(0.25, jump.TravelAt(1 / 24.0), 6);
+            var ramp = half.Prop("DR_Prop_JumpRamp")!;
+            Assert.Equal(0.75, ramp.Length, 6);
+            Assert.Equal(1.1, ramp.Width, 6);
+            Assert.Equal(0.35, ramp.Height, 6);
+            Assert.Equal(5.05, half.Find("Whoops")!.Reach.To, 6);
+            Assert.Equal(6.0, layout.Find("Jump")!.Distance, 6);  // the original is untouched
+            Assert.Same(layout, layout.Shortened(1.0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => layout.Shortened(0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => layout.Shortened(1.5));
+        }
+
+        [Test]
         public void ExplainsWhatIsWrongWithABrokenFile()
         {
             Assert.Contains("not valid JSON", Assert.Throws<FormatException>(() => TrickLayout.Parse("{ nope")).Message);
@@ -227,6 +254,17 @@ namespace DesktopRider.Tricks.Tests
             var plan = TrickRun.PlanStart(Jump, Vector2.Zero, 260f, new[] { Vector2.Zero }, fits);
             Assert.NotNull(plan);
             Assert.Equal(270f, plan.Value.Heading);
+        }
+
+        [Test]
+        public void Overrun_KeepsRoomBeyondTheEnd()
+        {
+            // The jump reaches 7 m. A strip 7.5 m long fits it from 0, but not with 1 m of overrun.
+            Func<Vector2, bool> strip = p => p.X >= -0.1f && p.X <= 7.5f && Math.Abs(p.Y) <= 1f;
+            Assert.True(TrickRun.Fits(Jump, Vector2.Zero, 90f, strip, 0.5f));
+            Assert.False(TrickRun.Fits(Jump, Vector2.Zero, 90f, strip, 0.5f, overrun: 1.0));
+            Assert.True(TrickRun.Fits(Jump, Vector2.Zero, 90f, strip, 0.5f, overrun: 0.4));
+            Assert.Null(TrickRun.PickHeading(Jump, Vector2.Zero, 90f, strip, 0.5f, overrun: 1.0));
         }
 
         [Test]
